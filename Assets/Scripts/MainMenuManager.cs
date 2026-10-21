@@ -10,7 +10,7 @@ public class MainMenuManager : MonoBehaviour
     {
         string studentName = PlayerPrefs.GetString("StudentName", "Student");
 
-        welcomeText.text = "WELCOME, " + studentName.ToUpper() + "!";
+        welcomeText.text = "WELCOME TO CHEMQUEST\n" + studentName.ToUpper();
     }
 
     public void PlayGame()

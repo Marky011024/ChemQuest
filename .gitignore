@@ -34,3 +34,8 @@ sysinfo.txt
 Backup/
 *.slnx
 UpgradeLog.htm
+# Old Unity cache and recovery scenes
+/Library_Old /
+/Assets/_Recovery/
+
+/Library_Old/
