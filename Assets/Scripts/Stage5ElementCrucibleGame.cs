@@ -205,7 +205,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
             new Vector2(270,61),new Color32(45,83,123,255));
         failPanel.SetActive(false);
         completePanel=Modal(canvasGO.transform,"CompletePanel",
-            Level==3?"ALL STAGES COMPLETE!":"LEVEL COMPLETE!",
+            Level==3?"ELEMENT CRUCIBLE COMPLETE!":"LEVEL COMPLETE!",
             "Workbench observations recorded successfully.");
         Txt(completePanel.transform,"FinalScore","FINAL SCORE 000000",27,
             new Vector2(0,-33),new Vector2(640,50),Gold);
@@ -335,6 +335,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         for(int i=0;i<3;i++){examined[i]=classified[i]=false;selectedBin[i]=-1;
             for(int j=0;j<3;j++)probed[i,j]=false;}
         UpdateEvidence();
+        RefreshBins();
         if(feedback!=null)feedback.text=Instructions;
     }
     public void DropSample(int sample,int bin)
@@ -343,9 +344,26 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         if(bin<0){LoadSample(sample);return;}
         if(Level!=3)return;
         selectedBin[sample]=bin;
+        RefreshBins();
         if(feedback!=null)feedback.text="Placed sample "+samples[sample]+
             " in "+(bin==0?"IONIC":bin==1?"MOLECULAR":"METALLIC")+" bin. Press CHECK to submit.";
     }
+    private void RefreshBins()
+    {
+        if(Level!=3)return;
+        for(int bin=0;bin<3;bin++)
+        {
+            var panel=Find(root,"Bin"+bin);
+            if(panel==null)continue;
+            string type=bin==0?"IONIC COMPOUND":bin==1?"COVALENT MOLECULE":"METALLIC ELEMENT";
+            string placed="";
+            for(int sample=0;sample<3;sample++)
+                if(selectedBin[sample]==bin)placed+=" "+samples[sample];
+            var label=Find(panel,"Label")?.GetComponent<TMP_Text>();
+            if(label!=null)label.text=type+(placed.Length>0?" |"+placed:"");
+        }
+    }
+
     private void LoadSample(int index)
     {
         if(!CanInteract)return;
@@ -414,9 +432,9 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         }
         for(int i=0;i<3;i++)
         {
-            if(!probed[i,0] || (i==1&&!probed[i,1]) || !probed[i,1] && i==0)
+            if(!probed[i,0] || !probed[i,1] || (i==1&&!probed[i,2]))
             {
-                Info("Record sufficient conductivity evidence before classification.");
+                Info("Test each sample in solid and molten states, plus aqueous solution for the ionic sample.");
                 return;
             }
         }
@@ -461,8 +479,10 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         {
             string value=Level==1?(examined[i]?thermal[i]:"NOT TESTED"):
                 Level==2?(examined[i]?mechanical[i]:"NEEDS STRIKE + PRESS"):
-                ("Probe: "+(probed[i,0]?"Solid ✓":"Solid ?")+" "+
-                (probed[i,1]?"Molten ✓":"Molten ?"));
+                ("Thermal: "+thermal[i]+"\\nMechanical: "+mechanical[i]+"\\nProbe: "+
+                 (probed[i,0]?"Solid tested":"Solid ?")+" / "+
+                 (probed[i,1]?"Molten tested":"Molten ?")+
+                 (i==1?(probed[i,2]?" / Aqueous tested":" / Aqueous ?"):""));
             text+=samples[i]+": "+value+"\n\n";
         }
         evidenceText.text=text;
