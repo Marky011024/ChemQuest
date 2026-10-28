@@ -6,6 +6,75 @@ using UnityEngine.SceneManagement;
 
 public static class ChemQuestStage4Builder
 {
+    private static void RegisterStage4Scenes()
+    {
+        var list=new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
+        var required=new [] {
+            "Assets/Scenes/StageSelection.unity",
+            "Assets/Scenes/Stage4LevelSelection.unity",
+            "Assets/Scenes/Stage4Level1.unity",
+            "Assets/Scenes/Stage4Level2.unity",
+            "Assets/Scenes/Stage4Level3.unity"
+        };
+        foreach(var path in required)
+        {
+            if(AssetDatabase.LoadAssetAtPath<SceneAsset>(path)==null)
+            {
+                Debug.LogWarning("Missing Stage 4 navigation scene: "+path);
+                continue;
+            }
+            int index=list.FindIndex(x=>x.path==path);
+            if(index<0)list.Add(new EditorBuildSettingsScene(path,true));
+            else if(!list[index].enabled)
+                list[index]=new EditorBuildSettingsScene(path,true);
+        }
+        EditorBuildSettings.scenes=list.ToArray();
+        Debug.Log("ChemQuest Stage 4: navigation scenes registered in Build Settings.");
+    }
+
+    [MenuItem("Tools/ChemQuest/Fix Stage 4 Buttons and Navigation")]
+    public static void FixNavigation()
+    {
+        if(EditorApplication.isPlaying)
+        {
+            EditorUtility.DisplayDialog("ChemQuest","Exit Play Mode before fixing navigation.","OK");
+            return;
+        }
+        EditorSceneManager.SaveOpenScenes();
+        RegisterStage4Scenes();
+        int saved=0;
+        foreach(var sceneName in new[]{"Stage4LevelSelection","Stage4Level1","Stage4Level2","Stage4Level3"})
+        {
+            string path="Assets/Scenes/"+sceneName+".unity";
+            if(AssetDatabase.LoadAssetAtPath<SceneAsset>(path)==null)continue;
+            var scene=EditorSceneManager.OpenScene(path,OpenSceneMode.Single);
+            if(sceneName=="Stage4LevelSelection")
+            {
+                var controller=GameObject.Find("Stage4LevelSelectionController");
+                if(controller==null)controller=new GameObject("Stage4LevelSelectionController");
+                if(controller.GetComponent<Stage4LevelSelectionManager>()==null)
+                    controller.AddComponent<Stage4LevelSelectionManager>();
+                foreach(var old in Object.FindObjectsOfType<Stage1LevelSelectionManager>(true))
+                    Object.DestroyImmediate(old);
+            }
+            else
+            {
+                var controller=GameObject.Find(sceneName+"Controller");
+                if(controller==null)continue;
+                var game=controller.GetComponent<Stage4ElectronOceanGame>();
+                if(game==null)continue;
+                game.EnsureNavigationButtons();
+                EditorUtility.SetDirty(game);
+            }
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            saved++;
+        }
+        EditorUtility.DisplayDialog("ChemQuest",
+            "Stage 4 navigation setup updated in "+saved+" scenes. Level buttons reconnect on Play. Test Level 1 completion and Next Level.",
+            "OK");
+    }
+
     [MenuItem("Tools/ChemQuest/Refresh Stage 4 Gameplay Layout")]
     public static void RefreshGameplay()
     {
@@ -15,6 +84,7 @@ public static class ChemQuestStage4Builder
             return;
         }
         EditorSceneManager.SaveOpenScenes();
+        RegisterStage4Scenes();
         int updated=0;
         for(int level=1;level<=3;level++)
         {

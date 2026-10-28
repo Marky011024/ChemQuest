@@ -506,6 +506,35 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             module.AssignDefaultActions();
         }
     }
+    // Keeps all completion/navigation controls visible as editable scene objects.
+    // Runtime Bind() attaches the actual OnClick handlers whenever scene opens.
+    public void EnsureNavigationButtons()
+    {
+        var root=GameObject.Find("Stage4Level"+Level+"Canvas");
+        if(root==null)return;
+        foreach(var name in new[]{"NextButton","LevelSelectButton","LevelSelectionButton",
+            "StageSelectionButton","FailedLevelSelectionButton","EnergyBackButton","RetryButton"})
+        {
+            var target=Find(root.transform,name);
+            if(target==null)
+            {
+                Debug.LogWarning("Stage 4 Level "+Level+" missing navigation button: "+name);
+                continue;
+            }
+            var button=target.GetComponent<Button>();
+            if(button==null)button=target.gameObject.AddComponent<Button>();
+            button.interactable=true;
+            var image=target.GetComponent<Image>();
+            if(image!=null)
+            {
+                image.raycastTarget=true;
+                if(button.targetGraphic==null)button.targetGraphic=image;
+            }
+            var text=target.GetComponentInChildren<TMP_Text>(true);
+            if(text!=null)text.raycastTarget=false;
+        }
+    }
+
     private void Bind()
     {
         var root=GameObject.Find("Stage4Level"+Level+"Canvas");
@@ -559,6 +588,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         Wire(t,"LevelSelectButton",()=>Go("Stage4LevelSelection"));
         Wire(t,"NextButton",()=>Go(Level==3?"StageSelection":"Stage4Level"+(Level+1)));
         Wire(t,"EnergyBackButton",()=>Go("Stage4LevelSelection"));
+        EnsureNavigationButtons();
         Wire(t,"CopperButton",()=>SelectMetal("Cu"));
         Wire(t,"MagnesiumButton",()=>SelectMetal("Mg"));
         Wire(t,"VoltageSwitch",ToggleVoltage);
