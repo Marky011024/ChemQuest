@@ -54,6 +54,7 @@ public static class ChemQuestStage4Builder
                 game.PauseButtonPrefab=pauseButton;
                 game.PauseMenuPrefab=pauseMenu;
                 game.BuildEditorScene();
+                game.PolishEditorScene();
                 EditorUtility.SetDirty(game);
             }
             EditorSceneManager.MarkSceneDirty(scene);
