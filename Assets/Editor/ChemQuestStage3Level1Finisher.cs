@@ -27,6 +27,23 @@ public static class ChemQuestStage3Level1Finisher
             EditorUtility.DisplayDialog("ChemQuest", "Stage3Level1CompleteManager not found. Existing scene was not deleted.", "OK");
             return;
         }
+        // Repair all H2 and H2O electron references, including H2Electron2,
+        // without replacing any existing puzzle GameObjects.
+        int repaired=0;
+        foreach(var electron in Object.FindObjectsOfType<H2DraggableElectron>(true))
+        {
+            var serializedElectron=new SerializedObject(electron);
+            var field=serializedElectron.FindProperty("completeManager");
+            if(field!=null && field.objectReferenceValue==null)
+            {
+                field.objectReferenceValue=manager;
+                serializedElectron.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(electron);
+                repaired++;
+            }
+        }
+        Debug.Log("Stage 3 Level 1: repaired "+repaired+" missing electron manager references.");
+
         var properties=new SerializedObject(hud);
         properties.FindProperty("completeManager").objectReferenceValue=manager;
         var button=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/PauseButton.prefab");
