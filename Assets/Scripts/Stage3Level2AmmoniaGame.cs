@@ -11,6 +11,7 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
 {
     private readonly List<Button> electronButtons = new List<Button>();
     private readonly List<TMP_Text> slotTexts = new List<TMP_Text>();
+    private readonly List<TMP_Text> electronPairVisuals = new List<TMP_Text>();
     private readonly List<Image> energyIcons = new List<Image>();
     private TMP_Text scoreText, feedbackText;
     private GameObject failurePanel, completionPanel, pausePanel;
@@ -101,13 +102,16 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         var canvas = root.GetComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         var scaler = root.GetComponent<CanvasScaler>(); scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1280, 720);
+        // Fit the whole HUD in a short Game view instead of cropping the buttons.
+        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+        scaler.matchWidthOrHeight = 1f;
         var bg = Rectangle(root.transform, "Background", Vector2.zero, new Vector2(1280, 720), Background);
         bg.rectTransform.anchorMin = Vector2.zero; bg.rectTransform.anchorMax = Vector2.one;
         bg.rectTransform.offsetMin = Vector2.zero; bg.rectTransform.offsetMax = Vector2.zero;
 
         Label(root.transform, "Title", "STAGE 3  |  LEVEL 2", 24, new Vector2(0, 316), new Vector2(850, 44), Accent);
         Label(root.transform, "Subtitle", "AMMONIA MOLECULE BUILDER - NH<sub>3</sub>", 31, new Vector2(0, 263), new Vector2(950, 52), Color.white);
-        Label(root.transform, "Instructions", "Build three N-H shared electron pairs and ONE nitrogen lone pair.\nSelect a slot, then tap its electron button. Each slot needs 2 electrons.", 19, new Vector2(0, 199), new Vector2(990, 66), new Color32(196, 220, 239, 255));
+        Label(root.transform, "Instructions", "NH<sub>3</sub>: Nitrogen has 5 valence electrons, and each H has 1.\nForm three shared pairs (3 N-H single bonds) and one lone pair on N.", 19, new Vector2(0, 199), new Vector2(990, 66), new Color32(196, 220, 239, 255));
 
         scoreText = Label(root.transform, "Score", "SCORE\n000000", 22, new Vector2(535, 299), new Vector2(160, 73), Gold);
         for (int i=0;i<5;i++)
@@ -118,9 +122,11 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         Label(root.transform, "HydrogenLeft", "H", 60, new Vector2(-327, 22), new Vector2(90, 95), Color.white);
         Label(root.transform, "HydrogenRight", "H", 60, new Vector2(326, 22), new Vector2(90, 95), Color.white);
         Label(root.transform, "HydrogenBottom", "H", 60, new Vector2(0, -145), new Vector2(90, 90), Color.white);
-        Label(root.transform, "BondL", "---", 46, new Vector2(-165, 15), new Vector2(130, 60), Gold);
-        Label(root.transform, "BondR", "---", 46, new Vector2(166, 15), new Vector2(130, 60), Gold);
-        Label(root.transform, "BondB", "|", 46, new Vector2(0, -82), new Vector2(50, 60), Gold);
+        // Show electrons explicitly as Lewis dots, not three dashes (which imply triple bonds).
+        electronPairVisuals.Add(Label(root.transform, "SharedPairLeft", "", 46, new Vector2(-165, 15), new Vector2(130, 60), Gold));
+        electronPairVisuals.Add(Label(root.transform, "SharedPairRight", "", 46, new Vector2(166, 15), new Vector2(130, 60), Gold));
+        electronPairVisuals.Add(Label(root.transform, "SharedPairBottom", "", 46, new Vector2(0, -82), new Vector2(130, 60), Gold));
+        electronPairVisuals.Add(Label(root.transform, "LonePairOnNitrogen", "", 42, new Vector2(0, 77), new Vector2(130, 55), Gold));
         var names = new [] { "LEFT N-H BOND", "RIGHT N-H BOND", "BOTTOM N-H BOND", "N LONE PAIR" };
         var positions = new [] { new Vector2(-235,86), new Vector2(235,86), new Vector2(175,-94), new Vector2(0,124) };
         for (int i=0;i<4;i++)
@@ -167,7 +173,8 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         if (!CanPlay() || slots[slot]>=2) return;
         slots[slot]++;
         slotTexts[slot].text=new[]{"LEFT N-H BOND","RIGHT N-H BOND","BOTTOM N-H BOND","N LONE PAIR"}[slot]+"\n"+slots[slot]+" / 2";
-        feedbackText.text="Electron placed. Complete all four pairs and press CHECK.";
+        electronPairVisuals[slot].text = slots[slot] == 1 ? "•" : "• •";
+        feedbackText.text="Electron placed. Three bonding pairs + one lone pair = NH<sub>3</sub>.";
     }
 
     private bool CanPlay() => !paused && !failed && !completed && EnergyManager.Instance != null && EnergyManager.Instance.HasEnergy;
@@ -214,6 +221,7 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         {
             slots[i]=0;
             slotTexts[i].text=new[]{"LEFT N-H BOND","RIGHT N-H BOND","BOTTOM N-H BOND","N LONE PAIR"}[i]+"\n0 / 2";
+            electronPairVisuals[i].text="";
         }
         if(feedback) feedbackText.text="Pairs reset. No wrong attempt charged.";
     }
