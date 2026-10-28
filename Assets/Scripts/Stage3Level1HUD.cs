@@ -12,6 +12,12 @@ public class Stage3Level1HUD : MonoBehaviour
     [SerializeField] private GameObject pauseMenuPrefab;
     [Header("Stage 3 Level 1")]
     [SerializeField] private Stage3Level1CompleteManager completeManager;
+    [Header("Editable Scene UI (created by Finisher)")]
+    [SerializeField] private Button scenePauseButton;
+    [SerializeField] private GameObject scenePausePanel;
+    [SerializeField] private GameObject sceneOutOfEnergyPanel;
+    [SerializeField] private TMP_Text sceneTimerText;
+    [SerializeField] private TMP_Text sceneHintText;
     private GameObject menuPanel, noEnergyPanel;
     private TMP_Text timerLabel;
     private float nextRefresh;
@@ -23,6 +29,35 @@ public class Stage3Level1HUD : MonoBehaviour
         DisableOriginalPauseButton();
         if (completeManager == null)
             completeManager = FindObjectOfType<Stage3Level1CompleteManager>();
+
+        if(scenePauseButton != null && scenePausePanel != null &&
+           sceneOutOfEnergyPanel != null && sceneHintText != null)
+        {
+            // The HUD now exists as editable scene objects.
+            scenePauseButton.onClick.RemoveAllListeners();
+            scenePauseButton.onClick.AddListener(PauseGame);
+            menuPanel=scenePausePanel;
+            noEnergyPanel=sceneOutOfEnergyPanel;
+            timerLabel=sceneTimerText;
+            ConnectMenuButton(noEnergyPanel,"BackToSelectionButton",
+                ()=>GoTo("Stage3LevelSelection"));
+            ConnectMenuButton(menuPanel,"ContinueButton",ResumeGame);
+            ConnectMenuButton(menuPanel,"LevelSelectionButton",
+                ()=>GoTo("Stage3LevelSelection"));
+            ConnectMenuButton(menuPanel,"StageSelectionButton",
+                ()=>GoTo("StageSelection"));
+            foreach(var b in menuPanel.GetComponentsInChildren<Button>(true))
+                if(b.gameObject.name=="StageSelectionButton")
+                {
+                    var t=b.GetComponentInChildren<TMP_Text>(true);
+                    if(t!=null)t.text="STAGE SELECTION";
+                }
+            menuPanel.SetActive(false);
+            noEnergyPanel.SetActive(false);
+            if(completeManager!=null)completeManager.AssignFeedbackText(sceneHintText);
+            UpdateEnergyUI();
+            return;
+        }
 
         var canvasGO = new GameObject("Stage3Level1HUDCanvas",
             typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));

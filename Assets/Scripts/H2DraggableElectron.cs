@@ -24,12 +24,22 @@ public class H2DraggableElectron : MonoBehaviour,
         rectTransform = GetComponent<RectTransform>();
         canvas = GetComponentInParent<Canvas>();
         canvasGroup = GetComponent<CanvasGroup>();
+        // Some Stage 3 Level 1 electron objects were missing this Inspector reference.
+        // Resolve it safely so a single unassigned electron cannot become undraggable.
+        EnsureCompleteManager();
 
         startPosition = rectTransform.anchoredPosition;
     }
 
+    private void EnsureCompleteManager()
+    {
+        if (completeManager == null)
+            completeManager = FindObjectOfType<Stage3Level1CompleteManager>();
+    }
+
     public void OnBeginDrag(PointerEventData eventData)
     {
+        EnsureCompleteManager();
         dragStarted = CanDrag;
         if (!dragStarted) return;
 
