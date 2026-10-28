@@ -1,64 +1,80 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-// A lightweight, editable Unity UI Bohr diagram. No external sprite required.
-// Shows occupied shells and valence changes during ionic electron transfer.
+// Editable Bohr diagram matching ChemQuest Stage 2 manuscript:
+// thin concentric orbits, consistent electron spacing, filled nucleus.
 [RequireComponent(typeof(RectTransform),typeof(CanvasRenderer))]
 public class Stage2BohrAtomView : MaskableGraphic
 {
     [SerializeField] private int[] electronsPerShell = {2,8,1};
-    private const int Steps=56;
-    private const float Width=1.1f;
+    private const int Segments = 96;
+    private static readonly Color32 OrbitColor = new Color32(127,182,225,225);
+    private static readonly Color32 ElectronColor = new Color32(255,219,107,255);
+    private static readonly Color32 CoreColor = new Color32(26,72,112,255);
+    private static readonly Color32 GlowColor = new Color32(68,178,220,42);
+
     public void SetShells(params int[] shells)
     {
-        electronsPerShell=shells;
+        electronsPerShell = shells;
         SetVerticesDirty();
     }
+
     protected override void OnPopulateMesh(VertexHelper vh)
     {
         vh.Clear();
-        if(electronsPerShell==null)return;
-        float radiusStep=15.5f;
+        if(electronsPerShell == null || electronsPerShell.Length==0)return;
         int count=electronsPerShell.Length;
-        var rings=new Color32(120,190,230,205);
-        var electron=new Color32(255,207,85,255);
-        for(int s=0;s<count;s++)
+        // Both three- and four-shell atoms remain within a 170x170 drawing.
+        float step=count>=4?19f:24.5f;
+        float core=14f;
+        Disc(vh,Vector2.zero,core+3f,GlowColor,48);
+        Disc(vh,Vector2.zero,core,CoreColor,48);
+        for(int shell=0;shell<count;shell++)
         {
-            float radius=(s+1)*radiusStep;
-            for(int i=0;i<Steps;i++)
+            float r=(shell+1)*step;
+            Ring(vh,r,1.05f,OrbitColor);
+            int n=Mathf.Clamp(electronsPerShell[shell],0,32);
+            // Shell with no electrons is omitted visually: no empty 4th orbit
+            // when Na/K/Mg has donated its outer electron(s).
+            if(n==0)continue;
+            float phase=shell%2==0?Mathf.PI/2f:Mathf.PI/2f+0.22f;
+            for(int j=0;j<n;j++)
             {
-                float a=i*2*Mathf.PI/Steps;
-                float b=(i+1)*2*Mathf.PI/Steps;
-                var directionA=new Vector2(Mathf.Cos(a),Mathf.Sin(a));
-                var directionB=new Vector2(Mathf.Cos(b),Mathf.Sin(b));
-                AddQuad(vh,directionA*(radius-Width),directionA*(radius+Width),
-                    directionB*(radius+Width),directionB*(radius-Width),rings);
-            }
-            int e=Mathf.Clamp(electronsPerShell[s],0,32);
-            for(int j=0;j<e;j++)
-            {
-                float a=(j+0.5f)*2*Mathf.PI/e + Mathf.PI*.5f;
-                AddCircle(vh,new Vector2(Mathf.Cos(a),Mathf.Sin(a))*radius,3.3f,electron);
+                float angle=2*Mathf.PI*j/n + phase;
+                Vector2 center=new Vector2(Mathf.Cos(angle),Mathf.Sin(angle))*r;
+                Disc(vh,center,5.7f,CoreColor,20);
+                Disc(vh,center,3.75f,ElectronColor,20);
             }
         }
     }
-    private static void AddQuad(VertexHelper vh,Vector2 a,Vector2 b,Vector2 c,Vector2 d,Color32 tint)
+
+    private static void Ring(VertexHelper vh,float radius,float thickness,Color32 color)
     {
-        int n=vh.currentVertCount;
-        vh.AddVert(a,tint,Vector2.zero);vh.AddVert(b,tint,Vector2.zero);
-        vh.AddVert(c,tint,Vector2.zero);vh.AddVert(d,tint,Vector2.zero);
-        vh.AddTriangle(n,n+1,n+2);vh.AddTriangle(n,n+2,n+3);
-    }
-    private static void AddCircle(VertexHelper vh,Vector2 center,float radius,Color32 tint)
-    {
-        const int sides=12;
-        int n=vh.currentVertCount;
-        vh.AddVert(center,tint,Vector2.zero);
-        for(int k=0;k<=sides;k++)
+        for(int j=0;j<Segments;j++)
         {
-            float a=k*2*Mathf.PI/sides;
-            vh.AddVert(center+new Vector2(Mathf.Cos(a),Mathf.Sin(a))*radius,tint,Vector2.zero);
+            float a=j*2*Mathf.PI/Segments,b=(j+1)*2*Mathf.PI/Segments;
+            Vector2 va=new Vector2(Mathf.Cos(a),Mathf.Sin(a));
+            Vector2 vb=new Vector2(Mathf.Cos(b),Mathf.Sin(b));
+            Quad(vh,va*(radius-thickness),va*(radius+thickness),
+                vb*(radius+thickness),vb*(radius-thickness),color);
         }
-        for(int k=0;k<sides;k++)vh.AddTriangle(n,n+1+k,n+2+k);
+    }
+    private static void Disc(VertexHelper vh,Vector2 center,float radius,Color32 color,int steps)
+    {
+        int start=vh.currentVertCount;
+        vh.AddVert(center,color,Vector2.zero);
+        for(int i=0;i<=steps;i++)
+        {
+            float a=2*Mathf.PI*i/steps;
+            vh.AddVert(center+new Vector2(Mathf.Cos(a),Mathf.Sin(a))*radius,color,Vector2.zero);
+        }
+        for(int i=0;i<steps;i++)vh.AddTriangle(start,start+i+1,start+i+2);
+    }
+    private static void Quad(VertexHelper vh,Vector2 a,Vector2 b,Vector2 c,Vector2 d,Color32 color)
+    {
+        int start=vh.currentVertCount;
+        vh.AddVert(a,color,Vector2.zero);vh.AddVert(b,color,Vector2.zero);
+        vh.AddVert(c,color,Vector2.zero);vh.AddVert(d,color,Vector2.zero);
+        vh.AddTriangle(start,start+1,start+2);vh.AddTriangle(start,start+2,start+3);
     }
 }
