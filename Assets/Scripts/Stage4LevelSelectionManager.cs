@@ -12,7 +12,7 @@ public class Stage4LevelSelectionManager : MonoBehaviour
     private void Start()
     {
         var root=GameObject.Find("Stage4LevelSelectionCanvas");
-        if(root==null)BuildEditorScene();
+        if(root==null && GameObject.Find("StageSelectUI")==null)BuildEditorScene();
         Bind();
     }
 
