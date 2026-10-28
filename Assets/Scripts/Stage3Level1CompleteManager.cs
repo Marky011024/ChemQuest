@@ -155,7 +155,7 @@ public class Stage3Level1CompleteManager : MonoBehaviour
 
     public bool CanInteract()
     {
-        return !levelCompleted &&
+        return Time.timeScale > 0f && !levelCompleted &&
                !runFailed &&
                (energyManager == null ||
                 !energyManager.IsOutOfEnergy);
