@@ -201,7 +201,7 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
     {
         string[] names={"LEFT N-H","RIGHT N-H","BOTTOM N-H","N LONE PAIR"};
         if(index<slotTexts.Count && slotTexts[index]!=null)
-            slotTexts[index].text=names[index]+"\\n"+slots[index]+" / 2  •  DRAG HERE";
+            slotTexts[index].text=names[index]+"\n"+slots[index]+" / 2  •  DRAG HERE";
         if(index<electronPairVisuals.Count && electronPairVisuals[index]!=null)
             electronPairVisuals[index].text=slots[index]==0?"○  ○":
                 slots[index]==1?"●  ○":"●  ●";
@@ -223,7 +223,7 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
             var button=zone.GetComponent<Button>();
             if(button!=null)button.interactable=false; // UI Image remains a drop target.
             var text=zone.Find("Count")?.GetComponent<TMP_Text>();
-            if(text!=null)text.text=names[i]+"\\n0 / 2  •  DRAG HERE";
+            if(text!=null)text.text=names[i]+"\n0 / 2  •  DRAG HERE";
         }
         var bank=FindUI(root,"ElectronBank");
         if(bank==null)
@@ -255,7 +255,7 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         if(feedback!=null)feedback.anchoredPosition=new Vector2(0,-282);
         var instruction=FindUI(root,"Instructions")?.GetComponent<TMP_Text>();
         if(instruction!=null)
-            instruction.text="Drag 5 blue N electrons and 3 yellow H electrons.\\nEach N-H bond needs N+H; the lone pair needs N+N.";
+            instruction.text="Drag 5 blue N electrons and 3 yellow H electrons.\nEach N-H bond needs N+H; the lone pair needs N+N.";
     }
 
     private void SetupInputSystem()
