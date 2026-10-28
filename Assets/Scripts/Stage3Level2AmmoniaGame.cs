@@ -15,6 +15,8 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
     private readonly List<Image> energyIcons = new List<Image>();
     [Header("Stage 1 Assets")]
     [SerializeField] private Sprite energySprite;
+    [SerializeField] private GameObject stage1PauseButtonPrefab;
+    [SerializeField] private GameObject stage1PauseMenuPrefab;
     private TMP_Text scoreText, feedbackText;
     private GameObject failurePanel, completionPanel, pausePanel;
     private Button retryButton;
@@ -173,8 +175,29 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         feedbackText=Label(root.transform,"Feedback","Place two electrons into each of the four labeled slots.",18,new Vector2(0,-251),new Vector2(1000,41),Gold);
         MakeButton(root.transform,"CheckButton","CHECK MOLECULE",new Vector2(0,-318),new Vector2(260,54),CheckAnswer,new Color32(9,131,132,255));
         MakeButton(root.transform,"ResetButton","RESET",new Vector2(-270,-318),new Vector2(180,54),ResetPairs,new Color32(85,94,124,255));
-        // Stage 1 style: pause/menu available from the top-left of the gameplay screen.
-        MakeButton(root.transform,"PauseButton","☰  MENU",new Vector2(-532,222),new Vector2(160,52),Pause,new Color32(40,74,108,255));
+        // Use the SAME exact hamburger/menu prefab as Stage 1.
+        if(stage1PauseButtonPrefab != null)
+        {
+            var menuButton=Instantiate(stage1PauseButtonPrefab,root.transform,false);
+            menuButton.name="PauseButton";
+            var rect=menuButton.GetComponent<RectTransform>();
+            if(rect!=null)
+            {
+                rect.anchorMin=new Vector2(0,1);
+                rect.anchorMax=new Vector2(0,1);
+                rect.pivot=new Vector2(0.5f,0.5f);
+                rect.anchoredPosition=new Vector2(62,-63);
+            }
+            var button=menuButton.GetComponent<Button>();
+            if(button!=null)
+            {
+                button.onClick=new Button.ButtonClickedEvent();
+                button.onClick.AddListener(Pause);
+            }
+        }
+        else
+            MakeButton(root.transform,"PauseButton","MENU",new Vector2(-532,222),
+                new Vector2(160,52),Pause,new Color32(40,74,108,255));
 
         // Match Stage 1: centered 700x400 failure card, large retry beneath title.
         failurePanel=ModalPanel(root.transform,"Level2FailedPanel","STAGE FAILED!",
@@ -197,15 +220,53 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
             ()=>Navigate("Stage3Level3"),new Color32(9,131,132,255));
         completionPanel.SetActive(false);
 
-        // The same centered menu format, with pause, resume, stage selection.
-        pausePanel=ModalPanel(root.transform,"PauseMenuPanel","GAME PAUSED","Choose an option below.");
-        MakeButton(pausePanel.transform,"ResumeButton","RESUME",new Vector2(0,-12),
-            new Vector2(260,58),Resume,new Color32(9,131,132,255));
-        MakeButton(pausePanel.transform,"LevelSelectButton","LEVEL SELECTION",
-            new Vector2(0,-91),new Vector2(280,58),()=>Navigate("Stage3LevelSelection"),new Color32(69,88,122,255));
-        MakeButton(pausePanel.transform,"StageSelectButton","SELECT STAGE",
-            new Vector2(0,-161),new Vector2(280,55),()=>Navigate("StageSelection"),new Color32(69,88,122,255));
+        // Exact Stage 1 pause panel prefab, with this level's own navigation.
+        if(stage1PauseMenuPrefab!=null)
+        {
+            pausePanel=Instantiate(stage1PauseMenuPrefab,root.transform,false);
+            pausePanel.name="PauseMenuPanel";
+            var rect=pausePanel.GetComponent<RectTransform>();
+            if(rect!=null)
+            {
+                rect.anchorMin=Vector2.zero;
+                rect.anchorMax=Vector2.one;
+                rect.pivot=new Vector2(0.5f,0.5f);
+                rect.offsetMin=Vector2.zero;
+                rect.offsetMax=Vector2.zero;
+            }
+            WireMenuButton(pausePanel.transform,"ContinueButton",Resume);
+            WireMenuButton(pausePanel.transform,"LevelSelectionButton",
+                ()=>Navigate("Stage3LevelSelection"));
+            WireMenuButton(pausePanel.transform,"StageSelectionButton",
+                ()=>Navigate("StageSelection"));
+        }
+        else
+        {
+            pausePanel=ModalPanel(root.transform,"PauseMenuPanel","GAME PAUSED",
+                "Choose an option below.");
+            MakeButton(pausePanel.transform,"ResumeButton","RESUME",new Vector2(0,-12),
+                new Vector2(260,58),Resume,new Color32(9,131,132,255));
+            MakeButton(pausePanel.transform,"LevelSelectButton","LEVEL SELECTION",
+                new Vector2(0,-91),new Vector2(280,58),
+                ()=>Navigate("Stage3LevelSelection"),new Color32(69,88,122,255));
+            MakeButton(pausePanel.transform,"StageSelectButton","SELECT STAGE",
+                new Vector2(0,-161),new Vector2(280,55),
+                ()=>Navigate("StageSelection"),new Color32(69,88,122,255));
+        }
         pausePanel.SetActive(false);
+    }
+
+    private void WireMenuButton(Transform parent,string objectName,Action callback)
+    {
+        foreach(var button in parent.GetComponentsInChildren<Button>(true))
+        {
+            if(button.gameObject.name!=objectName)continue;
+            // Replace original prefab's persistent Stage 1 scene bindings.
+            button.onClick=new Button.ButtonClickedEvent();
+            button.onClick.AddListener(()=>callback());
+            return;
+        }
+        Debug.LogWarning("Stage 1 pause prefab button missing: "+objectName);
     }
 
     private GameObject ModalPanel(Transform parent,string name,string heading,string description)
