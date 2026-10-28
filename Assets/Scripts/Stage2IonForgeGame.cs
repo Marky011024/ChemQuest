@@ -204,15 +204,24 @@ public class Stage2IonForgeGame : MonoBehaviour
             "Na loses 1 e- to become Na+. Cl gains 1 e- to become Cl-.":
             "Mg loses 2 e- to become Mg2+. O gains 2 e- to become O2-.",
             18,new Vector2(0,-52),new Vector2(900,48),Color.white);
+        // Electrons are physically placed on the donor Bohr model's outer shell.
+        // Drop zones sit on the acceptor's outer shell, as in the manuscript figure.
         for(int i=0;i<Needed;i++)
         {
-            float x=(i-(Needed-1)/2f)*115f;
-            Zone(parent,"ElectronReceiver"+i,0,
-                new Vector2(265+x,-112),new Vector2(113,61));
-            Token(parent,"DonorElectron"+i,0,
-                new Vector2(-301+x,-112),new Vector2(80,59),
+            var receiver=Zone(parent,"ElectronReceiver"+i,0,
+                Level==1?new Vector2(328,84):
+                    (i==0?new Vector2(324,84):new Vector2(333,12)),
+                new Vector2(71,71));
+            receiver.SlotIndex=i;
+            var zoneImage=receiver.GetComponent<Image>();
+            zoneImage.color=new Color32(60,180,218,45);
+            var label=receiver.GetComponentInChildren<TMP_Text>(true);
+            if(label!=null)label.text="";
+            var token=Token(parent,"DonorElectron"+i,0,
+                new Vector2(-248,57+(i==0?48:-48)),new Vector2(31,31),
                 new Color32(248,193,71,255),"e-");
         }
+
     }
     private void BuildLattice(Transform parent)
     {
@@ -236,21 +245,23 @@ public class Stage2IonForgeGame : MonoBehaviour
         }
     }
 
-    private void Zone(Transform parent,string name,int kind,Vector2 pos,Vector2 size)
+    private Stage2IonDropZone Zone(Transform parent,string name,int kind,Vector2 pos,Vector2 size)
     {
         var img=Image(parent,name,pos,size,new Color32(42,88,122,255));
         var zone=img.gameObject.AddComponent<Stage2IonDropZone>();
         zone.RequiredKind=kind;
-        Label(img.transform,"SlotLabel",kind==0?"DROP e-":kind==1?"DROP +":"DROP -",
+        Label(img.transform,"SlotLabel",kind==0?"":kind==1?"DROP +":"DROP -",
             18,Vector2.zero,size,Gold);
+        return zone;
     }
-    private void Token(Transform parent,string name,int kind,Vector2 pos,Vector2 size,Color color,string symbol)
+    private Stage2IonDraggable Token(Transform parent,string name,int kind,Vector2 pos,Vector2 size,Color color,string symbol)
     {
         var img=Image(parent,name,pos,size,color);
         img.gameObject.AddComponent<CanvasGroup>();
         var drag=img.gameObject.AddComponent<Stage2IonDraggable>();
         drag.Kind=kind;
-        Label(img.transform,"Symbol",symbol,25,Vector2.zero,size,new Color32(9,25,44,255));
+        Label(img.transform,"Symbol",symbol,kind==0?16:25,Vector2.zero,size,new Color32(9,25,44,255));
+        return drag;
     }
     private Image Image(Transform parent,string name,Vector2 pos,Vector2 size,Color color)
     {
@@ -375,7 +386,7 @@ public class Stage2IonForgeGame : MonoBehaviour
             if(p!=null)p.SetActive(false);
         if(scoreText!=null)scoreText.text="SCORE\\n000000";
         if(progressText!=null)progressText.text="PROGRESS  0 / "+Needed;
-        if(feedback!=null)feedback.text=Level<3?"SELECT A COMPOUND TO BEGIN (both variants required).":"Arrange alternating ions; every site matters.";
+        if(feedback!=null)feedback.text=Level<3?"SELECT THE ATOMS, THEN DRAG FROM THE DONOR OUTER SHELL INTO THE ACCEPTOR OUTER SHELL.":"Arrange alternating ions; every site matters.";
         if(Level<3)RefreshVariant();
     }
     // Editor-safe: upgrade existing saved scenes without deleting their UI or progress.
@@ -408,6 +419,16 @@ public class Stage2IonForgeGame : MonoBehaviour
             var choice=Find(root,name);
             if(choice!=null)choice.gameObject.SetActive(false);
         }
+        // Existing scenes are upgraded in place (no duplication on rebuild).
+        for(int i=0;i<Needed;i++)
+        {
+            var zone=Find(root,"ElectronReceiver"+i);
+            if(zone!=null)
+            {
+                var z=zone.GetComponent<Stage2IonDropZone>();
+                if(z!=null)z.SlotIndex=i;
+            }
+        }
         if(Find(root,"VariantAButton")==null)
         {
             Button(root,"VariantAButton",Level==1?"SELECT Na":"SELECT MgO",
@@ -423,6 +444,7 @@ public class Stage2IonForgeGame : MonoBehaviour
         if(instr!=null)instr.text=Instruction;
         var check=Find(board.transform,"CheckButton")?.GetComponentInChildren<TMP_Text>(true);
         if(check!=null)check.text="FORM BOND";
+        ArrangeElectronShellTargets();
     }
 
     private void UpgradeLattice(Transform board,Transform canvas)
@@ -537,6 +559,44 @@ public class Stage2IonForgeGame : MonoBehaviour
         }
     }
 
+    private void ArrangeElectronShellTargets()
+    {
+        if(Level>=3)return;
+        var canvas=GameObject.Find("Stage2Level"+Level+"Canvas");
+        if(canvas==null)return;
+        var board=Find(canvas.transform,"ExperimentBoard");
+        if(board==null)return;
+        for(int i=0;i<Needed;i++)
+        {
+            var z=Find(board,"ElectronReceiver"+i);
+            if(z==null)continue;
+            var rect=z.GetComponent<RectTransform>();
+            if(rect!=null)
+            {
+                // Both electrons reach oxygen on MgO; separate shells on MgCl2.
+                rect.anchoredPosition=Level==1?new Vector2(333,106):
+                    variant==1?(i==0?new Vector2(252,106):new Vector2(473,106)):
+                    new Vector2(333+(i==0?-21:21),106);
+                rect.sizeDelta=new Vector2(62,62);
+            }
+            var img=z.GetComponent<Image>();
+            if(img!=null){img.color=new Color32(63,197,228,38);img.raycastTarget=true;}
+            var lbl=z.GetComponentInChildren<TMP_Text>(true);
+            if(lbl!=null){lbl.text="";lbl.raycastTarget=false;}
+        }
+        for(int i=0;i<Needed;i++)
+        {
+            var token=Find(board,"DonorElectron"+i);
+            var rect=token?.GetComponent<RectTransform>();
+            if(rect!=null)
+            {
+                rect.anchoredPosition=Level==1?new Vector2(-234,111):
+                    new Vector2(-235,57+(i==0?54:-54));
+                rect.sizeDelta=new Vector2(32,32);
+            }
+        }
+    }
+
     private void EnsureVariantButtons(Transform root)
     {
         UpgradeChallengeUI();
@@ -571,19 +631,20 @@ public class Stage2IonForgeGame : MonoBehaviour
                     "Magnesium gives both valence electrons to oxygen so its outer shell reaches eight.");
         }
         RefreshShells();
-        if(Level==2)
-        {
-            foreach(var z in zones)
-            {
-                var txt=z.GetComponentInChildren<TMP_Text>(true);
-                if(txt!=null)txt.text=variant==1?"Cl +1 e-":"O +1 e-";
-            }
-        }
+        ArrangeElectronShellTargets();
         if(feedback!=null && variant>=0)
             feedback.text=Level==1?
                 "Selected "+(variant==1?"K + Cl":"Na + Cl")+". Outer shell electrons: donor 1; Cl 7. Drag into the outer shell.":
                 (variant==1?"Selected Mg + 2Cl. Mg has 2 outer electrons; each Cl has 7.":
                     "Selected Mg + O. Outer shell electrons: Mg 2; O 6.");
+    }
+
+    public bool CanReceiveElectronAt(int slot)
+    {
+        if(Level==3)return true;
+        if(variant<0 || accepted>=Needed)return false;
+        // MgCl2 requires one electron per chlorine shell, in order.
+        return slot==accepted;
     }
 
     public string GetAcceptedLabel(int kind) => kind==0?"e-":kind==1?"Na+":"Cl-";
