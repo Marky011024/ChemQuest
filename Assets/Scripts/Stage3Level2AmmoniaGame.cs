@@ -87,7 +87,7 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         bg.rectTransform.anchorMin = Vector2.zero; bg.rectTransform.anchorMax = Vector2.one;
         bg.rectTransform.offsetMin = Vector2.zero; bg.rectTransform.offsetMax = Vector2.zero;
 
-        Label(root.transform, "Title", "STAGE 3  |  LEVEL 2", 24, new Vector2(0, 316), Accent, new Vector2(850, 44));
+        Label(root.transform, "Title", "STAGE 3  |  LEVEL 2", 24, new Vector2(0, 316), new Vector2(850, 44), Accent);
         Label(root.transform, "Subtitle", "AMMONIA MOLECULE BUILDER - NH<sub>3</sub>", 31, new Vector2(0, 263), new Vector2(950, 52), Color.white);
         Label(root.transform, "Instructions", "Build three N-H shared electron pairs and ONE nitrogen lone pair.\nSelect a slot, then tap its electron button. Each slot needs 2 electrons.", 19, new Vector2(0, 199), new Vector2(990, 66), new Color32(196, 220, 239, 255));
 
