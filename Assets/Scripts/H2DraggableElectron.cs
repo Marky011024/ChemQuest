@@ -15,6 +15,9 @@ public class H2DraggableElectron : MonoBehaviour,
     private Vector2 startPosition;
 
     private bool accepted = false;
+    private bool dragStarted;
+    public bool IsAccepted => accepted;
+    public bool CanDrag => !accepted && completeManager != null && completeManager.CanInteract() && Time.timeScale > 0f;
 
     private void Awake()
     {
@@ -27,7 +30,8 @@ public class H2DraggableElectron : MonoBehaviour,
 
     public void OnBeginDrag(PointerEventData eventData)
     {
-        if (accepted) return;
+        dragStarted = CanDrag;
+        if (!dragStarted) return;
 
         canvasGroup.blocksRaycasts = false;
         rectTransform.SetAsLastSibling();
@@ -35,7 +39,7 @@ public class H2DraggableElectron : MonoBehaviour,
 
     public void OnDrag(PointerEventData eventData)
     {
-        if (accepted || canvas == null) return;
+        if (!dragStarted || !CanDrag || canvas == null) return;
 
         rectTransform.anchoredPosition +=
             eventData.delta / canvas.scaleFactor;
@@ -44,15 +48,15 @@ public class H2DraggableElectron : MonoBehaviour,
     public void OnEndDrag(PointerEventData eventData)
     {
         canvasGroup.blocksRaycasts = true;
+        bool countWrong = dragStarted && CanDrag;
+        dragStarted = false;
 
         if (!accepted)
         {
             // Record a wrong attempt if the electron
             // was not accepted by the bond zone.
-            if (completeManager != null)
-            {
+            if (countWrong)
                 completeManager.RegisterWrongAttempt();
-            }
 
             // Return electron to its original position.
             rectTransform.anchoredPosition = startPosition;
