@@ -21,7 +21,7 @@ public class Stage2IonForgeGame : MonoBehaviour
     private Button retryButton;
     private int accepted,mistakes;
     private int variant=-1;
-    private int chargeChoice=-1;
+
     private readonly bool[] finishedVariants=new bool[2];
     private TMP_Text titleLabel,instructionLabel,donorSymbol,acceptorSymbol,transferExplanation;
     private bool failed,completed,paused;
@@ -204,10 +204,6 @@ public class Stage2IonForgeGame : MonoBehaviour
             "Na loses 1 e- to become Na+. Cl gains 1 e- to become Cl-.":
             "Mg loses 2 e- to become Mg2+. O gains 2 e- to become O2-.",
             18,new Vector2(0,-52),new Vector2(900,48),Color.white);
-        Button(parent,"ChargeAButton","CHARGE A",new Vector2(-185,-172),
-            new Vector2(285,39),new Color32(56,78,116,255));
-        Button(parent,"ChargeBButton","CHARGE B",new Vector2(180,-172),
-            new Vector2(285,39),new Color32(56,78,116,255));
         for(int i=0;i<Needed;i++)
         {
             float x=(i-(Needed-1)/2f)*115f;
@@ -363,8 +359,6 @@ public class Stage2IonForgeGame : MonoBehaviour
         Wire(t,"CheckButton",CheckAnswer);
         Wire(t,"VariantAButton",()=>SelectVariant(0));
         Wire(t,"VariantBButton",()=>SelectVariant(1));
-        Wire(t,"ChargeAButton",()=>SelectCharge(0));
-        Wire(t,"ChargeBButton",()=>SelectCharge(1));
         Wire(t,"ResetButton",Reset);
         Wire(t,"Stage2PauseButton",Pause);
         Wire(t,"ContinueButton",Resume);
@@ -376,7 +370,7 @@ public class Stage2IonForgeGame : MonoBehaviour
         Wire(t,"CompletedLevelSelectionButton",()=>Navigate("Stage2LevelSelection"));
         Wire(t,"EnergyLevelSelectionButton",()=>Navigate("Stage2LevelSelection"));
         accepted=mistakes=0;paused=failed=completed=false;
-        variant=-1; chargeChoice=-1; finishedVariants[0]=finishedVariants[1]=false;
+        variant=-1; finishedVariants[0]=finishedVariants[1]=false;
         foreach(var p in new[]{pausePanel,failedPanel,completedPanel,energyPanel})
             if(p!=null)p.SetActive(false);
         if(scoreText!=null)scoreText.text="SCORE\\n000000";
@@ -409,12 +403,10 @@ public class Stage2IonForgeGame : MonoBehaviour
             EnsureShell(second.transform);
             second.gameObject.SetActive(false);
         }
-        if(Find(root,"ChargeAButton")==null)
+        foreach(var name in new[]{"ChargeAButton","ChargeBButton"})
         {
-            Button(root,"ChargeAButton","CHARGE A",new Vector2(-185,-172),
-                new Vector2(285,39),new Color32(56,78,116,255));
-            Button(root,"ChargeBButton","CHARGE B",new Vector2(180,-172),
-                new Vector2(285,39),new Color32(56,78,116,255));
+            var choice=Find(root,name);
+            if(choice!=null)choice.gameObject.SetActive(false);
         }
         if(Find(root,"VariantAButton")==null)
         {
@@ -559,19 +551,10 @@ public class Stage2IonForgeGame : MonoBehaviour
         }
         variant=v;
         accepted=0;
-        chargeChoice=-1;
         foreach(var item in tokens)item.Initialize(this);
         foreach(var item in zones)item.ResetZone();
         RefreshVariant();
     }
-    private void SelectCharge(int choice)
-    {
-        if(!CanInteract || Level>=3 || variant<0)return;
-        chargeChoice=choice;
-        if(feedback!=null)feedback.text="Charge option "+(choice==0?"A":"B")+
-            " chosen. Transfer all electrons, then press FORM BOND to verify.";
-    }
-
     private void RefreshVariant()
     {
         if(Level>=3)return;
@@ -583,20 +566,9 @@ public class Stage2IonForgeGame : MonoBehaviour
         if(transferExplanation!=null)
         {
             transferExplanation.text=Level==1?
-                "Donor has ONE outer electron; chlorine starts with SEVEN. Determine the resulting ion charges.":
-                (variant==1?"Magnesium gives one electron to EACH chlorine atom. Determine charges and the ratio.":
-                    "Magnesium gives both outer electrons to oxygen. Determine the resulting ion charges.");
-        }
-        var canvas=GameObject.Find("Stage2Level"+Level+"Canvas");
-        if(canvas!=null)
-        {
-            var root=canvas.transform;
-            var a=Find(root,"ChargeAButton")?.GetComponentInChildren<TMP_Text>(true);
-            var b=Find(root,"ChargeBButton")?.GetComponentInChildren<TMP_Text>(true);
-            if(a!=null)a.text=Level==1?(variant==1?"K- & Cl+":"Na+ & Cl-"):
-                (variant==1?"Mg2+ & 2Cl-":"Mg+ & O-");
-            if(b!=null)b.text=Level==1?(variant==1?"K+ & Cl-":"Na- & Cl+"):
-                (variant==1?"Mg+ & 2Cl+":"Mg2+ & O2-");
+                "Donor has ONE valence electron; chlorine starts with SEVEN. Drag to complete its octet.":
+                (variant==1?"Magnesium gives one electron to EACH chlorine outer shell, completing both octets.":
+                    "Magnesium gives both valence electrons to oxygen so its outer shell reaches eight.");
         }
         RefreshShells();
         if(Level==2)
@@ -609,7 +581,7 @@ public class Stage2IonForgeGame : MonoBehaviour
         }
         if(feedback!=null && variant>=0)
             feedback.text=Level==1?
-                "Selected "+(variant==1?"K + Cl":"Na + Cl")+". Outer shell electrons: donor 1; Cl 7. Transfer 1 electron.":
+                "Selected "+(variant==1?"K + Cl":"Na + Cl")+". Outer shell electrons: donor 1; Cl 7. Drag into the outer shell.":
                 (variant==1?"Selected Mg + 2Cl. Mg has 2 outer electrons; each Cl has 7.":
                     "Selected Mg + O. Outer shell electrons: Mg 2; O 6.");
     }
@@ -624,7 +596,7 @@ public class Stage2IonForgeGame : MonoBehaviour
             "LATTICE IONS "+accepted+"/"+Needed;
         RefreshShells();
         if(feedback!=null)feedback.text=Level==1?
-            "Cl outer shell: "+(7+accepted)+"/8 | donor loses 1 electron. Select correct ionic charges.":
+            "Cl outer shell: "+(7+accepted)+"/8. Reach 8 electrons, then press FORM BOND.":
             Level==2?(variant==1?
                 "Each Cl outer shell: "+(7+(accepted>0?1:0))+"/8 and "+(7+(accepted>1?1:0))+"/8":
                 "O outer shell: "+(6+accepted)+"/8"):
@@ -654,13 +626,6 @@ public class Stage2IonForgeGame : MonoBehaviour
         if(!CanInteract)return;
         if(Level<3 && variant<0){if(feedback!=null)feedback.text="Choose Na/K or MgO/MgCl2 first.";return;}
         if(accepted<Needed){WrongAttempt();return;}
-        if(Level<3 && chargeChoice<0)
-        {
-            if(feedback!=null)feedback.text="Choose the correct ionic charges (A or B) before FORM BOND.";
-            return;
-        }
-        if(Level<3 && chargeChoice!=(Level==1?(variant==0?0:1):(variant==0?1:0)))
-        {WrongAttempt();return;}
         if(Level<3)
         {
             finishedVariants[variant]=true;
@@ -668,7 +633,7 @@ public class Stage2IonForgeGame : MonoBehaviour
             {
                 string product=Level==1?(variant==0?"NaCl":"KCl"):(variant==0?"MgO":"MgCl2");
                 if(feedback!=null)feedback.text=product+" formed! Opposite ions attract. Complete the OTHER compound.";
-                variant=-1;chargeChoice=-1;accepted=0;
+                variant=-1;accepted=0;
                 foreach(var item in tokens)item.Initialize(this);
                 foreach(var item in zones)item.ResetZone();
                 RefreshVariant();
@@ -693,7 +658,7 @@ public class Stage2IonForgeGame : MonoBehaviour
         foreach(var z in zones)z.ResetZone();
         accepted=0;
         if(progressText!=null)progressText.text="PROGRESS  0 / "+Needed;
-        if(feedback!=null)feedback.text="Reset complete. No penalty; choose the right electron transfer and charge balance.";
+        if(feedback!=null)feedback.text="Reset complete. Drag the electrons to complete each octet.";
     }
     private void Retry()
     {
