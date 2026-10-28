@@ -67,38 +67,37 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         br.offsetMin=Vector2.zero;br.offsetMax=Vector2.zero;
 
         Label(root.transform,"StageTitle","STAGE 4  |  LEVEL "+Level,20,
-            new Vector2(0,322),new Vector2(690,36),Blue);
+            new Vector2(0,325),new Vector2(690,36),Blue);
         Label(root.transform,"LevelTitle",Title,31,
-            new Vector2(0,277),new Vector2(960,47),Color.white);
+            new Vector2(0,276),new Vector2(960,47),Color.white);
         Label(root.transform,"Instructions",
             Level==1?"Select Cu or Mg, drag 6 metal cores into the lattice and 4 free electrons into the cloud.":
             Level==2?"Attach terminals: NEGATIVE on left, POSITIVE on right. Turn on voltage to observe electron drift.":
             "Apply force and observe metal layers slide while delocalized electrons keep the cores bonded.",
-            17,new Vector2(0,227),new Vector2(1040,54),new Color32(183,203,223,255));
+            17,new Vector2(0,223),new Vector2(1040,42),new Color32(183,203,223,255));
         score=Label(root.transform,"ScoreText","SCORE\n000000",19,new Vector2(533,294),new Vector2(135,68),Gold);
-        Label(root.transform,"EnergyTitle","ENERGY",14,new Vector2(-526,338),new Vector2(110,24),Color.white);
+        Label(root.transform,"EnergyTitle","ENERGY",14,new Vector2(-500,338),new Vector2(110,24),Color.white);
         for(int i=0;i<5;i++)
         {
-            var icon=Rect(root.transform,"Energy"+(i+1),new Vector2(-550+i*44,292),
+            var icon=Rect(root.transform,"Energy"+(i+1),new Vector2(-520+i*44,290),
                 new Vector2(36,47),Color.white);
             icon.sprite=EnergySprite;icon.preserveAspect=true;
             if(EnergySprite==null)icon.color=Gold;
         }
-        Label(root.transform,"EnergyCount","5/5",15,new Vector2(-349,334),new Vector2(85,25),Color.white);
-        var board=Rect(root.transform,"ExperimentBoard",new Vector2(0,14),
-            new Vector2(1020,350),Panel);
+        Label(root.transform,"EnergyCount","5/5",15,new Vector2(-304,334),new Vector2(85,25),Color.white);
+        var board=Rect(root.transform,"ExperimentBoard",new Vector2(0,-3),
+            new Vector2(1110,398),Panel);
         board.raycastTarget=false;
 
         if(Level==1)BuildLevel1(board.transform);
         if(Level==2)BuildLevel2(board.transform);
         if(Level==3)BuildLevel3(board.transform);
-        PolishEditorScene();
 
         feedback=Label(root.transform,"FeedbackText","Follow the instructions to complete the metallic bonding model.",
-            16,new Vector2(0,-253),new Vector2(1050,49),Gold);
-        Button(root.transform,"CheckButton","CHECK",new Vector2(0,-318),
+            16,new Vector2(0,-266),new Vector2(1080,45),Gold);
+        Button(root.transform,"CheckButton","CHECK",new Vector2(0,-326),
             new Vector2(250,55),new Color32(12,132,135,255));
-        Button(root.transform,"ResetButton","RESET",new Vector2(-268,-318),
+        Button(root.transform,"ResetButton","RESET",new Vector2(-268,-326),
             new Vector2(196,55),new Color32(72,88,118,255));
 
         if(PauseButtonPrefab!=null)
@@ -155,6 +154,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         Button(noEnergyPanel.transform,"EnergyBackButton","LEVEL SELECTION",
             new Vector2(0,-144),new Vector2(300,58),new Color32(12,132,135,255));
         noEnergyPanel.SetActive(false);
+        PolishEditorScene();
     }
 
     // Reusable Edit-Mode polish: keeps every gameplay element in the Hierarchy.
@@ -267,32 +267,32 @@ public class Stage4ElectronOceanGame : MonoBehaviour
 
     private void BuildLevel1(Transform board)
     {
-        Label(board,"LatticeHeading","METAL CATION LATTICE",19,new Vector2(-199,145),
+        Label(board,"LatticeHeading","METAL CATION LATTICE",19,new Vector2(-230,167),
             new Vector2(490,34),Blue);
-        Label(board,"CloudHeading","DELOCALIZED ELECTRONS",19,new Vector2(276,145),
+        Label(board,"CloudHeading","DELOCALIZED ELECTRONS",19,new Vector2(270,167),
             new Vector2(440,34),Blue);
-        Button(board,"CopperButton","COPPER (Cu)",new Vector2(-300,94),
+        Button(board,"CopperButton","COPPER (Cu)",new Vector2(-320,116),
             new Vector2(168,47),new Color32(107,65,43,255));
-        Button(board,"MagnesiumButton","MAGNESIUM (Mg)",new Vector2(-110,94),
+        Button(board,"MagnesiumButton","MAGNESIUM (Mg)",new Vector2(-122,116),
             new Vector2(193,47),new Color32(56,94,114,255));
         Label(board,"CurrentMetal","Selected: Copper (Cu)",16,
-            new Vector2(-210,50),new Vector2(420,35),Gold);
+            new Vector2(-230,68),new Vector2(420,35),Gold);
         for(int i=0;i<6;i++)
         {
             int x=i%3,y=i/3;
-            AddZone(board,"LatticeSlot"+i,0,new Vector2(-352+x*115,-10-y*70),new Vector2(64,52));
+            AddZone(board,"LatticeSlot"+i,0,new Vector2(-375+x*124,0-y*79),new Vector2(76,66));
         }
         for(int i=0;i<4;i++)
-            AddZone(board,"CloudSlot"+i,1,new Vector2(130+(i%2)*158,-1-(i/2)*87),new Vector2(85,58));
-        var bank=Rect(board,"MetalTokenBank",new Vector2(0,-145),new Vector2(935,54),
+            AddZone(board,"CloudSlot"+i,1,new Vector2(150+(i%2)*165,0-(i/2)*85),new Vector2(94,69));
+        var bank=Rect(board,"MetalTokenBank",new Vector2(0,-157),new Vector2(1024,62),
             new Color32(12,28,51,255));
         bank.raycastTarget=false;
         for(int i=0;i<6;i++)
-            AddToken(bank.transform,"MetalCore"+i,0,new Vector2(-368+i*91,0),
-                new Color32(75,155,190,255),"M⁺");
+            AddToken(bank.transform,"MetalCore"+i,0,new Vector2(-409+i*105,0),
+                new Color32(75,155,190,255),"M+");
         for(int i=0;i<4;i++)
             AddToken(bank.transform,"FreeElectron"+i,1,
-                new Vector2(203+i*73,0),new Color32(244,189,75,255),"e⁻");
+                new Vector2(244+i*76,0),new Color32(244,189,75,255),"e-");
     }
 
     private void BuildLevel2(Transform board)
@@ -305,11 +305,11 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         for(int i=0;i<9;i++)
         {
             int x=i%3,y=i/3;
-            Label(slab.transform,"Core"+i,"M⁺",28,
+            Label(slab.transform,"Core"+i,"M+",28,
                 new Vector2(-190+x*190,58-y*58),new Vector2(75,42),Dim);
         }
         for(int i=0;i<7;i++)
-            Label(slab.transform,"DriftingElectron"+i,"e⁻",22,
+            Label(slab.transform,"DriftingElectron"+i,"e-",22,
                 new Vector2(-245+i*76,0),new Vector2(56,35),Gold);
         AddZone(board,"NegativeTerminalSlot",2,new Vector2(-379,40),new Vector2(115,94));
         AddZone(board,"PositiveTerminalSlot",3,new Vector2(379,40),new Vector2(115,94));
@@ -317,7 +317,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             new Vector2(510,56),new Color32(12,28,51,255));
         bank.raycastTarget=false;
         AddToken(bank.transform,"NegativeTerminal",2,new Vector2(-123,0),
-            new Color32(82,155,200,255),"−");
+            new Color32(82,155,200,255),"-");
         AddToken(bank.transform,"PositiveTerminal",3,new Vector2(123,0),
             new Color32(235,149,70,255),"+");
         Button(board,"VoltageSwitch","SWITCH: OFF",new Vector2(0,-155),
@@ -339,11 +339,11 @@ public class Stage4ElectronOceanGame : MonoBehaviour
                 new Color32(35,77,107,255));
             layerGO.raycastTarget=false;
             for(int i=0;i<6;i++)
-                Label(layerGO.transform,"MetalCore"+i,"M⁺",30,
+                Label(layerGO.transform,"MetalCore"+i,"M+",30,
                     new Vector2(-308+i*123,0),new Vector2(77,50),Blue);
         }
         for(int i=0;i<7;i++)
-            Label(board,"ElectronCloud"+i,"e⁻",22,
+            Label(board,"ElectronCloud"+i,"e-",22,
                 new Vector2(-343+i*111,16),new Vector2(56,34),Gold);
         var sliderGO=new GameObject("ForceSlider",typeof(RectTransform),typeof(Slider));
         sliderGO.transform.SetParent(board,false);
@@ -369,15 +369,15 @@ public class Stage4ElectronOceanGame : MonoBehaviour
     {
         var image=Rect(parent,name,p,size,new Color32(39,78,108,255));
         var zone=image.gameObject.AddComponent<Stage4DropZone>();zone.Kind=kind;
-        Label(image.transform,"SlotLabel",kind==0?"＋":kind==1?"·":kind==2?"−":"＋",25,
+        Label(image.transform,"SlotLabel",kind==0?"+":kind==1?".":kind==2?"-":"+",25,
             Vector2.zero,size,Gold);
     }
     private void AddToken(Transform parent,string name,int kind,Vector2 p,Color color,string symbol)
     {
-        var image=Rect(parent,name,p,new Vector2(50,45),color);
+        var image=Rect(parent,name,p,new Vector2(58,50),color);
         image.gameObject.AddComponent<CanvasGroup>();
         var drag=image.gameObject.AddComponent<Stage4Draggable>();drag.Kind=kind;
-        Label(image.transform,"Symbol",symbol,23,Vector2.zero,new Vector2(47,43),
+        Label(image.transform,"Symbol",symbol,23,Vector2.zero,new Vector2(55,48),
             new Color32(9,26,51,255));
     }
     private Image Rect(Transform parent,string name,Vector2 pos,Vector2 size,Color color)
@@ -522,7 +522,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
     }
 
     public string GetPlacedSymbol(int kind) =>
-        kind==0?(Metal=="Mg"?"Mg²⁺":"Cu⁺"):kind==1?"e⁻":kind==2?"−":"+";
+        kind==0?(Metal=="Mg"?"Mg2+":"Cu+"):kind==1?"e-":kind==2?"-":"+";
 
     public void ZoneFilled(int kind)
     {
@@ -547,7 +547,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         {
             if(token.Kind!=0)continue;
             var label=token.GetComponentInChildren<TMP_Text>(true);
-            if(label!=null)label.text=symbol=="Mg"?"Mg²⁺":"Cu⁺";
+            if(label!=null)label.text=symbol=="Mg"?"Mg2+":"Cu+";
         }
     }
     private void ToggleVoltage()
