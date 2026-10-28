@@ -46,12 +46,12 @@ public static class ChemQuestStage2Builder
             controller.AddComponent<Stage2LevelSelectionManager>();
         SetText("StageNameText","STAGE 2  |  ION FORGE");
         SetText("StageSubtitleText","IONIC BONDING • ELECTRON TRANSFER & LATTICE FORMATION");
-        SetText("Level1Title","SODIUM CHLORIDE");
-        SetText("Level2Title","MAGNESIUM OXIDE");
+        SetText("Level1Title","SINGLE ELECTRON TRANSFER");
+        SetText("Level2Title","DIVALENT & MULTI-ANION");
         SetText("Level3Title","CRYSTAL LATTICE");
-        SetText("Level1Description","Transfer one electron to form NaCl");
-        SetText("Level2Description","Transfer two electrons to form MgO");
-        SetText("Level3Description","Build an alternating ionic lattice");
+        SetText("Level1Description","Form BOTH NaCl and KCl using electron transfer");
+        SetText("Level2Description","Form BOTH MgO and MgCl2 with charge balance");
+        SetText("Level3Description","Arrange a 12-ion alternating NaCl lattice");
         EditorSceneManager.MarkSceneDirty(selectScene);
         EditorSceneManager.SaveScene(selectScene,Selection);
 
@@ -73,6 +73,7 @@ public static class ChemQuestStage2Builder
             game.PauseButtonPrefab=pauseButton;
             game.PauseMenuPrefab=pauseMenu;
             game.BuildEditableUI();
+            game.UpgradeChallengeUI();
             EditorUtility.SetDirty(game);
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene,path);
