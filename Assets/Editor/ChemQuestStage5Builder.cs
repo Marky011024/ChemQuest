@@ -19,7 +19,7 @@ public static class ChemQuestStage5Builder
             "Build Stage 5","Cancel"))return;
         EditorSceneManager.SaveOpenScenes();
         var background=FindStage1Background();
-        BuildSelection(background);
+        if(!ChemQuestStage5SelectionDesigner.ApplyDesign())return;
         for(int level=1;level<=3;level++)BuildLevel(level,background);
         var list=new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
         foreach(string name in new[]{"StageSelection","Stage5LevelSelection",
