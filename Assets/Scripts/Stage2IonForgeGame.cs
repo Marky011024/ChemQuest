@@ -183,10 +183,21 @@ public class Stage2IonForgeGame : MonoBehaviour
             new Vector2(275,147),new Vector2(350,34),Blue);
         var cation=Image(parent,"DonorAtom",new Vector2(-285,57),
             new Vector2(142,126),new Color32(38,111,151,255));
-        Label(cation.transform,"Symbol",left,61,Vector2.zero,new Vector2(138,120),Color.white);
+        Label(cation.transform,"Symbol",left,36,Vector2.zero,new Vector2(138,120),Color.white);
         var anion=Image(parent,"AcceptorAtom",new Vector2(287,57),
             new Vector2(142,126),new Color32(121,65,106,255));
-        Label(anion.transform,"Symbol",right,61,Vector2.zero,new Vector2(138,120),Color.white);
+        Label(anion.transform,"Symbol",right,36,Vector2.zero,new Vector2(138,120),Color.white);
+        EnsureShell(cation.transform);
+        EnsureShell(anion.transform);
+        if(Level==2)
+        {
+            var second=Image(parent,"Acceptor2Atom",new Vector2(426,57),
+                new Vector2(142,126),new Color32(121,65,106,255));
+            Label(second.transform,"Symbol","Cl",36,Vector2.zero,
+                new Vector2(138,120),Color.white);
+            EnsureShell(second.transform);
+            second.gameObject.SetActive(false);
+        }
         Label(parent,"TransferArrow","> > >",30,new Vector2(0,62),
             new Vector2(240,50),Gold);
         Label(parent,"Explanation",Level==1?
@@ -385,6 +396,19 @@ public class Stage2IonForgeGame : MonoBehaviour
             UpgradeLattice(root,board.transform);
             return;
         }
+        var donorAtom=Find(root,"DonorAtom");
+        var acceptorAtom=Find(root,"AcceptorAtom");
+        if(donorAtom!=null)EnsureShell(donorAtom);
+        if(acceptorAtom!=null)EnsureShell(acceptorAtom);
+        if(Level==2 && Find(root,"Acceptor2Atom")==null)
+        {
+            var second=Image(root,"Acceptor2Atom",new Vector2(426,57),
+                new Vector2(142,126),new Color32(121,65,106,255));
+            Label(second.transform,"Symbol","Cl",36,Vector2.zero,
+                new Vector2(138,120),Color.white);
+            EnsureShell(second.transform);
+            second.gameObject.SetActive(false);
+        }
         if(Find(root,"ChargeAButton")==null)
         {
             Button(root,"ChargeAButton","CHARGE A",new Vector2(-185,-172),
@@ -459,6 +483,68 @@ public class Stage2IonForgeGame : MonoBehaviour
         }
     }
 
+    private void EnsureShell(Transform atom)
+    {
+        var existing=Find(atom,"BohrShell");
+        if(existing!=null)return;
+        var shell=new GameObject("BohrShell",typeof(RectTransform),
+            typeof(CanvasRenderer),typeof(Stage2BohrAtomView));
+        shell.transform.SetParent(atom,false);
+        var rect=shell.GetComponent<RectTransform>();
+        rect.anchoredPosition=Vector2.zero;
+        rect.sizeDelta=new Vector2(155,155);
+        shell.GetComponent<Stage2BohrAtomView>().raycastTarget=false;
+        var symbol=Find(atom,"Symbol")?.GetComponent<TMP_Text>();
+        if(symbol!=null)symbol.fontSize=36;
+    }
+
+    private void RefreshShells()
+    {
+        if(Level>=3)return;
+        var canvas=GameObject.Find("Stage2Level"+Level+"Canvas");
+        if(canvas==null)return;
+        var board=Find(canvas.transform,"ExperimentBoard");
+        if(board==null)return;
+        var donor=Find(board,"DonorAtom");
+        var acceptor=Find(board,"AcceptorAtom");
+        var second=Find(board,"Acceptor2Atom");
+        if(Level==1)
+        {
+            var d=Find(donor,"BohrShell")?.GetComponent<Stage2BohrAtomView>();
+            var a=Find(acceptor,"BohrShell")?.GetComponent<Stage2BohrAtomView>();
+            if(d!=null)
+            {
+                if(variant==1)d.SetShells(2,8,8,accepted>0?0:1);
+                else d.SetShells(2,8,accepted>0?0:1);
+            }
+            if(a!=null)a.SetShells(2,8,7+accepted);
+        }
+        else
+        {
+            var d=Find(donor,"BohrShell")?.GetComponent<Stage2BohrAtomView>();
+            var a=Find(acceptor,"BohrShell")?.GetComponent<Stage2BohrAtomView>();
+            if(d!=null)d.SetShells(2,8,2-accepted);
+            if(variant==1)
+            {
+                if(second!=null)second.gameObject.SetActive(true);
+                var r=acceptor.GetComponent<RectTransform>();
+                if(r!=null)r.anchoredPosition=new Vector2(205,57);
+                if(a!=null)a.SetShells(2,8,7+(accepted>0?1:0));
+                var b=Find(second,"BohrShell")?.GetComponent<Stage2BohrAtomView>();
+                if(b!=null)b.SetShells(2,8,7+(accepted>1?1:0));
+                var sym=Find(acceptor,"Symbol")?.GetComponent<TMP_Text>();
+                if(sym!=null)sym.text="Cl";
+            }
+            else
+            {
+                if(second!=null)second.gameObject.SetActive(false);
+                var r=acceptor.GetComponent<RectTransform>();
+                if(r!=null)r.anchoredPosition=new Vector2(287,57);
+                if(a!=null)a.SetShells(2,6+accepted);
+            }
+        }
+    }
+
     private void EnsureVariantButtons(Transform root)
     {
         UpgradeChallengeUI();
@@ -512,6 +598,7 @@ public class Stage2IonForgeGame : MonoBehaviour
             if(b!=null)b.text=Level==1?(variant==1?"K+ & Cl-":"Na- & Cl+"):
                 (variant==1?"Mg+ & 2Cl+":"Mg2+ & O2-");
         }
+        RefreshShells();
         if(Level==2)
         {
             foreach(var z in zones)
@@ -535,6 +622,7 @@ public class Stage2IonForgeGame : MonoBehaviour
         if(progressText!=null)progressText.text=Level<3?
             "COMPOUNDS "+(Convert.ToInt32(finishedVariants[0])+Convert.ToInt32(finishedVariants[1]))+"/2  |  ELECTRONS "+accepted+"/"+Needed:
             "LATTICE IONS "+accepted+"/"+Needed;
+        RefreshShells();
         if(feedback!=null)feedback.text=Level==1?
             "Cl outer shell: "+(7+accepted)+"/8 | donor loses 1 electron. Select correct ionic charges.":
             Level==2?(variant==1?
