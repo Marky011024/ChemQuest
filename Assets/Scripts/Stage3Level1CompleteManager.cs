@@ -64,10 +64,8 @@ public class Stage3Level1CompleteManager : MonoBehaviour
             if (energyManager != null)
                 energyManager.FailRun();
 
-            ShowFeedback(
-                "STAGE FAILED! Retry the level.",
-                Color.red
-            );
+            // The full-screen failure panel owns the failure message.
+            if (feedbackText != null) feedbackText.gameObject.SetActive(false);
 
             if (failedPanel != null)
             {
@@ -151,6 +149,15 @@ public class Stage3Level1CompleteManager : MonoBehaviour
         feedbackText.gameObject.SetActive(true);
         feedbackText.text = message;
         feedbackText.color = color;
+    }
+
+    public void AssignFailurePanel(GameObject panel)
+    {
+        if(panel == null) return;
+        if(failedPanel != null && failedPanel != panel) failedPanel.SetActive(false);
+        failedPanel = panel;
+        failedPanel.SetActive(runFailed);
+        if(runFailed) failedPanel.transform.SetAsLastSibling();
     }
 
     public void AssignFeedbackText(TMP_Text hint)
