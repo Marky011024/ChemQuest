@@ -18,6 +18,8 @@ public static class ChemQuestStage4Builder
             "Create Stage 4 Level Selection and all 3 editable scene hierarchies? Existing scenes will be kept.",
             "Build Stage 4","Cancel"))return;
         EditorSceneManager.SaveOpenScenes();
+        // Copy the Stage 1 artwork/background before building the remaining Stage 4 scenes.
+        ChemQuestStage4SelectionDesigner.ApplyDesign();
         var sceneNames=new [] {"Stage4LevelSelection","Stage4Level1","Stage4Level2","Stage4Level3"};
         var energy=AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Energy.png");
         var pauseButton=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/PauseButton.prefab");
@@ -37,7 +39,7 @@ public static class ChemQuestStage4Builder
                 if(controller==null)controller=new GameObject("Stage4LevelSelectionController");
                 var manager=controller.GetComponent<Stage4LevelSelectionManager>();
                 if(manager==null)manager=controller.AddComponent<Stage4LevelSelectionManager>();
-                manager.BuildEditorScene();
+                if(GameObject.Find("StageSelectUI")==null)manager.BuildEditorScene();
                 EditorUtility.SetDirty(manager);
             }
             else
