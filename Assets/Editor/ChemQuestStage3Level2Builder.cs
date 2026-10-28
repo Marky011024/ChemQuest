@@ -15,8 +15,20 @@ public static class ChemQuestStage3Level2Builder
         Scene scene=EditorSceneManager.OpenScene(scenePath,OpenSceneMode.Single);
         var controller=GameObject.Find("Stage3Level2AmmoniaController");
         if(controller==null)controller=new GameObject("Stage3Level2AmmoniaController");
-        if(controller.GetComponent<Stage3Level2AmmoniaGame>()==null)
-            controller.AddComponent<Stage3Level2AmmoniaGame>();
+        var game=controller.GetComponent<Stage3Level2AmmoniaGame>();
+        if(game==null) game=controller.AddComponent<Stage3Level2AmmoniaGame>();
+
+        var energySprite=AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Energy.png");
+        if(energySprite==null)
+        {
+            Debug.LogError("ChemQuest: Assets/Art/Energy.png was not found or is not imported as Sprite.");
+            EditorUtility.DisplayDialog("Missing Stage 1 energy image",
+                "Check Assets/Art/Energy.png and its Texture Type (Sprite).", "OK");
+            return;
+        }
+        var serializedGame=new SerializedObject(game);
+        serializedGame.FindProperty("energySprite").objectReferenceValue=energySprite;
+        serializedGame.ApplyModifiedPropertiesWithoutUndo();
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
         Debug.Log("ChemQuest Stage 3 Level 2 ready. Enter Play Mode to generate the interactive NH3 UI.");
