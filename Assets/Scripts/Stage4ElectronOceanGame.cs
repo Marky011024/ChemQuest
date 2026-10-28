@@ -251,6 +251,69 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             shadow.effectColor=new Color(0,0,.05f,.7f);
             shadow.effectDistance=new Vector2(1,-3);
         }
+        // Re-layout existing saved scenes too: no deletion of Hierarchy objects.
+        var boardRect=Find(root,"ExperimentBoard")?.GetComponent<RectTransform>();
+        if(boardRect!=null)
+        {
+            boardRect.anchoredPosition=new Vector2(0,-3);
+            boardRect.sizeDelta=new Vector2(1110,398);
+        }
+        SetPosition(root,"FeedbackText",new Vector2(0,-266));
+        SetPosition(root,"CheckButton",new Vector2(0,-326));
+        SetPosition(root,"ResetButton",new Vector2(-268,-326));
+        if(Level==1)
+        {
+            SetPosition(root,"LatticeHeading",new Vector2(-230,167));
+            SetPosition(root,"CloudHeading",new Vector2(270,167));
+            SetPosition(root,"CopperButton",new Vector2(-320,116));
+            SetPosition(root,"MagnesiumButton",new Vector2(-122,116));
+            SetPosition(root,"CurrentMetal",new Vector2(-230,68));
+            SetPosition(root,"MetalTokenBank",new Vector2(0,-157));
+            for(int i=0;i<6;i++)
+            {
+                var zone=Find(root,"LatticeSlot"+i)?.GetComponent<RectTransform>();
+                if(zone!=null)
+                {
+                    zone.anchoredPosition=new Vector2(-375+(i%3)*124,-(i/3)*79);
+                    zone.sizeDelta=new Vector2(76,66);
+                }
+                SetPosition(root,"MetalCore"+i,new Vector2(-409+i*105,0));
+            }
+            for(int i=0;i<4;i++)
+            {
+                var zone=Find(root,"CloudSlot"+i)?.GetComponent<RectTransform>();
+                if(zone!=null)
+                {
+                    zone.anchoredPosition=new Vector2(150+(i%2)*165,-(i/2)*85);
+                    zone.sizeDelta=new Vector2(94,69);
+                }
+                SetPosition(root,"FreeElectron"+i,new Vector2(244+i*76,0));
+            }
+            var tokenBank=Find(root,"MetalTokenBank")?.GetComponent<RectTransform>();
+            if(tokenBank!=null)tokenBank.sizeDelta=new Vector2(1024,62);
+        }
+        foreach(var token in root.GetComponentsInChildren<Stage4Draggable>(true))
+        {
+            var rect=token.GetComponent<RectTransform>();
+            if(rect!=null)rect.sizeDelta=new Vector2(58,50);
+            var label=token.GetComponentInChildren<TMP_Text>(true);
+            if(label!=null)
+            {
+                if(token.Kind==0)label.text=Metal=="Mg"?"Mg2+":"Cu+";
+                else if(token.Kind==1)label.text="e-";
+                else if(token.Kind==2)label.text="-";
+                else if(token.Kind==3)label.text="+";
+            }
+        }
+        foreach(var label in root.GetComponentsInChildren<TMP_Text>(true))
+        {
+            // Avoid fallback-font warnings caused by unsupported unicode
+            // superscript symbols in user-created metal-core labels.
+            if(label.text=="M⁺")label.text="M+";
+            if(label.text=="e⁻")label.text="e-";
+            if(label.text=="＋")label.text="+";
+            if(label.text=="−")label.text="-";
+        }
         if(Level==2)
         {
             SetPosition(root,"TerminalBank",new Vector2(0,-91));
