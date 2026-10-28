@@ -1,96 +1,194 @@
+
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class Level1AttemptManager : MonoBehaviour
 {
+    [Header("Mistake System")]
     [SerializeField] private GameObject mistakeHintText;
-    [SerializeField] private GameObject[] energyIcons;
     [SerializeField] private GameObject levelFailedPanel;
 
+    [Header("Energy System")]
+    [SerializeField] private GameObject[] energyIcons;
+    [SerializeField] private GameObject outOfEnergyPanel;
+
     private int mistakeCount = 0;
-    private int currentEnergy;
+    private bool levelFailed = false;
 
-    public int MistakeCount
+    public int MistakeCount => mistakeCount;
+    public bool HasMadeMistake => mistakeCount > 0;
+
+    private void Start()
     {
-        get { return mistakeCount; }
-    }
+        if (mistakeHintText != null)
+            mistakeHintText.SetActive(false);
 
-    public bool HasMadeMistake
-    {
-        get { return mistakeCount > 0; }
-    }
+        if (levelFailedPanel != null)
+            levelFailedPanel.SetActive(false);
 
+        if (outOfEnergyPanel != null)
+            outOfEnergyPanel.SetActive(false);
 
-        private void Start()
-{
-    currentEnergy = PlayerPrefs.GetInt("PlayerEnergy", 5);
-
-    for (int i = 0; i < energyIcons.Length; i++)
-    {
-        if (energyIcons[i] != null)
+        if (EnergyManager.Instance != null)
         {
-            energyIcons[i].SetActive(i < currentEnergy);
+            EnergyManager.Instance.OnEnergyChanged +=
+                UpdateEnergyDisplay;
+
+            EnergyManager.Instance.RefreshEnergy();
+
+            UpdateEnergyDisplay();
+
+            if (!EnergyManager.Instance.HasEnergy)
+            {
+                ShowOutOfEnergy();
+            }
+        }
+        else
+        {
+            Debug.LogError(
+                "EnergyManager not found in scene!"
+            );
         }
     }
-}
+
+    private void OnDestroy()
+    {
+        if (EnergyManager.Instance != null)
+        {
+            EnergyManager.Instance.OnEnergyChanged -=
+                UpdateEnergyDisplay;
+        }
+    }
 
     public void RegisterMistake()
     {
+        if (levelFailed)
+            return;
+
+        if (EnergyManager.Instance == null)
+            return;
+
+        if (!EnergyManager.Instance.HasEnergy)
+        {
+            ShowOutOfEnergy();
+            return;
+        }
+
         mistakeCount++;
 
-        Debug.Log("Level 1 mistake count: " + mistakeCount);
+        Debug.Log(
+            "Level 1 mistake count: " + mistakeCount
+        );
 
         if (mistakeCount == 1)
         {
-            // First mistake: show the conceptual hint.
             if (mistakeHintText != null)
-            {
                 mistakeHintText.SetActive(true);
-            }
 
-            Debug.Log("First mistake: Conceptual hint shown.");
+            Debug.Log(
+                "First mistake: Conceptual hint shown."
+            );
         }
         else if (mistakeCount >= 2)
-{
-    if (currentEnergy > 0)
-    {
-        currentEnergy--;
-
-        PlayerPrefs.SetInt("PlayerEnergy", currentEnergy);
-        PlayerPrefs.Save();
-
-        if (currentEnergy < energyIcons.Length &&
-            energyIcons[currentEnergy] != null)
         {
-            energyIcons[currentEnergy].SetActive(false);
+            levelFailed = true;
+
+            if (mistakeHintText != null)
+                mistakeHintText.SetActive(false);
+
+            bool energyLost =
+                EnergyManager.Instance.LoseEnergy();
+
+            if (energyLost)
+            {
+                Debug.Log(
+                    "Energy lost! Remaining: " +
+                    EnergyManager.Instance.CurrentEnergy
+                );
+            }
+
+            if (!EnergyManager.Instance.HasEnergy)
+            {
+                ShowOutOfEnergy();
+            }
+            else
+            {
+                if (levelFailedPanel != null)
+                    levelFailedPanel.SetActive(true);
+            }
+        }
+    }
+
+    public void HideMistakeHint()
+    {
+        if (mistakeHintText != null)
+            mistakeHintText.SetActive(false);
+    }
+
+    public void RetryLevel()
+    {
+        if (EnergyManager.Instance == null)
+            return;
+
+        EnergyManager.Instance.RefreshEnergy();
+
+        if (!EnergyManager.Instance.HasEnergy)
+        {
+            ShowOutOfEnergy();
+            return;
         }
 
-        Debug.Log("Energy lost! Current energy: " + currentEnergy);
+        SceneManager.LoadScene(
+            SceneManager.GetActiveScene().name
+        );
     }
-    if (levelFailedPanel != null)
-    {
-    levelFailedPanel.SetActive(true);
-    }
-    Debug.Log("Second mistake: Lose 1 energy and retry Level 1.");
-    }
-}
-    public void HideMistakeHint()
-{
-    if (mistakeHintText != null)
-    {
-        mistakeHintText.SetActive(false);
-    }
-}
-public void RetryLevel()
-{
-    SceneManager.LoadScene(SceneManager.GetActiveScene().name);
-}
-[ContextMenu("Reset Energy To 5")]
-public void ResetEnergyToFive()
-{
-    PlayerPrefs.SetInt("PlayerEnergy", 5);
-    PlayerPrefs.Save();
 
-    Debug.Log("Player energy reset to 5.");
-}
+    private void ShowOutOfEnergy()
+    {
+        if (levelFailedPanel != null)
+            levelFailedPanel.SetActive(false);
+
+        if (mistakeHintText != null)
+            mistakeHintText.SetActive(false);
+
+        if (outOfEnergyPanel != null)
+            outOfEnergyPanel.SetActive(true);
+
+        Debug.Log(
+            "OUT OF ENERGY! Wait for regeneration."
+        );
+    }
+
+    private void UpdateEnergyDisplay()
+    {
+        if (EnergyManager.Instance == null)
+            return;
+
+        int currentEnergy =
+            EnergyManager.Instance.CurrentEnergy;
+
+        for (int i = 0; i < energyIcons.Length; i++)
+        {
+            if (energyIcons[i] != null)
+            {
+                energyIcons[i].SetActive(
+                    i < currentEnergy
+                );
+            }
+        }
+
+        Debug.Log(
+            "Energy display updated: " + currentEnergy
+        );
+    }
+
+    [ContextMenu("Reset Energy To 5")]
+    public void ResetEnergyToFive()
+    {
+        if (EnergyManager.Instance != null)
+        {
+            EnergyManager.Instance.ResetEnergy();
+            UpdateEnergyDisplay();
+        }
+    }
 }

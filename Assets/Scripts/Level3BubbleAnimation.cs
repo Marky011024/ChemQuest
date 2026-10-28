@@ -1,23 +1,35 @@
 
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class Level3BubbleAnimation : MonoBehaviour
 {
+    [Header("Bubble Settings")]
     [SerializeField] private RectTransform bubbleContainer;
     [SerializeField] private Image limewaterLiquid;
 
+    [Header("Animation Settings")]
     [SerializeField] private float animationDuration = 2.5f;
+    [SerializeField] private float bubbleSpawnInterval = 0.15f;
+    [SerializeField] private float bubbleTravelDuration = 1f;
+    [SerializeField] private float bubbleTravelDistance = 90f;
+    [SerializeField] private float bubbleSize = 12f;
 
     private bool isAnimating = false;
+    private Coroutine animationCoroutine;
+
+    private readonly List<GameObject> activeBubbles =
+        new List<GameObject>();
 
     public void PlayBubbleAnimation()
     {
-        if (!isAnimating)
-        {
+        if (isAnimating || bubbleContainer == null)
+            return;
+
+        animationCoroutine =
             StartCoroutine(AnimateBubbles());
-        }
     }
 
     private IEnumerator AnimateBubbles()
@@ -25,87 +37,77 @@ public class Level3BubbleAnimation : MonoBehaviour
         isAnimating = true;
 
         float elapsed = 0f;
+        float duration = Mathf.Max(0.01f, animationDuration);
+        float interval = Mathf.Max(0.01f, bubbleSpawnInterval);
 
-        Color clearColor = new Color32(189, 239, 255, 160);
-        Color milkyColor = new Color32(245, 245, 240, 230);
-
-        while (elapsed < animationDuration)
+        while (elapsed < duration)
         {
-            elapsed += Time.deltaTime;
+            SpawnBubble();
 
-            float progress = Mathf.Clamp01(
-                elapsed / animationDuration
-            );
+            yield return new WaitForSeconds(interval);
 
-            if (limewaterLiquid != null)
-            {
-                limewaterLiquid.color =
-                    Color.Lerp(clearColor, milkyColor, progress);
-            }
-
-            if (bubbleContainer != null)
-            {
-                GameObject bubble = new GameObject(
-                    "CO2Bubble",
-                    typeof(RectTransform),
-                    typeof(Image)
-                );
-
-                bubble.transform.SetParent(
-                    bubbleContainer,
-                    false
-                );
-
-                RectTransform rect =
-                    bubble.GetComponent<RectTransform>();
-
-                rect.sizeDelta = new Vector2(12, 12);
-
-                rect.anchoredPosition = new Vector2(
-                    Random.Range(-40f, 40f),
-                    -40f
-                );
-
-                Image image = bubble.GetComponent<Image>();
-
-                image.color = new Color(
-                    1f, 1f, 1f, 0.7f
-                );
-
-                image.raycastTarget = false;
-
-                StartCoroutine(MoveBubble(rect));
-            }
-
-            yield return new WaitForSeconds(0.15f);
-        }
-
-        if (limewaterLiquid != null)
-        {
-            limewaterLiquid.color = milkyColor;
+            elapsed += interval;
         }
 
         isAnimating = false;
+        animationCoroutine = null;
+    }
+
+    private void SpawnBubble()
+    {
+        GameObject bubble = new GameObject(
+            "CO2Bubble",
+            typeof(RectTransform),
+            typeof(Image)
+        );
+
+        bubble.transform.SetParent(
+            bubbleContainer,
+            false
+        );
+
+        RectTransform rect =
+            bubble.GetComponent<RectTransform>();
+
+        rect.sizeDelta =
+            new Vector2(bubbleSize, bubbleSize);
+
+        rect.anchoredPosition = new Vector2(
+            Random.Range(-40f, 40f),
+            -40f
+        );
+
+        Image image = bubble.GetComponent<Image>();
+
+        image.color =
+            new Color(1f, 1f, 1f, 0.7f);
+
+        image.raycastTarget = false;
+
+        activeBubbles.Add(bubble);
+
+        StartCoroutine(MoveBubble(rect));
     }
 
     private IEnumerator MoveBubble(RectTransform bubble)
     {
-        float duration = 1f;
         float elapsed = 0f;
+        float duration =
+            Mathf.Max(0.01f, bubbleTravelDuration);
 
         Vector2 start = bubble.anchoredPosition;
-        Vector2 end = start + Vector2.up * 90f;
+        Vector2 end =
+            start + Vector2.up * bubbleTravelDistance;
 
         while (elapsed < duration)
         {
-            elapsed += Time.deltaTime;
-
             if (bubble == null)
                 yield break;
 
-            float progress = Mathf.Clamp01(
-                elapsed / duration
-            );
+            elapsed += Time.deltaTime;
+
+            float progress =
+                Mathf.Clamp01(elapsed / duration);
 
             bubble.anchoredPosition =
                 Vector2.Lerp(start, end, progress);
@@ -115,7 +117,29 @@ public class Level3BubbleAnimation : MonoBehaviour
 
         if (bubble != null)
         {
+            activeBubbles.Remove(bubble.gameObject);
             Destroy(bubble.gameObject);
         }
+    }
+
+    public void ResetAnimation()
+    {
+        StopAllCoroutines();
+
+        animationCoroutine = null;
+        isAnimating = false;
+
+        foreach (GameObject bubble in activeBubbles)
+        {
+            if (bubble != null)
+                Destroy(bubble);
+        }
+
+        activeBubbles.Clear();
+    }
+
+    private void OnDisable()
+    {
+        ResetAnimation();
     }
 }

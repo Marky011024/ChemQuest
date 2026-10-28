@@ -17,87 +17,142 @@ public class Level3ReactionManager : MonoBehaviour
     [Header("Ion Puzzle")]
     [SerializeField] private GameObject ionPuzzlePanel;
 
+    [Header("Reaction Settings")]
+    [SerializeField] private float animationDuration = 2.5f;
+    [SerializeField] private float colorTransitionDuration = 1f;
+
+    private readonly Color32 initialColor =
+        new Color32(189, 239, 255, 160);
+
+    private readonly Color32 precipitateColor =
+        new Color32(245, 245, 240, 230);
+
+    private bool reactionStarted = false;
     private bool reactionCompleted = false;
+
+    private Coroutine reactionCoroutine;
 
     private void Start()
     {
-        if (limewaterLiquid != null)
-        {
-            limewaterLiquid.color =
-                new Color32(189, 239, 255, 160);
-        }
-
-        if (bubbleCO2Button != null)
-        {
-            bubbleCO2Button.interactable = true;
-        }
-
-        if (reactionFeedbackText != null)
-        {
-            reactionFeedbackText.text = "";
-        }
-
-        if (ionPuzzlePanel != null)
-        {
-            ionPuzzlePanel.SetActive(false);
-        }
+        ResetReaction();
     }
 
     public void BubbleCO2()
     {
-        if (reactionCompleted)
+        if (reactionStarted || reactionCompleted)
             return;
 
-        reactionCompleted = true;
+        reactionStarted = true;
 
         if (bubbleCO2Button != null)
-        {
             bubbleCO2Button.interactable = false;
+
+        if (reactionFeedbackText != null)
+        {
+            reactionFeedbackText.color = Color.white;
+            reactionFeedbackText.text =
+                "CO2 is reacting with limewater...";
         }
 
         if (bubbleAnimation != null)
-        {
             bubbleAnimation.PlayBubbleAnimation();
-            StartCoroutine(FinishReactionAfterAnimation());
-        }
         else
-        {
-            // Fallback if animation is not assigned.
-            FinishReaction();
-        }
+            Debug.LogWarning(
+                "Level3BubbleAnimation is not assigned!"
+            );
+
+        reactionCoroutine =
+            StartCoroutine(ReactionSequence());
     }
 
-    private IEnumerator FinishReactionAfterAnimation()
+    private IEnumerator ReactionSequence()
     {
-        // Match the animation duration (2.5 seconds).
-        yield return new WaitForSeconds(2.5f);
+        yield return new WaitForSeconds(
+            Mathf.Max(0f, animationDuration)
+        );
+
+        if (limewaterLiquid != null)
+        {
+            Color startColor = limewaterLiquid.color;
+            float duration =
+                Mathf.Max(0.01f, colorTransitionDuration);
+
+            float elapsed = 0f;
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+
+                float progress =
+                    Mathf.Clamp01(elapsed / duration);
+
+                limewaterLiquid.color = Color.Lerp(
+                    startColor,
+                    precipitateColor,
+                    Mathf.SmoothStep(0f, 1f, progress)
+                );
+
+                yield return null;
+            }
+
+            limewaterLiquid.color = precipitateColor;
+        }
 
         FinishReaction();
+        reactionCoroutine = null;
     }
 
     private void FinishReaction()
     {
-        if (limewaterLiquid != null)
-        {
-            limewaterLiquid.color =
-                new Color32(245, 245, 240, 230);
-        }
+        reactionCompleted = true;
 
         if (reactionFeedbackText != null)
         {
+            reactionFeedbackText.color = Color.green;
             reactionFeedbackText.text =
                 "The limewater turned milky! " +
-                "Calcium carbonate (CaCO3) precipitate formed.";
+                "Calcium carbonate (CaCO3) " +
+                "precipitate formed.";
         }
 
         if (ionPuzzlePanel != null)
         {
             ionPuzzlePanel.SetActive(true);
         }
+        else
+        {
+            Debug.LogWarning(
+                "Ion Puzzle Panel is not assigned!"
+            );
+        }
 
         Debug.Log(
-            "CO2 reacted with limewater. " +
+            "Level 3 reaction completed. " +
             "Calcium carbonate precipitate formed."
         );
+    }
+
+    public void ResetReaction()
+    {
+        if (reactionCoroutine != null)
+        {
+            StopCoroutine(reactionCoroutine);
+            reactionCoroutine = null;
+        }
+
+        reactionStarted = false;
+        reactionCompleted = false;
+
+        if (limewaterLiquid != null)
+            limewaterLiquid.color = initialColor;
+
+        if (bubbleCO2Button != null)
+            bubbleCO2Button.interactable = true;
+
+        if (reactionFeedbackText != null)
+            reactionFeedbackText.text = "";
+
+        if (ionPuzzlePanel != null)
+            ionPuzzlePanel.SetActive(false);
     }
 }

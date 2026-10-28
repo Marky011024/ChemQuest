@@ -5,12 +5,17 @@ using UnityEngine.EventSystems;
 public class Level3DraggableIon : MonoBehaviour,
     IBeginDragHandler, IDragHandler, IEndDragHandler
 {
+    [Header("Ion Settings")]
+    [SerializeField] private string ionType;
+
     private RectTransform rectTransform;
     private Canvas canvas;
     private CanvasGroup canvasGroup;
     private Vector2 originalPosition;
 
     private bool wasAccepted = false;
+
+    public string IonType => ionType;
 
     private void Awake()
     {
@@ -29,8 +34,8 @@ public class Level3DraggableIon : MonoBehaviour,
 
     public void OnBeginDrag(PointerEventData eventData)
     {
-        canvasGroup.blocksRaycasts = false;
         wasAccepted = false;
+        canvasGroup.blocksRaycasts = false;
     }
 
     public void OnDrag(PointerEventData eventData)
@@ -46,12 +51,9 @@ public class Level3DraggableIon : MonoBehaviour,
     {
         canvasGroup.blocksRaycasts = true;
 
-        if (!wasAccepted)
-        {
-            ResetPosition();
-        }
-
-        wasAccepted = false;
+        // Always return source ion to original position.
+        // The slot will store the selected ion separately.
+        ResetPosition();
     }
 
     public void AcceptDrop()
@@ -59,7 +61,6 @@ public class Level3DraggableIon : MonoBehaviour,
         wasAccepted = true;
     }
 
-    // Return the ion to its original starting position.
     public void ResetPosition()
     {
         rectTransform.anchoredPosition = originalPosition;

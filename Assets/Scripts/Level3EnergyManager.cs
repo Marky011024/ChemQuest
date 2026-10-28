@@ -1,5 +1,4 @@
 
-using System;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -8,68 +7,52 @@ public class Level3EnergyManager : MonoBehaviour
     [Header("Energy Icons")]
     [SerializeField] private Image[] energyIcons;
 
-    [Header("Energy Settings")]
-    [SerializeField] private int maxEnergy = 5;
-    [SerializeField] private int recoveryMinutes = 15;
-
-    private const string EnergyKey = "ChemQuestEnergy";
-    private const string RecoveryTimeKey = "ChemQuestEnergyRecoveryTime";
-
-    private int currentEnergy;
     private bool runFailed = false;
 
-    private double lastRecoveryTime;
+    public bool IsOutOfEnergy =>
+        EnergyManager.Instance == null ||
+        !EnergyManager.Instance.HasEnergy;
 
-    public bool IsOutOfEnergy => currentEnergy <= 0;
     public bool RunFailed => runFailed;
-    public int CurrentEnergy => currentEnergy;
 
-    private double CurrentTime()
-    {
-        return DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-    }
+    public int CurrentEnergy =>
+        EnergyManager.Instance != null
+            ? EnergyManager.Instance.CurrentEnergy
+            : 0;
 
     private void Start()
     {
-        currentEnergy = PlayerPrefs.GetInt(
-            EnergyKey, maxEnergy
-        );
-
-        currentEnergy = Mathf.Clamp(
-            currentEnergy, 0, maxEnergy
-        );
-
-        string savedTime = PlayerPrefs.GetString(
-            RecoveryTimeKey, ""
-        );
-
-        if (!double.TryParse(
-            savedTime,
-            System.Globalization.NumberStyles.Float,
-            System.Globalization.CultureInfo.InvariantCulture,
-            out lastRecoveryTime))
-        {
-            lastRecoveryTime = CurrentTime();
-        }
-
         runFailed = false;
 
-        RecoverEnergy();
+        if (EnergyManager.Instance == null)
+        {
+            Debug.LogError(
+                "Shared EnergyManager not found!"
+            );
+            UpdateEnergyDisplay();
+            return;
+        }
+
+        EnergyManager.Instance.OnEnergyChanged +=
+            UpdateEnergyDisplay;
+
+        EnergyManager.Instance.RefreshEnergy();
         UpdateEnergyDisplay();
     }
 
-    private void Update()
+    private void OnDestroy()
     {
-        if (currentEnergy < maxEnergy)
+        if (EnergyManager.Instance != null)
         {
-            RecoverEnergy();
+            EnergyManager.Instance.OnEnergyChanged -=
+                UpdateEnergyDisplay;
         }
     }
 
     public void RegisterWrongAttempt()
     {
-        // The puzzle script counts incorrect answers.
-        // Energy is deducted only when the run fails.
+        // First wrong attempt only shows a hint.
+        // No energy deduction.
     }
 
     public void FailRun()
@@ -77,93 +60,16 @@ public class Level3EnergyManager : MonoBehaviour
         if (runFailed || IsOutOfEnergy)
             return;
 
-        RecoverEnergy();
-
-        if (currentEnergy <= 0)
-            return;
-
-        bool wasFull = currentEnergy == maxEnergy;
-
         runFailed = true;
 
-        currentEnergy = Mathf.Max(
-            0, currentEnergy - 1
-        );
+        EnergyManager.Instance.LoseEnergy();
 
-        // Start the recovery timer when energy
-        // first drops below maximum.
-        if (wasFull)
-        {
-            lastRecoveryTime = CurrentTime();
-        }
-
-        SaveEnergy();
         UpdateEnergyDisplay();
 
         Debug.Log(
             "Level 3 run failed. Energy remaining: "
-            + currentEnergy
+            + CurrentEnergy
         );
-    }
-
-    private void RecoverEnergy()
-    {
-        if (currentEnergy >= maxEnergy)
-            return;
-
-        double now = CurrentTime();
-        double recoverySeconds = recoveryMinutes * 60.0;
-
-        if (recoverySeconds <= 0)
-            return;
-
-        double elapsed = Math.Max(
-            0, now - lastRecoveryTime
-        );
-
-        int recoveredHearts = (int)Math.Floor(
-            elapsed / recoverySeconds
-        );
-
-        if (recoveredHearts <= 0)
-            return;
-
-        currentEnergy = Mathf.Min(
-            maxEnergy,
-            currentEnergy + recoveredHearts
-        );
-
-        lastRecoveryTime +=
-            recoveredHearts * recoverySeconds;
-
-        if (currentEnergy >= maxEnergy)
-        {
-            lastRecoveryTime = now;
-        }
-
-        SaveEnergy();
-        UpdateEnergyDisplay();
-
-        Debug.Log(
-            "Energy recovered! Current energy: "
-            + currentEnergy
-        );
-    }
-
-    private void SaveEnergy()
-    {
-        PlayerPrefs.SetInt(
-            EnergyKey, currentEnergy
-        );
-
-        PlayerPrefs.SetString(
-            RecoveryTimeKey,
-            lastRecoveryTime.ToString(
-                System.Globalization.CultureInfo.InvariantCulture
-            )
-        );
-
-        PlayerPrefs.Save();
     }
 
     private void UpdateEnergyDisplay()
@@ -171,12 +77,13 @@ public class Level3EnergyManager : MonoBehaviour
         if (energyIcons == null)
             return;
 
+        int energy = CurrentEnergy;
+
         for (int i = 0; i < energyIcons.Length; i++)
         {
             if (energyIcons[i] != null)
             {
-                energyIcons[i].enabled =
-                    i < currentEnergy;
+                energyIcons[i].enabled = i < energy;
             }
         }
     }
