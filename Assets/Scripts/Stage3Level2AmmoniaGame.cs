@@ -12,7 +12,7 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
     private readonly List<Button> electronButtons = new List<Button>();
     private readonly List<TMP_Text> slotTexts = new List<TMP_Text>();
     private readonly List<TMP_Text> electronPairVisuals = new List<TMP_Text>();
-    private readonly List<Image> energyIcons = new List<Image>();
+    private readonly List<TMP_Text> energyIcons = new List<TMP_Text>();
     private TMP_Text scoreText, feedbackText;
     private GameObject failurePanel, completionPanel, pausePanel;
     private Button retryButton;
@@ -122,10 +122,8 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         Label(root.transform, "EnergyLabel", "ENERGY", 13, new Vector2(-540, 331), new Vector2(120, 22), Color.white);
         for (int i=0; i<5; i++)
         {
-            var lightning=Label(root.transform,"Energy"+(i+1),"⚡",36,new Vector2(-556+i*43,291),new Vector2(43,55),Gold);
-            energyIcons.Add(lightning.gameObject.AddComponent<Image>());
-            var visibility=energyIcons[i];
-            visibility.color=new Color(1,1,1,0); // Image tracks visibility while TMP draws the bolt.
+            energyIcons.Add(Label(root.transform,"Energy"+(i+1),"⚡",36,
+                new Vector2(-556+i*43,291),new Vector2(43,55),Gold));
         }
         energyStatusText=Label(root.transform,"EnergyStatus","5 / 5",14,new Vector2(-378,323),new Vector2(100,23),Color.white);
 
@@ -286,8 +284,7 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         {
             if(energyIcons[i]!=null)
             {
-                var bolt=energyIcons[i].GetComponent<TMP_Text>();
-                if(bolt!=null) bolt.color = i<value ? Gold : new Color32(78,91,113,255);
+                energyIcons[i].color = i<value ? Gold : new Color32(78,91,113,255);
             }
         }
         if(energyStatusText!=null) energyStatusText.text=value+" / 5";
