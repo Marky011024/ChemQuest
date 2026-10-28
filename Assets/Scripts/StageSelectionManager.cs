@@ -16,6 +16,12 @@ public class StageSelectionManager : MonoBehaviour
                 button.onClick.AddListener(OpenStage3);
                 button.interactable=true;
             }
+            else if(button.gameObject.name=="Stage2SelectButton")
+            {
+                button.onClick=new Button.ButtonClickedEvent();
+                button.onClick.AddListener(OpenStage2);
+                button.interactable=true;
+            }
             else if(button.gameObject.name=="Stage4SelectButton")
             {
                 button.onClick=new Button.ButtonClickedEvent();
@@ -37,7 +43,7 @@ public class StageSelectionManager : MonoBehaviour
     }
 
     public void OpenStage1() { OpenScene("Stage1LevelSelection"); }
-    public void OpenStage2() { OpenScene("Stage2Level1"); }
+    public void OpenStage2() { OpenScene("Stage2LevelSelection"); }
     public void OpenStage3() { OpenScene("Stage3LevelSelection"); }
     public void OpenStage4() { OpenScene("Stage4LevelSelection"); }
 }
