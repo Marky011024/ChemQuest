@@ -127,6 +127,9 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
             new Vector2(0,20),new Vector2(398,52),Color.white);
         Txt(station.transform,"ExperimentResult","Observe the selected sample",16,
             new Vector2(0,-73),new Vector2(392,82),Cyan);
+        var indicator=Image(station.transform,"TestIndicator",new Vector2(0,-123),
+            new Vector2(100,12),new Color32(70,90,120,255));
+        indicator.raycastTarget=false;
         var panel=Image(board.transform,"EvidenceBoard",new Vector2(385,-20),
             new Vector2(230,296),new Color32(12,33,58,255));panel.raycastTarget=false;
         Txt(panel.transform,"EvidenceTitle","LAB NOTEBOOK",18,new Vector2(0,119),
@@ -370,6 +373,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         selected=index;
         if(selectedLabel!=null)selectedLabel.text="SAMPLE "+samples[index]+" LOADED";
         if(resultLabel!=null)resultLabel.text="Ready for "+(Level==1?"heat test":Level==2?"strike/press test":"probe test");
+        SetIndicator(new Color32(70,90,120,255));
         if(feedback!=null)feedback.text="Sample "+samples[index]+" placed on workbench.";
     }
     private void ApplyHeat()
@@ -380,6 +384,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         if(amount<60){Info("Increase the heat above 60% to complete this comparison.");return;}
         examined[selected]=true;
         resultLabel.text=thermal[selected];
+        SetIndicator(selected==0?new Color32(255,177,71,255):new Color32(80,180,239,255));
         Info("Recorded thermal observation for sample "+samples[selected]+
             ". Compare all three; melting behavior alone is not conclusive.");
         UpdateEvidence();
@@ -394,6 +399,8 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
             selected==1?(press?"Crystal resists deformation":"Brittle sample breaks into pieces"):
             (press?"Metallic sample flattens":"Metal retains cohesion after impact");
         resultLabel.text=response;
+        SetIndicator(selected==1?new Color32(240,105,115,255):
+            selected==2?new Color32(75,202,165,255):new Color32(255,205,104,255));
         if(actions[selected,0]&&actions[selected,1])examined[selected]=true;
         Info("Observation saved: "+samples[selected]+". Test both STRIKE and PRESS.");
         UpdateEvidence();
@@ -417,6 +424,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         probed[selected,stateIndex]=true;
         bool conducts=selected==1?stateIndex!=0:selected==2;
         if(resultLabel!=null)resultLabel.text="PROBE: "+(conducts?"LAMP ON — CONDUCTS":"LAMP OFF — NO DETECTABLE CONDUCTION");
+        SetIndicator(conducts?new Color32(79,231,151,255):new Color32(80,91,119,255));
         Info("Recorded "+stateName+" conductivity for sample "+samples[selected]+".");
         UpdateEvidence();
     }
@@ -490,6 +498,11 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         for(int i=0;i<3;i++)if(examined[i])count++;
         if(progress!=null)progress.text=Level==3?"EXAMINE STATES & CLASSIFY SAMPLES":
             "SAMPLES TESTED  "+count+" / 3";
+    }
+    private void SetIndicator(Color color)
+    {
+        var indicator=Find(root,"TestIndicator")?.GetComponent<Image>();
+        if(indicator!=null)indicator.color=color;
     }
     private void Info(string text){if(feedback!=null)feedback.text=text;}
     private void Pause()
