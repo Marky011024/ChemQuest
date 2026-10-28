@@ -196,6 +196,8 @@ public class Stage2IonForgeGame : MonoBehaviour
             Label(second.transform,"Symbol","Cl",36,Vector2.zero,
                 new Vector2(138,120),Color.white);
             EnsureShell(second.transform);
+            var secondSymbol=Find(second.transform,"Symbol")?.GetComponent<TMP_Text>();
+            if(secondSymbol!=null)secondSymbol.text="Cl\\n17";
             second.gameObject.SetActive(false);
         }
         Label(parent,"TransferArrow","> > >",30,new Vector2(0,62),
@@ -499,17 +501,37 @@ public class Stage2IonForgeGame : MonoBehaviour
 
     private void EnsureShell(Transform atom)
     {
+        if(atom==null)return;
+        var image=atom.GetComponent<Image>();
+        if(image!=null)
+        {
+            image.color=new Color32(10,27,52,0);
+            image.raycastTarget=false;
+        }
         var existing=Find(atom,"BohrShell");
-        if(existing!=null)return;
-        var shell=new GameObject("BohrShell",typeof(RectTransform),
-            typeof(CanvasRenderer),typeof(Stage2BohrAtomView));
-        shell.transform.SetParent(atom,false);
-        var rect=shell.GetComponent<RectTransform>();
+        if(existing==null)
+        {
+            var shell=new GameObject("BohrShell",typeof(RectTransform),
+                typeof(CanvasRenderer),typeof(Stage2BohrAtomView));
+            shell.transform.SetParent(atom,false);
+            existing=shell.transform;
+        }
+        var rect=existing.GetComponent<RectTransform>();
         rect.anchoredPosition=Vector2.zero;
-        rect.sizeDelta=new Vector2(155,155);
-        shell.GetComponent<Stage2BohrAtomView>().raycastTarget=false;
+        rect.sizeDelta=new Vector2(172,172);
+        existing.SetAsFirstSibling(); // Put atom symbol over the center nucleus.
+        var view=existing.GetComponent<Stage2BohrAtomView>();
+        if(view!=null)view.raycastTarget=false;
         var symbol=Find(atom,"Symbol")?.GetComponent<TMP_Text>();
-        if(symbol!=null)symbol.fontSize=36;
+        if(symbol!=null)
+        {
+            symbol.fontSize=25;
+            symbol.fontStyle=FontStyles.Bold;
+            symbol.alignment=TextAlignmentOptions.Center;
+            symbol.color=Color.white;
+            symbol.raycastTarget=false;
+            symbol.transform.SetAsLastSibling();
+        }
     }
 
     private void RefreshShells()
@@ -547,7 +569,7 @@ public class Stage2IonForgeGame : MonoBehaviour
                 var b=Find(second,"BohrShell")?.GetComponent<Stage2BohrAtomView>();
                 if(b!=null)b.SetShells(2,8,7+(accepted>1?1:0));
                 var sym=Find(acceptor,"Symbol")?.GetComponent<TMP_Text>();
-                if(sym!=null)sym.text="Cl";
+                if(sym!=null)sym.text="Cl\\n17";
             }
             else
             {
@@ -574,9 +596,9 @@ public class Stage2IonForgeGame : MonoBehaviour
             if(rect!=null)
             {
                 // Both electrons reach oxygen on MgO; separate shells on MgCl2.
-                rect.anchoredPosition=Level==1?new Vector2(333,106):
-                    variant==1?(i==0?new Vector2(252,106):new Vector2(473,106)):
-                    new Vector2(333+(i==0?-21:21),106);
+                rect.anchoredPosition=Level==1?new Vector2(360,78):
+                    variant==1?(i==0?new Vector2(278,70):new Vector2(500,70)):
+                    new Vector2(350,i==0?91:24);
                 rect.sizeDelta=new Vector2(62,62);
             }
             var img=z.GetComponent<Image>();
@@ -590,8 +612,8 @@ public class Stage2IonForgeGame : MonoBehaviour
             var rect=token?.GetComponent<RectTransform>();
             if(rect!=null)
             {
-                rect.anchoredPosition=Level==1?new Vector2(-234,111):
-                    new Vector2(-235,57+(i==0?54:-54));
+                rect.anchoredPosition=Level==1?new Vector2(-213,57):
+                    new Vector2(-231,57+(i==0?61:-61));
                 rect.sizeDelta=new Vector2(32,32);
             }
         }
@@ -621,8 +643,8 @@ public class Stage2IonForgeGame : MonoBehaviour
         if(titleLabel!=null)titleLabel.text=Heading;
         if(instructionLabel!=null)instructionLabel.text=Instruction;
         if(progressText!=null)progressText.text="COMPOUNDS "+(Convert.ToInt32(finishedVariants[0])+Convert.ToInt32(finishedVariants[1]))+"/2  |  ELECTRONS "+accepted+"/"+Needed;
-        if(donorSymbol!=null)donorSymbol.text=Level==1?(variant==1?"K":"Na"):"Mg";
-        if(acceptorSymbol!=null)acceptorSymbol.text=Level==1?"Cl":(variant==1?"2Cl":"O");
+        if(donorSymbol!=null)donorSymbol.text=Level==1?(variant==1?"K\\n19":"Na\\n11"):"Mg\\n12";
+        if(acceptorSymbol!=null)acceptorSymbol.text=Level==1?"Cl\\n17":(variant==1?"Cl\\n17":"O\\n8");
         if(transferExplanation!=null)
         {
             transferExplanation.text=Level==1?
