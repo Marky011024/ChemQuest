@@ -8,14 +8,14 @@ public class Stage5LevelSelectionManager : MonoBehaviour
     {
         foreach(var button in FindObjectsOfType<Button>(true))
         {
-            if(button.name=="Stage5BackButton")
+            if(button.name=="BackButton" || button.name=="Stage5BackButton")
             {
                 button.onClick.RemoveAllListeners();
                 button.onClick.AddListener(()=>Go("StageSelection"));
             }
             for(int level=1;level<=3;level++)
             {
-                if(button.name!="Stage5Level"+level+"Button")continue;
+                if(button.name!="Level"+level+"SelectButton" && button.name!="Stage5Level"+level+"Button")continue;
                 int next=level;
                 bool unlocked=level==1||PlayerPrefs.GetInt("Stage5Level"+(level-1)+"Completed",0)==1;
                 button.interactable=unlocked;
