@@ -550,8 +550,8 @@ public class Stage2IonForgeGame : MonoBehaviour
             var a=Find(acceptor,"BohrShell")?.GetComponent<Stage2BohrAtomView>();
             if(d!=null)
             {
-                if(variant==1)d.SetShells(2,8,8,accepted>0?0:1);
-                else d.SetShells(2,8,accepted>0?0:1);
+                if(variant==1)d.SetShells(2,8,8,0);
+                else d.SetShells(2,8,0);
             }
             if(a!=null)a.SetShells(2,8,7+accepted);
         }
@@ -559,7 +559,7 @@ public class Stage2IonForgeGame : MonoBehaviour
         {
             var d=Find(donor,"BohrShell")?.GetComponent<Stage2BohrAtomView>();
             var a=Find(acceptor,"BohrShell")?.GetComponent<Stage2BohrAtomView>();
-            if(d!=null)d.SetShells(2,8,2-accepted);
+            if(d!=null)d.SetShells(2,8,0);
             if(variant==1)
             {
                 if(second!=null)second.gameObject.SetActive(true);
