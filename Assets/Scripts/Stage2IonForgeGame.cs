@@ -521,8 +521,10 @@ public class Stage2IonForgeGame : MonoBehaviour
             }
         }
         if(feedback!=null && variant>=0)
-            feedback.text="Selected: "+(Level==1?(variant==1?"KCl":"NaCl"):(variant==1?"MgCl2":"MgO"))+
-                ". Transfer electrons and press FORM BOND.";
+            feedback.text=Level==1?
+                "Selected "+(variant==1?"K + Cl":"Na + Cl")+". Outer shell electrons: donor 1; Cl 7. Transfer 1 electron.":
+                (variant==1?"Selected Mg + 2Cl. Mg has 2 outer electrons; each Cl has 7.":
+                    "Selected Mg + O. Outer shell electrons: Mg 2; O 6.");
     }
 
     public string GetAcceptedLabel(int kind) => kind==0?"e-":kind==1?"Na+":"Cl-";
@@ -533,9 +535,12 @@ public class Stage2IonForgeGame : MonoBehaviour
         if(progressText!=null)progressText.text=Level<3?
             "COMPOUNDS "+(Convert.ToInt32(finishedVariants[0])+Convert.ToInt32(finishedVariants[1]))+"/2  |  ELECTRONS "+accepted+"/"+Needed:
             "LATTICE IONS "+accepted+"/"+Needed;
-        if(feedback!=null)feedback.text=Level==1?"Electron transferred. Press FORM BOND to check ion formation.":
-            Level==2?"Electrons transferred: "+accepted+" / 2":
-            "Ions in lattice: "+accepted+" / 12";
+        if(feedback!=null)feedback.text=Level==1?
+            "Cl outer shell: "+(7+accepted)+"/8 | donor loses 1 electron. Select correct ionic charges.":
+            Level==2?(variant==1?
+                "Each Cl outer shell: "+(7+(accepted>0?1:0))+"/8 and "+(7+(accepted>1?1:0))+"/8":
+                "O outer shell: "+(6+accepted)+"/8"):
+            "Ions correctly positioned: "+accepted+" / 12";
     }
     public void WrongAttempt()
     {
@@ -600,7 +605,7 @@ public class Stage2IonForgeGame : MonoBehaviour
         foreach(var z in zones)z.ResetZone();
         accepted=0;
         if(progressText!=null)progressText.text="PROGRESS  0 / "+Needed;
-        if(feedback!=null)feedback.text="Reset complete. No penalty.";
+        if(feedback!=null)feedback.text="Reset complete. No penalty; choose the right electron transfer and charge balance.";
     }
     private void Retry()
     {
