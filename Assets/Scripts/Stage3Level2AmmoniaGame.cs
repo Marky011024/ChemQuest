@@ -52,14 +52,10 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
     public void BuildEditorUI()
     {
         var existing = GameObject.Find("Stage3Level2GeneratedCanvas");
-        if (existing != null)
+        if(existing!=null)
         {
-#if UNITY_EDITOR
-            if (!Application.isPlaying) DestroyImmediate(existing);
-            else Destroy(existing);
-#else
-            Destroy(existing);
-#endif
+            Debug.Log("Stage 3 Level 2 UI already exists. Keeping scene edits.");
+            return;
         }
         BuildUI();
         var root=GameObject.Find("Stage3Level2GeneratedCanvas");
