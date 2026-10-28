@@ -724,6 +724,12 @@ public class Stage2IonForgeGame : MonoBehaviour
             }
         }
         completed=true;
+        if(Level<3 && progressText!=null)
+            progressText.text="COMPOUNDS 2/2  |  OCTETS COMPLETED";
+        if(feedback!=null)
+            feedback.text=Level==1?"NaCl and KCl successfully formed through octet completion.":
+                Level==2?"MgO and MgCl2 successfully formed through electron transfer.":
+                "Ionic crystal lattice completed.";
         int score=mistakes==0?100:75;
         PlayerPrefs.SetInt("Stage2Level"+Level+"Completed",1);
         PlayerPrefs.SetInt("Stage2Level"+Level+"Score",score);
