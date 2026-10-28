@@ -27,7 +27,7 @@ public class H2OWaterBondManager : MonoBehaviour, IDropHandler
 
     public void OnDrop(PointerEventData eventData)
     {
-        if (bondCompleted || electronsAccepted >= 2)
+        if (bondCompleted || electronsAccepted >= 2 || Time.timeScale <= 0f)
             return;
 
         GameObject droppedObject = eventData.pointerDrag;
@@ -41,7 +41,7 @@ public class H2OWaterBondManager : MonoBehaviour, IDropHandler
         // Invalid objects are not accepted.
         // Failed electron drops are tracked by
         // H2DraggableElectron.
-        if (electron == null || !electron.enabled)
+        if (electron == null || !electron.enabled || !electron.CanDrag)
         {
             Debug.Log("Invalid object dropped on water bond zone!");
             return;
