@@ -92,6 +92,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         if(Level==1)BuildLevel1(board.transform);
         if(Level==2)BuildLevel2(board.transform);
         if(Level==3)BuildLevel3(board.transform);
+        PolishEditorScene();
 
         feedback=Label(root.transform,"FeedbackText","Follow the instructions to complete the metallic bonding model.",
             16,new Vector2(0,-253),new Vector2(1050,49),Gold);
@@ -156,6 +157,114 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         noEnergyPanel.SetActive(false);
     }
 
+    // Reusable Edit-Mode polish: keeps every gameplay element in the Hierarchy.
+    // Safe to rerun after design adjustments. Does not replace existing levels.
+    public void PolishEditorScene()
+    {
+        var go=GameObject.Find("Stage4Level"+Level+"Canvas");
+        if(go==null)return;
+        var root=go.transform;
+        var bg=Find(root,"Background")?.GetComponent<Image>();
+        if(bg!=null)bg.color=new Color32(8,19,39,255);
+
+        var board=Find(root,"ExperimentBoard")?.GetComponent<Image>();
+        if(board!=null)
+        {
+            board.color=new Color32(19,43,70,255);
+            var shadow=board.GetComponent<Shadow>();
+            if(shadow==null)shadow=board.gameObject.AddComponent<Shadow>();
+            shadow.effectColor=new Color(0f,.015f,.06f,.72f);
+            shadow.effectDistance=new Vector2(0,-7);
+            shadow.useGraphicAlpha=true;
+            var outline=board.GetComponent<Outline>();
+            if(outline==null)outline=board.gameObject.AddComponent<Outline>();
+            outline.effectColor=new Color32(47,108,149,180);
+            outline.effectDistance=new Vector2(1.5f,1.5f);
+        }
+        foreach(var heading in new[]{"StageTitle","LevelTitle","LatticeHeading","CloudHeading",
+            "SlabTitle","LayerHeading"})
+        {
+            var text=Find(root,heading)?.GetComponent<TMP_Text>();
+            if(text==null)continue;
+            text.fontStyle=FontStyles.Bold;
+            text.enableAutoSizing=true;
+            text.fontSizeMin=15;
+            text.fontSizeMax=heading=="LevelTitle"?32:25;
+        }
+        var instruction=Find(root,"Instructions")?.GetComponent<TMP_Text>();
+        if(instruction!=null)
+        {
+            instruction.enableAutoSizing=true;
+            instruction.fontSizeMin=14;
+            instruction.fontSizeMax=18;
+            instruction.color=new Color32(221,234,249,255);
+        }
+        var status=Find(root,"FeedbackText")?.GetComponent<TMP_Text>();
+        if(status!=null)
+        {
+            status.enableAutoSizing=true;
+            status.fontSizeMin=12;
+            status.fontSizeMax=18;
+            status.fontStyle=FontStyles.Bold;
+        }
+
+        foreach(var b in root.GetComponentsInChildren<Button>(true))
+        {
+            var colors=b.colors;
+            colors.highlightedColor=new Color32(225,245,255,255);
+            colors.pressedColor=new Color32(153,208,232,255);
+            colors.selectedColor=new Color32(208,237,252,255);
+            colors.disabledColor=new Color32(107,122,145,160);
+            colors.fadeDuration=.15f;
+            b.colors=colors;
+            var label=b.GetComponentInChildren<TMP_Text>(true);
+            if(label!=null)
+            {
+                label.fontStyle=FontStyles.Bold;
+                label.enableAutoSizing=true;
+                label.fontSizeMin=12;
+                label.fontSizeMax=20;
+            }
+        }
+        // Stronger, distinct zones for metal cores, electrons and terminals.
+        foreach(var zone in root.GetComponentsInChildren<Stage4DropZone>(true))
+        {
+            var image=zone.GetComponent<Image>();
+            if(image!=null)image.color=zone.Kind==0
+                ?new Color32(39,91,125,255)
+                :zone.Kind==1?new Color32(104,85,50,255)
+                :new Color32(57,94,123,255);
+            var outline=zone.GetComponent<Outline>();
+            if(outline==null)outline=zone.gameObject.AddComponent<Outline>();
+            outline.effectColor=zone.Kind==1?new Color32(251,196,83,210):
+                new Color32(83,195,241,210);
+            outline.effectDistance=new Vector2(1.5f,1.5f);
+            var label=zone.GetComponentInChildren<TMP_Text>(true);
+            if(label!=null){label.fontStyle=FontStyles.Bold;label.color=Gold;}
+        }
+        foreach(var token in root.GetComponentsInChildren<Stage4Draggable>(true))
+        {
+            var image=token.GetComponent<Image>();
+            if(image==null)continue;
+            var shadow=token.GetComponent<Shadow>();
+            if(shadow==null)shadow=token.gameObject.AddComponent<Shadow>();
+            shadow.effectColor=new Color(0,0,.05f,.7f);
+            shadow.effectDistance=new Vector2(1,-3);
+        }
+        if(Level==2)
+        {
+            SetPosition(root,"TerminalBank",new Vector2(0,-91));
+            SetPosition(root,"VoltageSwitch",new Vector2(0,-156));
+            SetPosition(root,"DriftLabel",new Vector2(0,-127));
+        }
+    }
+
+    private void SetPosition(Transform root,string name,Vector2 position)
+    {
+        var rect=Find(root,name)?.GetComponent<RectTransform>();
+        if(rect!=null)rect.anchoredPosition=position;
+    }
+
     private void BuildLevel1(Transform board)
     {
         Label(board,"LatticeHeading","METAL CATION LATTICE",19,new Vector2(-199,145),
@@ -204,17 +313,17 @@ public class Stage4ElectronOceanGame : MonoBehaviour
                 new Vector2(-245+i*76,0),new Vector2(56,35),Gold);
         AddZone(board,"NegativeTerminalSlot",2,new Vector2(-379,40),new Vector2(115,94));
         AddZone(board,"PositiveTerminalSlot",3,new Vector2(379,40),new Vector2(115,94));
-        var bank=Rect(board,"TerminalBank",new Vector2(0,-112),
-            new Vector2(510,66),new Color32(12,28,51,255));
+        var bank=Rect(board,"TerminalBank",new Vector2(0,-91),
+            new Vector2(510,56),new Color32(12,28,51,255));
         bank.raycastTarget=false;
         AddToken(bank.transform,"NegativeTerminal",2,new Vector2(-123,0),
             new Color32(82,155,200,255),"−");
         AddToken(bank.transform,"PositiveTerminal",3,new Vector2(123,0),
             new Color32(235,149,70,255),"+");
-        Button(board,"VoltageSwitch","SWITCH: OFF",new Vector2(0,-175),
+        Button(board,"VoltageSwitch","SWITCH: OFF",new Vector2(0,-155),
             new Vector2(260,42),new Color32(87,103,133,255));
         Label(board,"DriftLabel","Electron drift: OFF  |  conventional current flows opposite",
-            14,new Vector2(0,-158),new Vector2(740,28),Dim);
+            14,new Vector2(0,-126),new Vector2(740,28),Dim);
     }
 
     private void BuildLevel3(Transform board)
