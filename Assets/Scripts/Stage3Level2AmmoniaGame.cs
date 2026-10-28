@@ -109,40 +109,56 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         bg.rectTransform.anchorMin = Vector2.zero; bg.rectTransform.anchorMax = Vector2.one;
         bg.rectTransform.offsetMin = Vector2.zero; bg.rectTransform.offsetMax = Vector2.zero;
 
-        Label(root.transform, "Title", "STAGE 3  |  LEVEL 2", 24, new Vector2(0, 316), new Vector2(850, 44), Accent);
-        Label(root.transform, "Subtitle", "AMMONIA MOLECULE BUILDER - NH<sub>3</sub>", 31, new Vector2(0, 263), new Vector2(950, 52), Color.white);
-        Label(root.transform, "Instructions", "NH<sub>3</sub>: Nitrogen has 5 valence electrons, and each H has 1.\nForm three shared pairs (3 N-H single bonds) and one lone pair on N.", 19, new Vector2(0, 199), new Vector2(990, 66), new Color32(196, 220, 239, 255));
+        // Layout v2: centered Lewis structure; separate interactive controls.
+        Label(root.transform, "Title", "STAGE 3  /  LEVEL 2", 18, new Vector2(0, 322), new Vector2(650, 36), Accent);
+        Label(root.transform, "Subtitle", "AMMONIA  •  NH<sub>3</sub>", 36, new Vector2(0, 273), new Vector2(730, 48), Color.white);
+        Label(root.transform, "Instructions",
+            "N has 5 valence electrons; each H has 1. Build THREE bonding pairs and ONE lone pair.\nTap each electron slot twice to place its 2 electrons.",
+            17, new Vector2(0, 218), new Vector2(980, 61), new Color32(196, 220, 239, 255));
 
-        scoreText = Label(root.transform, "Score", "SCORE\n000000", 22, new Vector2(535, 299), new Vector2(160, 73), Gold);
-        for (int i=0;i<5;i++)
-            energyIcons.Add(Rectangle(root.transform, "Energy"+(i+1), new Vector2(-549+i*42, 299), new Vector2(30, 30), Gold));
+        scoreText = Label(root.transform, "Score", "SCORE\n000000", 20, new Vector2(530, 291), new Vector2(145, 72), Gold);
+        Label(root.transform, "EnergyLabel", "ENERGY", 14, new Vector2(-515, 324), new Vector2(140, 30), new Color32(196,220,239,255));
+        for (int i=0; i<5; i++)
+            energyIcons.Add(Rectangle(root.transform, "Energy"+(i+1), new Vector2(-565+i*37, 291), new Vector2(25,25), Gold));
 
-        Rectangle(root.transform, "PuzzleBoard", new Vector2(0, 4), new Vector2(1010, 355), Panel);
-        Label(root.transform, "Nitrogen", "N", 68, new Vector2(0, 12), new Vector2(130, 100), Accent);
-        Label(root.transform, "HydrogenLeft", "H", 60, new Vector2(-327, 22), new Vector2(90, 95), Color.white);
-        Label(root.transform, "HydrogenRight", "H", 60, new Vector2(326, 22), new Vector2(90, 95), Color.white);
-        Label(root.transform, "HydrogenBottom", "H", 60, new Vector2(0, -145), new Vector2(90, 90), Color.white);
-        // Show electrons explicitly as Lewis dots, not three dashes (which imply triple bonds).
-        electronPairVisuals.Add(Label(root.transform, "SharedPairLeft", "", 46, new Vector2(-165, 15), new Vector2(130, 60), Gold));
-        electronPairVisuals.Add(Label(root.transform, "SharedPairRight", "", 46, new Vector2(166, 15), new Vector2(130, 60), Gold));
-        electronPairVisuals.Add(Label(root.transform, "SharedPairBottom", "", 46, new Vector2(0, -82), new Vector2(130, 60), Gold));
-        electronPairVisuals.Add(Label(root.transform, "LonePairOnNitrogen", "", 42, new Vector2(0, 77), new Vector2(130, 55), Gold));
-        var names = new [] { "LEFT N-H BOND", "RIGHT N-H BOND", "BOTTOM N-H BOND", "N LONE PAIR" };
-        var positions = new [] { new Vector2(-235,86), new Vector2(235,86), new Vector2(175,-94), new Vector2(0,124) };
-        for (int i=0;i<4;i++)
+        Rectangle(root.transform, "MoleculeCardShadow", new Vector2(0, 27), new Vector2(750, 313), new Color32(12,32,56,255));
+        Rectangle(root.transform, "MoleculeCard", new Vector2(0, 34), new Vector2(735, 305), Panel);
+        Label(root.transform, "StructureLabel", "LEWIS DOT STRUCTURE", 17, new Vector2(0, 168), new Vector2(400, 30), Accent);
+
+        // The lone pair is ABOVE nitrogen and the three N-H pairs are BETWEEN atoms.
+        Label(root.transform, "Nitrogen", "N", 74, new Vector2(0, 50), new Vector2(110, 95), Accent);
+        Label(root.transform, "HydrogenLeft", "H", 66, new Vector2(-240, 50), new Vector2(95, 90), Color.white);
+        Label(root.transform, "HydrogenRight", "H", 66, new Vector2(240, 50), new Vector2(95, 90), Color.white);
+        Label(root.transform, "HydrogenBottom", "H", 66, new Vector2(0, -78), new Vector2(95, 85), Color.white);
+
+        // Guides make the three individual single bonds visible before electrons are placed.
+        var guide = new Color32(59, 100, 129, 255);
+        Rectangle(root.transform, "SingleBondGuideLeft", new Vector2(-122, 47), new Vector2(64, 3), guide);
+        Rectangle(root.transform, "SingleBondGuideRight", new Vector2(122, 47), new Vector2(64, 3), guide);
+        Rectangle(root.transform, "SingleBondGuideBottom", new Vector2(0, -12), new Vector2(3, 37), guide);
+        electronPairVisuals.Add(Label(root.transform,"SharedPairLeft","○  ○",35,new Vector2(-122,65),new Vector2(110,44),Gold));
+        electronPairVisuals.Add(Label(root.transform,"SharedPairRight","○  ○",35,new Vector2(122,65),new Vector2(110,44),Gold));
+        electronPairVisuals.Add(Label(root.transform,"SharedPairBottom","○  ○",35,new Vector2(0,-15),new Vector2(120,42),Gold));
+        electronPairVisuals.Add(Label(root.transform,"NitrogenLonePair","○  ○",35,new Vector2(0,115),new Vector2(115,42),Gold));
+
+        // The buttons are BELOW the molecule, never overlapping the Lewis diagram.
+        var names = new [] { "LEFT N-H", "RIGHT N-H", "BOTTOM N-H", "N LONE PAIR" };
+        var positions = new [] { new Vector2(-378,-188),new Vector2(-126,-188),
+            new Vector2(126,-188),new Vector2(378,-188) };
+        for(int i=0; i<4; i++)
         {
             int slot=i;
-            var zone=Rectangle(root.transform,"Slot"+i,positions[i],new Vector2(205,68),new Color32(36,68,105,255));
-            slotTexts.Add(Label(zone.transform,"Count", names[i]+"\n0 / 2", 17, Vector2.zero, new Vector2(202,66), Color.white));
+            var zone=Rectangle(root.transform,"ElectronSlot"+i,positions[i],new Vector2(232,64),new Color32(35,78,108,255));
+            slotTexts.Add(Label(zone.transform,"Count",names[i]+"\n0 / 2  •  TAP TO ADD",16,Vector2.zero,new Vector2(220,59),Color.white));
             var button=zone.gameObject.AddComponent<Button>();
             button.onClick.AddListener(()=>AddElectron(slot));
             electronButtons.Add(button);
         }
-        feedbackText=Label(root.transform,"Feedback","Tap a bonding slot to place one electron.",20,new Vector2(0,-218),new Vector2(970,60),Gold);
-        MakeButton(root.transform,"CheckButton","CHECK MOLECULE",new Vector2(0,-297),new Vector2(260,54),CheckAnswer,new Color32(9,131,132,255));
-        MakeButton(root.transform,"ResetButton","RESET PAIRS",new Vector2(-273,-297),new Vector2(210,54),ResetPairs,new Color32(85,94,124,255));
-        MakeButton(root.transform,"PauseButton","PAUSE",new Vector2(488,-297),new Vector2(160,54),Pause,new Color32(62,76,112,255));
-        MakeButton(root.transform,"ExitButton","LEVEL SELECT",new Vector2(-488,-297),new Vector2(165,54),()=>Navigate("Stage3LevelSelection"),new Color32(62,76,112,255));
+        feedbackText=Label(root.transform,"Feedback","Place two electrons into each of the four labeled slots.",18,new Vector2(0,-251),new Vector2(1000,41),Gold);
+        MakeButton(root.transform,"CheckButton","CHECK MOLECULE",new Vector2(0,-318),new Vector2(260,54),CheckAnswer,new Color32(9,131,132,255));
+        MakeButton(root.transform,"ResetButton","RESET",new Vector2(-270,-318),new Vector2(180,54),ResetPairs,new Color32(85,94,124,255));
+        MakeButton(root.transform,"PauseButton","PAUSE",new Vector2(486,-318),new Vector2(165,54),Pause,new Color32(62,76,112,255));
+        MakeButton(root.transform,"ExitButton","LEVEL SELECT",new Vector2(-487,-318),new Vector2(169,54),()=>Navigate("Stage3LevelSelection"),new Color32(62,76,112,255));
 
         failurePanel=Overlay(root.transform,"FailedOverlay","STAGE FAILED!","Two incorrect checks. One energy was consumed.");
         retryButton=MakeButton(failurePanel.transform,"Retry","RETRY",new Vector2(0,-60),new Vector2(220,56),Retry,new Color32(9,131,132,255));
@@ -172,8 +188,8 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
     {
         if (!CanPlay() || slots[slot]>=2) return;
         slots[slot]++;
-        slotTexts[slot].text=new[]{"LEFT N-H BOND","RIGHT N-H BOND","BOTTOM N-H BOND","N LONE PAIR"}[slot]+"\n"+slots[slot]+" / 2";
-        electronPairVisuals[slot].text = slots[slot] == 1 ? "•" : "• •";
+        slotTexts[slot].text=new[]{"LEFT N-H","RIGHT N-H","BOTTOM N-H","N LONE PAIR"}[slot]+"\n"+slots[slot]+" / 2  •  TAP TO ADD";
+        electronPairVisuals[slot].text = slots[slot] == 1 ? "●  ○" : "●  ●";
         feedbackText.text="Electron placed. Three bonding pairs + one lone pair = NH<sub>3</sub>.";
     }
 
@@ -220,8 +236,8 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         for(int i=0;i<slots.Length;i++)
         {
             slots[i]=0;
-            slotTexts[i].text=new[]{"LEFT N-H BOND","RIGHT N-H BOND","BOTTOM N-H BOND","N LONE PAIR"}[i]+"\n0 / 2";
-            electronPairVisuals[i].text="";
+            slotTexts[i].text=new[]{"LEFT N-H","RIGHT N-H","BOTTOM N-H","N LONE PAIR"}[i]+"\n0 / 2  •  TAP TO ADD";
+            electronPairVisuals[i].text="○  ○";
         }
         if(feedback) feedbackText.text="Pairs reset. No wrong attempt charged.";
     }
