@@ -530,15 +530,6 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         return image.gameObject;
     }
 
-    private void AddElectron(int slot)
-    {
-        if (!CanPlay() || slots[slot]>=2) return;
-        // Electron placement is drag-and-drop only.
-        slotTexts[slot].text=new[]{"LEFT N-H","RIGHT N-H","BOTTOM N-H","N LONE PAIR"}[slot]+"\n"+slots[slot]+" / 2  •  TAP TO ADD";
-        electronPairVisuals[slot].text = slots[slot] == 1 ? "●  ○" : "●  ●";
-        feedbackText.text="Electron placed. Three bonding pairs + one lone pair = NH<sub>3</sub>.";
-    }
-
     private bool CanPlay() => !paused && !failed && !completed && EnergyManager.Instance != null && EnergyManager.Instance.HasEnergy;
 
     private void CheckAnswer()
