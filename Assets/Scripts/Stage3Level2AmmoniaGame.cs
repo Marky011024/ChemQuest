@@ -18,7 +18,9 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
     [SerializeField] private GameObject stage1PauseButtonPrefab;
     [SerializeField] private GameObject stage1PauseMenuPrefab;
     private TMP_Text scoreText, feedbackText;
-    private GameObject failurePanel, completionPanel, pausePanel;
+    private GameObject failurePanel, completionPanel, pausePanel, outOfEnergyPanel;
+    private TMP_Text energyTimerText;
+    private bool outOfEnergyVisible;
     private Button retryButton;
     private int[] slots = new int[4];
     private int wrongAttempts;
@@ -254,6 +256,19 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
                 ()=>Navigate("StageSelection"),new Color32(69,88,122,255));
         }
         pausePanel.SetActive(false);
+
+        // Stage 1 OutOfEnergyUI behavior: automatically block gameplay at zero
+        // and display countdown based on the shared EnergyManager clock.
+        outOfEnergyPanel=ModalPanel(root.transform,"OutOfEnergyPanel",
+            "OUT OF ENERGY!","You need energy to continue playing.");
+        energyTimerText=Label(outOfEnergyPanel.transform,"EnergyTimerText",
+            "Next Energy In: 15:00",25,new Vector2(0,-49),
+            new Vector2(600,60),Gold);
+        MakeButton(outOfEnergyPanel.transform,"BackToSelectionButton",
+            "BACK TO LEVEL SELECTION",new Vector2(0,-137),new Vector2(330,62),
+            ()=>Navigate("Stage3LevelSelection"),new Color32(9,131,132,255));
+        outOfEnergyPanel.SetActive(false);
+        UpdateOutOfEnergyUI();
     }
 
     private void WireMenuButton(Transform parent,string objectName,Action callback)
@@ -333,6 +348,7 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
             RefreshEnergy();
             retryButton.interactable=EnergyManager.Instance.HasEnergy;
             failurePanel.SetActive(true);
+            UpdateOutOfEnergyUI(); // If this was the last energy, zero-energy panel takes priority.
         }
     }
 
@@ -360,10 +376,56 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         }
         if(energyStatusText!=null) energyStatusText.text=value+" / 5";
     }
-    private void Update(){if(Time.frameCount%30==0)RefreshEnergy();}
-    private void Retry(){if(EnergyManager.Instance!=null && EnergyManager.Instance.HasEnergy)Navigate("Stage3Level2");}
+    private void Update()
+    {
+        // Same regeneration countdown as Stage 1, shown in realtime even when paused.
+        if(Time.frameCount%15==0)
+        {
+            RefreshEnergy();
+            UpdateOutOfEnergyUI();
+        }
+    }
+
+    private void UpdateOutOfEnergyUI()
+    {
+        if(outOfEnergyPanel==null || EnergyManager.Instance==null)return;
+        var energy=EnergyManager.Instance;
+        bool empty=!energy.HasEnergy;
+        if(empty)
+        {
+            if(!outOfEnergyPanel.activeSelf)
+                outOfEnergyPanel.SetActive(true);
+            // Make the modal topmost so failed/retry buttons cannot be used at zero.
+            outOfEnergyPanel.transform.SetAsLastSibling();
+            int seconds=energy.SecondsUntilNextEnergy();
+            if(energyTimerText!=null)
+                energyTimerText.text="Next Energy In: "+
+                    (seconds/60).ToString("00")+":"+(seconds%60).ToString("00");
+        }
+        else if(outOfEnergyPanel.activeSelf)
+        {
+            outOfEnergyPanel.SetActive(false);
+        }
+        outOfEnergyVisible=empty;
+    }
+    private void Retry()
+    {
+        if(EnergyManager.Instance!=null && EnergyManager.Instance.HasEnergy)
+            Navigate("Stage3Level2");
+        else
+            UpdateOutOfEnergyUI();
+    }
     private void Pause(){if(!CanPlay())return;paused=true;pausePanel.SetActive(true);Time.timeScale=0;}
     private void Resume(){paused=false;pausePanel.SetActive(false);Time.timeScale=1;}
-    private void Navigate(string name){Time.timeScale=1;SceneManager.LoadScene(name);}
+    private void Navigate(string name)
+    {
+        Time.timeScale=1;
+        if(!Application.CanStreamedLevelBeLoaded(name))
+        {
+            Debug.LogError("ChemQuest navigation: "+name+" is not in Build Settings.");
+            return;
+        }
+        SceneManager.LoadScene(name);
+    }
     private void OnDestroy(){Time.timeScale=1;}
 }
