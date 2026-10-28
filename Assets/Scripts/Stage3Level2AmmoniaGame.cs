@@ -26,6 +26,7 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
     private static readonly Color Gold = new Color32(255, 207, 89, 255);
 
     private Font legacyFont;
+    private TMP_Text finalScoreText, energyStatusText;
 
     private void Start()
     {
@@ -117,9 +118,16 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
             17, new Vector2(0, 218), new Vector2(980, 61), new Color32(196, 220, 239, 255));
 
         scoreText = Label(root.transform, "Score", "SCORE\n000000", 20, new Vector2(530, 291), new Vector2(145, 72), Gold);
-        Label(root.transform, "EnergyLabel", "ENERGY", 14, new Vector2(-515, 324), new Vector2(140, 30), new Color32(196,220,239,255));
+        // Same five-energy HUD convention as Stage 1; lightning icon replaces plain square.
+        Label(root.transform, "EnergyLabel", "ENERGY", 13, new Vector2(-540, 331), new Vector2(120, 22), Color.white);
         for (int i=0; i<5; i++)
-            energyIcons.Add(Rectangle(root.transform, "Energy"+(i+1), new Vector2(-565+i*37, 291), new Vector2(25,25), Gold));
+        {
+            var lightning=Label(root.transform,"Energy"+(i+1),"⚡",36,new Vector2(-556+i*43,291),new Vector2(43,55),Gold);
+            energyIcons.Add(lightning.gameObject.AddComponent<Image>());
+            var visibility=energyIcons[i];
+            visibility.color=new Color(1,1,1,0); // Image tracks visibility while TMP draws the bolt.
+        }
+        energyStatusText=Label(root.transform,"EnergyStatus","5 / 5",14,new Vector2(-378,323),new Vector2(100,23),Color.white);
 
         Rectangle(root.transform, "MoleculeCardShadow", new Vector2(0, 27), new Vector2(750, 313), new Color32(12,32,56,255));
         Rectangle(root.transform, "MoleculeCard", new Vector2(0, 34), new Vector2(735, 305), Panel);
@@ -157,23 +165,52 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         feedbackText=Label(root.transform,"Feedback","Place two electrons into each of the four labeled slots.",18,new Vector2(0,-251),new Vector2(1000,41),Gold);
         MakeButton(root.transform,"CheckButton","CHECK MOLECULE",new Vector2(0,-318),new Vector2(260,54),CheckAnswer,new Color32(9,131,132,255));
         MakeButton(root.transform,"ResetButton","RESET",new Vector2(-270,-318),new Vector2(180,54),ResetPairs,new Color32(85,94,124,255));
-        MakeButton(root.transform,"PauseButton","PAUSE",new Vector2(486,-318),new Vector2(165,54),Pause,new Color32(62,76,112,255));
-        MakeButton(root.transform,"ExitButton","LEVEL SELECT",new Vector2(-487,-318),new Vector2(169,54),()=>Navigate("Stage3LevelSelection"),new Color32(62,76,112,255));
+        // Stage 1 style: pause/menu available from the top-left of the gameplay screen.
+        MakeButton(root.transform,"PauseButton","☰  MENU",new Vector2(-532,222),new Vector2(160,52),Pause,new Color32(40,74,108,255));
 
-        failurePanel=Overlay(root.transform,"FailedOverlay","STAGE FAILED!","Two incorrect checks. One energy was consumed.");
-        retryButton=MakeButton(failurePanel.transform,"Retry","RETRY",new Vector2(0,-60),new Vector2(220,56),Retry,new Color32(9,131,132,255));
-        MakeButton(failurePanel.transform,"Back","LEVEL SELECT",new Vector2(0,-130),new Vector2(230,52),()=>Navigate("Stage3LevelSelection"),new Color32(85,94,124,255));
+        // Match Stage 1: centered 700x400 failure card, large retry beneath title.
+        failurePanel=ModalPanel(root.transform,"Level2FailedPanel","STAGE FAILED!",
+            "Two incorrect answers. One energy has been used.");
+        retryButton=MakeButton(failurePanel.transform,"RetryButton","RETRY",new Vector2(0,-80),
+            new Vector2(260,70),Retry,new Color32(9,131,132,255));
+        MakeButton(failurePanel.transform,"ReturnButton","LEVEL SELECTION",
+            new Vector2(0,-158),new Vector2(270,50),()=>Navigate("Stage3LevelSelection"),new Color32(68,86,119,255));
         failurePanel.SetActive(false);
 
-        completionPanel=Overlay(root.transform,"SuccessOverlay","NH<sub>3</sub> MOLECULE COMPLETE!","STAGE 3 LEVEL 3 UNLOCKED!");
-        MakeButton(completionPanel.transform,"Next","CONTINUE TO LEVEL 3",new Vector2(0,-65),new Vector2(330,59),()=>Navigate("Stage3Level3"),new Color32(9,131,132,255));
-        MakeButton(completionPanel.transform,"Back","LEVEL SELECT",new Vector2(0,-139),new Vector2(230,52),()=>Navigate("Stage3LevelSelection"),new Color32(85,94,124,255));
+        // Stage 1 complete screen: final score above a side-by-side selection / next layout.
+        completionPanel=ModalPanel(root.transform,"Level2CompletePanel","LEVEL COMPLETE!","AMMONIA (NH<sub>3</sub>) FORMED");
+        finalScoreText=Label(completionPanel.transform,"FinalScoreText","FINAL SCORE: 000000",29,
+            new Vector2(0,-32),new Vector2(570,64),Gold);
+        MakeButton(completionPanel.transform,"LevelSelectionButton","LEVEL SELECTION",
+            new Vector2(-125,-160),new Vector2(230,55),
+            ()=>Navigate("Stage3LevelSelection"),new Color32(69,88,122,255));
+        MakeButton(completionPanel.transform,"NextLevelButton","NEXT LEVEL",
+            new Vector2(125,-160),new Vector2(230,55),
+            ()=>Navigate("Stage3Level3"),new Color32(9,131,132,255));
         completionPanel.SetActive(false);
 
-        pausePanel=Overlay(root.transform,"PauseOverlay","PAUSED","Resume the ammonia puzzle or return to level selection.");
-        MakeButton(pausePanel.transform,"Resume","RESUME",new Vector2(0,-55),new Vector2(210,55),Resume,new Color32(9,131,132,255));
-        MakeButton(pausePanel.transform,"Back","LEVEL SELECT",new Vector2(0,-122),new Vector2(225,52),()=>Navigate("Stage3LevelSelection"),new Color32(85,94,124,255));
+        // The same centered menu format, with pause, resume, stage selection.
+        pausePanel=ModalPanel(root.transform,"PauseMenuPanel","GAME PAUSED","Choose an option below.");
+        MakeButton(pausePanel.transform,"ResumeButton","RESUME",new Vector2(0,-12),
+            new Vector2(260,58),Resume,new Color32(9,131,132,255));
+        MakeButton(pausePanel.transform,"LevelSelectButton","LEVEL SELECTION",
+            new Vector2(0,-91),new Vector2(280,58),()=>Navigate("Stage3LevelSelection"),new Color32(69,88,122,255));
+        MakeButton(pausePanel.transform,"StageSelectButton","SELECT STAGE",
+            new Vector2(0,-161),new Vector2(280,55),()=>Navigate("StageSelection"),new Color32(69,88,122,255));
         pausePanel.SetActive(false);
+    }
+
+    private GameObject ModalPanel(Transform parent,string name,string heading,string description)
+    {
+        var dim=Rectangle(parent,name,Vector2.zero,new Vector2(1280,720),
+            new Color32(5,12,28,225));
+        var card=Rectangle(dim.transform,"Panel",Vector2.zero,new Vector2(700,400),
+            new Color32(22,44,76,255));
+        Label(dim.transform,"Heading",heading,37,new Vector2(0,104),
+            new Vector2(640,80),Gold);
+        Label(dim.transform,"Description",description,22,new Vector2(0,42),
+            new Vector2(635,65),Color.white);
+        return dim.gameObject;
     }
 
     private GameObject Overlay(Transform parent,string name,string heading,string message)
@@ -205,6 +242,7 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
             completed=true;
             int score=wrongAttempts==0?100:75;
             scoreText.text="SCORE\n"+score.ToString("D6");
+            if(finalScoreText!=null) finalScoreText.text="FINAL SCORE: "+score.ToString("D6");
             PlayerPrefs.SetInt("Stage3Level2Completed",1);
             PlayerPrefs.SetInt("Stage3Level2Score",score);
             PlayerPrefs.SetInt("Stage3Level3Unlocked",1);
@@ -244,7 +282,15 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
     private void RefreshEnergy()
     {
         int value=EnergyManager.Instance == null ? 0 : EnergyManager.Instance.CurrentEnergy;
-        for(int i=0;i<energyIcons.Count;i++)if(energyIcons[i]!=null)energyIcons[i].enabled=i<value;
+        for(int i=0;i<energyIcons.Count;i++)
+        {
+            if(energyIcons[i]!=null)
+            {
+                var bolt=energyIcons[i].GetComponent<TMP_Text>();
+                if(bolt!=null) bolt.color = i<value ? Gold : new Color32(78,91,113,255);
+            }
+        }
+        if(energyStatusText!=null) energyStatusText.text=value+" / 5";
     }
     private void Update(){if(Time.frameCount%30==0)RefreshEnergy();}
     private void Retry(){if(EnergyManager.Instance!=null && EnergyManager.Instance.HasEnergy)Navigate("Stage3Level2");}
