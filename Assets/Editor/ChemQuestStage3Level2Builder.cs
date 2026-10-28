@@ -33,6 +33,30 @@ public static class ChemQuestStage3Level2Builder
         serializedGame.FindProperty("stage1PauseMenuPrefab").objectReferenceValue=
             AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/PauseMenuPanel.prefab");
         serializedGame.ApplyModifiedPropertiesWithoutUndo();
+        // Register navigation destinations without replacing any existing scenes.
+        string[] destinations = {
+            "Assets/Scenes/StageSelection.unity",
+            "Assets/Scenes/Stage3LevelSelection.unity",
+            "Assets/Scenes/Stage3Level1.unity",
+            "Assets/Scenes/Stage3Level2.unity",
+            "Assets/Scenes/Stage3Level3.unity"
+        };
+        var buildScenes=new System.Collections.Generic.List<EditorBuildSettingsScene>(
+            EditorBuildSettings.scenes);
+        foreach(string destination in destinations)
+        {
+            if(AssetDatabase.LoadAssetAtPath<SceneAsset>(destination)==null)
+            {
+                Debug.LogError("ChemQuest: Missing scene "+destination);
+                continue;
+            }
+            int index=buildScenes.FindIndex(s=>s.path==destination);
+            if(index<0)
+                buildScenes.Add(new EditorBuildSettingsScene(destination,true));
+            else if(!buildScenes[index].enabled)
+                buildScenes[index]=new EditorBuildSettingsScene(destination,true);
+        }
+        EditorBuildSettings.scenes=buildScenes.ToArray();
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
         Debug.Log("ChemQuest Stage 3 Level 2 ready. Enter Play Mode to generate the interactive NH3 UI.");
