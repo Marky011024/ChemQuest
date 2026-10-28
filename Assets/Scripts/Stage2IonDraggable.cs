@@ -12,19 +12,21 @@ public class Stage2IonDraggable : MonoBehaviour, IBeginDragHandler, IDragHandler
     private Canvas canvas;
     private Vector2 home;
     private bool dragging;
+    private bool homeCaptured;
 
     private void Awake()
     {
         rect=GetComponent<RectTransform>();
         group=GetComponent<CanvasGroup>();
         canvas=GetComponentInParent<Canvas>();
-        home=rect.anchoredPosition;
+        if(!homeCaptured){home=rect.anchoredPosition;homeCaptured=true;}
     }
     public void Initialize(Stage2IonForgeGame game)
     {
         Game=game;
         if(rect==null)Awake();
-        home=rect.anchoredPosition;
+        if(!homeCaptured){home=rect.anchoredPosition;homeCaptured=true;}
+        rect.anchoredPosition=home;
         Accepted=false;
         gameObject.SetActive(true);
         group.blocksRaycasts=true;
