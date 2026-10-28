@@ -20,9 +20,12 @@ public class Stage2IonForgeGame : MonoBehaviour
     private TMP_Text feedback,scoreText,finalScore,energyText,timerText,progressText;
     private Button retryButton;
     private int accepted,mistakes;
+    private int variant=-1;
+    private readonly bool[] finishedVariants=new bool[2];
+    private TMP_Text titleLabel,instructionLabel,donorSymbol,acceptorSymbol,transferExplanation;
     private bool failed,completed,paused;
     private float nextRefresh;
-    private const int TotalSlots=6;
+    private const int TotalSlots=12;
     private static readonly Color Gold=new Color32(255,209,92,255);
     private static readonly Color Blue=new Color32(53,189,244,255);
     private static readonly Color Navy=new Color32(9,21,43,255);
@@ -30,8 +33,8 @@ public class Stage2IonForgeGame : MonoBehaviour
     public bool CanInteract => !failed&&!completed&&!paused&&Time.timeScale>0 &&
         EnergyManager.Instance!=null && EnergyManager.Instance.HasEnergy;
     private int Needed => Level==1?1:Level==2?2:TotalSlots;
-    private string Heading => Level==1?"SODIUM CHLORIDE • NaCl":
-        Level==2?"MAGNESIUM OXIDE • MgO":"IONIC CRYSTAL LATTICE";
+    private string Heading => Level==1?"SINGLE ELECTRON TRANSFER | NaCl & KCl":
+        Level==2?"DIVALENT TRANSFER | MgO & MgCl2":"IONIC CRYSTAL LATTICE | NaCl";
     private string Instruction => Level==1?
         "Transfer sodium's one valence electron to chlorine. Drag the electron into the Cl receiver.":
         Level==2?"Transfer magnesium's TWO valence electrons to oxygen. Fill both receiver slots.":
@@ -102,7 +105,7 @@ public class Stage2IonForgeGame : MonoBehaviour
             17,new Vector2(0,-280),new Vector2(950,42),Gold);
         Button(root.transform,"ResetButton","RESET",new Vector2(-160,-328),
             new Vector2(230,52),new Color32(67,85,118,255));
-        Button(root.transform,"CheckButton","CHECK BOND",new Vector2(160,-328),
+        Button(root.transform,"CheckButton","FORM BOND",new Vector2(160,-328),
             new Vector2(230,52),new Color32(9,131,135,255));
 
         if(PauseButtonPrefab!=null)
@@ -170,7 +173,11 @@ public class Stage2IonForgeGame : MonoBehaviour
         var left=Level==1?"Na":"Mg";
         var right=Level==1?"Cl":"O";
         Label(parent,"DonorLabel","ELECTRON DONOR",17,
-            new Vector2(-300,147),new Vector2(350,34),Blue);
+            new Vector2(-300,177),new Vector2(350,29),Blue);
+        Button(parent,"VariantAButton",Level==1?"SELECT Na":"SELECT MgO",
+            new Vector2(-385,136),new Vector2(165,37),new Color32(26,111,145,255));
+        Button(parent,"VariantBButton",Level==1?"SELECT K":"SELECT MgCl2",
+            new Vector2(-190,136),new Vector2(165,37),new Color32(26,111,145,255));
         Label(parent,"ReceiverLabel","ELECTRON ACCEPTOR",17,
             new Vector2(275,147),new Vector2(350,34),Blue);
         var cation=Image(parent,"DonorAtom",new Vector2(-285,57),
@@ -201,19 +208,19 @@ public class Stage2IonForgeGame : MonoBehaviour
             new Vector2(0,145),new Vector2(850,42),Blue);
         for(int i=0;i<TotalSlots;i++)
         {
-            int kind=((i/3)+(i%3))%2==0?1:2;
+            int kind=((i/4)+(i%4))%2==0?1:2;
             Zone(parent,"LatticeSlot"+i,kind,
-                new Vector2(-160+(i%3)*160,67-(i/3)*105),new Vector2(127,81));
+                new Vector2(-270+(i%4)*180,78-(i/4)*83),new Vector2(115,65));
         }
         var bank=Image(parent,"IonBank",new Vector2(0,-161),
-            new Vector2(850,68),new Color32(11,31,54,255));
+            new Vector2(850,94),new Color32(11,31,54,255));
         bank.raycastTarget=false;
-        for(int i=0;i<3;i++)
+        for(int i=0;i<6;i++)
         {
-            Token(bank.transform,"Sodium"+i,1,new Vector2(-332+i*108,0),
-                new Vector2(83,53),new Color32(53,174,212,255),"Na+");
-            Token(bank.transform,"Chloride"+i,2,new Vector2(61+i*108,0),
-                new Vector2(83,53),new Color32(242,188,84,255),"Cl-");
+            Token(bank.transform,"Sodium"+i,1,new Vector2(-383+i*73,18),
+                new Vector2(62,39),new Color32(53,174,212,255),"Na+");
+            Token(bank.transform,"Chloride"+i,2,new Vector2(-383+i*73,-19),
+                new Vector2(62,39),new Color32(242,188,84,255),"Cl-");
         }
     }
 
@@ -317,6 +324,12 @@ public class Stage2IonForgeGame : MonoBehaviour
         pausePanel=Find(t,"PauseMenuPanel")?.gameObject;
         energyPanel=Find(t,"OutOfEnergyPanel")?.gameObject;
         retryButton=Find(t,"RetryButton")?.GetComponent<Button>();
+        titleLabel=Find(t,"LevelHeading")?.GetComponent<TMP_Text>();
+        instructionLabel=Find(t,"Instructions")?.GetComponent<TMP_Text>();
+        donorSymbol=Find(t,"DonorAtom")?.GetComponentInChildren<TMP_Text>(true);
+        acceptorSymbol=Find(t,"AcceptorAtom")?.GetComponentInChildren<TMP_Text>(true);
+        transferExplanation=Find(t,"Explanation")?.GetComponent<TMP_Text>();
+        if(Level<3)EnsureVariantButtons(t);
         tokens.Clear();zones.Clear();icons.Clear();
         foreach(var token in t.GetComponentsInChildren<Stage2IonDraggable>(true))
         {
@@ -332,6 +345,8 @@ public class Stage2IonForgeGame : MonoBehaviour
             if(icon!=null)icons.Add(icon);
         }
         Wire(t,"CheckButton",CheckAnswer);
+        Wire(t,"VariantAButton",()=>SelectVariant(0));
+        Wire(t,"VariantBButton",()=>SelectVariant(1));
         Wire(t,"ResetButton",Reset);
         Wire(t,"Stage2PauseButton",Pause);
         Wire(t,"ContinueButton",Resume);
@@ -343,21 +358,95 @@ public class Stage2IonForgeGame : MonoBehaviour
         Wire(t,"CompletedLevelSelectionButton",()=>Navigate("Stage2LevelSelection"));
         Wire(t,"EnergyLevelSelectionButton",()=>Navigate("Stage2LevelSelection"));
         accepted=mistakes=0;paused=failed=completed=false;
+        variant=-1; finishedVariants[0]=finishedVariants[1]=false;
         foreach(var p in new[]{pausePanel,failedPanel,completedPanel,energyPanel})
             if(p!=null)p.SetActive(false);
         if(scoreText!=null)scoreText.text="SCORE\\n000000";
         if(progressText!=null)progressText.text="PROGRESS  0 / "+Needed;
-        if(feedback!=null)feedback.text="Drag the correct particle into the highlighted target.";
+        if(feedback!=null)feedback.text=Level<3?"SELECT A COMPOUND TO BEGIN (both variants required).":"Arrange alternating ions; every site matters.";
+        if(Level<3)RefreshVariant();
     }
+    // Editor-safe: upgrade existing saved scenes without deleting their UI or progress.
+    public void UpgradeChallengeUI()
+    {
+        if(Level==3)return;
+        var board=GameObject.Find("Stage2Level"+Level+"Canvas");
+        if(board==null)return;
+        var root=Find(board.transform,"ExperimentBoard");
+        if(root==null)return;
+        if(Find(root,"VariantAButton")==null)
+        {
+            Button(root,"VariantAButton",Level==1?"SELECT Na":"SELECT MgO",
+                new Vector2(-385,136),new Vector2(165,37),new Color32(26,111,145,255));
+            Button(root,"VariantBButton",Level==1?"SELECT K":"SELECT MgCl2",
+                new Vector2(-190,136),new Vector2(165,37),new Color32(26,111,145,255));
+        }
+        var donor=Find(root,"DonorLabel")?.GetComponent<RectTransform>();
+        if(donor!=null)donor.anchoredPosition=new Vector2(-300,177);
+        var head=Find(board.transform,"LevelHeading")?.GetComponent<TMP_Text>();
+        if(head!=null)head.text=Heading;
+        var instr=Find(board.transform,"Instructions")?.GetComponent<TMP_Text>();
+        if(instr!=null)instr.text=Instruction;
+        var check=Find(board.transform,"CheckButton")?.GetComponentInChildren<TMP_Text>(true);
+        if(check!=null)check.text="FORM BOND";
+    }
+
+    private void EnsureVariantButtons(Transform root)
+    {
+        UpgradeChallengeUI();
+    }
+    private void SelectVariant(int v)
+    {
+        if(!CanInteract || Level==3)return;
+        if(finishedVariants[v])
+        {
+            if(feedback!=null)feedback.text="Already completed. Choose the remaining compound.";
+            return;
+        }
+        variant=v;
+        accepted=0;
+        foreach(var item in tokens)item.Initialize(this);
+        foreach(var item in zones)item.ResetZone();
+        RefreshVariant();
+    }
+    private void RefreshVariant()
+    {
+        if(Level>=3)return;
+        if(titleLabel!=null)titleLabel.text=Heading;
+        if(instructionLabel!=null)instructionLabel.text=Instruction;
+        if(progressText!=null)progressText.text="COMPOUNDS "+(Convert.ToInt32(finishedVariants[0])+Convert.ToInt32(finishedVariants[1]))+"/2  |  ELECTRONS "+accepted+"/"+Needed;
+        if(donorSymbol!=null)donorSymbol.text=Level==1?(variant==1?"K":"Na"):"Mg";
+        if(acceptorSymbol!=null)acceptorSymbol.text=Level==1?"Cl":(variant==1?"2Cl":"O");
+        if(transferExplanation!=null)
+        {
+            transferExplanation.text=Level==1?
+                (variant==1?"K (1 valence e-) -> K+ + Cl-; final compound KCl.":
+                    "Na (1 valence e-) -> Na+ + Cl-; final compound NaCl."):
+                (variant==1?"Mg loses 2 electrons: each of TWO Cl atoms gains ONE; Mg2+ + 2Cl- -> MgCl2.":
+                    "Mg loses 2 electrons to O: Mg2+ and O2- form MgO.");
+        }
+        if(Level==2)
+        {
+            foreach(var z in zones)
+            {
+                var txt=z.GetComponentInChildren<TMP_Text>(true);
+                if(txt!=null)txt.text=variant==1?"Cl +1 e-":"O +1 e-";
+            }
+        }
+        if(feedback!=null && variant>=0)
+            feedback.text="Selected: "+(Level==1?(variant==1?"KCl":"NaCl"):(variant==1?"MgCl2":"MgO"))+
+                ". Transfer electrons and press FORM BOND.";
+    }
+
     public string GetAcceptedLabel(int kind) => kind==0?"e-":kind==1?"Na+":"Cl-";
     public void AcceptedDrop(int kind)
     {
         if(!CanInteract)return;
         accepted++;
         if(progressText!=null)progressText.text="PROGRESS  "+accepted+" / "+Needed;
-        if(feedback!=null)feedback.text=Level==1?"Sodium has transferred its electron to chlorine.":
+        if(feedback!=null)feedback.text=Level==1?"Electron transferred. Press FORM BOND to check ion formation.":
             Level==2?"Electrons transferred: "+accepted+" / 2":
-            "Ions in lattice: "+accepted+" / 6";
+            "Ions in lattice: "+accepted+" / 12";
     }
     public void WrongAttempt()
     {
@@ -381,7 +470,22 @@ public class Stage2IonForgeGame : MonoBehaviour
     private void CheckAnswer()
     {
         if(!CanInteract)return;
+        if(Level<3 && variant<0){if(feedback!=null)feedback.text="Choose Na/K or MgO/MgCl2 first.";return;}
         if(accepted<Needed){WrongAttempt();return;}
+        if(Level<3)
+        {
+            finishedVariants[variant]=true;
+            if(!finishedVariants[0] || !finishedVariants[1])
+            {
+                string product=Level==1?(variant==0?"NaCl":"KCl"):(variant==0?"MgO":"MgCl2");
+                if(feedback!=null)feedback.text=product+" formed! Opposite ions attract. Complete the OTHER compound.";
+                variant=-1;accepted=0;
+                foreach(var item in tokens)item.Initialize(this);
+                foreach(var item in zones)item.ResetZone();
+                RefreshVariant();
+                return;
+            }
+        }
         completed=true;
         int score=mistakes==0?100:75;
         PlayerPrefs.SetInt("Stage2Level"+Level+"Completed",1);
