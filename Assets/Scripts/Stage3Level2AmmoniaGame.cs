@@ -118,7 +118,7 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
             var slot=FindUI(root,"ElectronSlot"+i);
             if(slot!=null)
             {
-                electronButtons.Add(WireButton(root,"ElectronSlot"+i,()=>AddElectron(index)));
+                electronButtons.Add(slot.GetComponent<Button>());
                 slotTexts.Add(slot.Find("Count")?.GetComponent<TMP_Text>());
             }
             var visual=FindUI(root,visualNames[i]);
@@ -384,7 +384,7 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
             var zone=Rectangle(root.transform,"ElectronSlot"+i,positions[i],new Vector2(232,64),new Color32(35,78,108,255));
             slotTexts.Add(Label(zone.transform,"Count",names[i]+"\n0 / 2  •  TAP TO ADD",16,Vector2.zero,new Vector2(220,59),Color.white));
             var button=zone.gameObject.AddComponent<Button>();
-            button.onClick.AddListener(()=>AddElectron(slot));
+            // Slot accepts dragged electrons; tapping does not add electrons.
             electronButtons.Add(button);
         }
         feedbackText=Label(root.transform,"Feedback","Place two electrons into each of the four labeled slots.",18,new Vector2(0,-251),new Vector2(1000,41),Gold);
