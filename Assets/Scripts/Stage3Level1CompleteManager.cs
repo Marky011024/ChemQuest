@@ -153,6 +153,12 @@ public class Stage3Level1CompleteManager : MonoBehaviour
         feedbackText.color = color;
     }
 
+    public void AssignFeedbackText(TMP_Text hint)
+    {
+        feedbackText=hint;
+        if(feedbackText!=null)feedbackText.gameObject.SetActive(false);
+    }
+
     public bool CanInteract()
     {
         return Time.timeScale > 0f && !levelCompleted &&
