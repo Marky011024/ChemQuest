@@ -3,6 +3,7 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using TMPro;
+using UnityEngine.UI;
 
 public static class ChemQuestStage4SelectionDesigner
 {
@@ -42,7 +43,10 @@ public static class ChemQuestStage4SelectionDesigner
             if(Object.FindObjectOfType<Stage4LevelSelectionManager>(true)!=null &&
                GameObject.Find("StageSelectUI")!=null)
             {
-                Debug.Log("Stage 4 already uses the Stage 1 design. Preserving scene edits.");
+                PolishExistingScene();
+                EditorSceneManager.MarkSceneDirty(existing);
+                EditorSceneManager.SaveScene(existing);
+                Debug.Log("Stage 4 selection polished in place; custom scene changes preserved.");
                 return;
             }
             if(AssetDatabase.LoadAssetAtPath<SceneAsset>(Backup)==null)
@@ -85,6 +89,7 @@ public static class ChemQuestStage4SelectionDesigner
             if(label!=null)label.text="SELECT STAGE";
         }
 
+        PolishExistingScene();
         EditorUtility.SetDirty(manager);
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
@@ -102,4 +107,105 @@ public static class ChemQuestStage4SelectionDesigner
             }
         Debug.LogWarning("Stage 4 selection text not found: "+objectName);
     }
+    // Enhance the original Stage 1 art rather than replacing it with a plain background.
+    // All tweaks are stable if this menu command is used more than once.
+    private static void PolishExistingScene()
+    {
+        SetText("StageNameText","STAGE 4  |  ELECTRON OCEAN");
+        SetText("StageSubtitleText","METALLIC BONDING • SEA OF DELOCALIZED ELECTRONS");
+        SetText("Level1Title","LATTICE & ELECTRON CLOUD");
+        SetText("Level2Title","VOLTAGE & CONDUCTIVITY");
+        SetText("Level3Title","MALLEABILITY & STRESS");
+        SetText("Level1Description","Build a Cu or Mg lattice with free electrons");
+        SetText("Level2Description","Connect terminals and explore electron drift");
+        SetText("Level3Description","Apply force and shift the metal layers");
+        SetText("Level1Number","01");
+        SetText("Level2Number","02");
+        SetText("Level3Number","03");
+
+        var title=FindText("StageNameText");
+        if(title!=null)
+        {
+            title.enableAutoSizing=true;
+            title.fontSizeMin=18;
+            title.fontSizeMax=30;
+            title.fontStyle=FontStyles.Bold;
+            title.color=new Color32(255,209,98,255);
+        }
+        var subtitle=FindText("StageSubtitleText");
+        if(subtitle!=null)
+        {
+            subtitle.enableAutoSizing=true;
+            subtitle.fontSizeMin=11;
+            subtitle.fontSizeMax=19;
+            subtitle.color=new Color32(237,244,255,255);
+        }
+        for(int i=1;i<=3;i++)
+        {
+            string num=i.ToString();
+            var card=FindObject("Level"+num+"Card");
+            if(card!=null)
+            {
+                // Keep the source scene's art and card positions. Improve contrast
+                // so text remains readable on the detailed landscape artwork.
+                var image=card.GetComponent<Image>();
+                if(image!=null && image.sprite==null)
+                    image.color=new Color32(10,33,60,226);
+                var shadow=card.GetComponent<Shadow>();
+                if(shadow==null)shadow=card.AddComponent<Shadow>();
+                shadow.effectColor=new Color(0f,0.04f,0.11f,.65f);
+                shadow.effectDistance=new Vector2(0,-4);
+                shadow.useGraphicAlpha=true;
+            }
+            var heading=FindText("Level"+num+"Title");
+            if(heading!=null)
+            {
+                heading.fontStyle=FontStyles.Bold;
+                heading.enableAutoSizing=true;
+                heading.fontSizeMin=11;
+                heading.fontSizeMax=19;
+                heading.color=new Color32(255,216,119,255);
+            }
+            var description=FindText("Level"+num+"Description");
+            if(description!=null)
+            {
+                description.enableAutoSizing=true;
+                description.fontSizeMin=10;
+                description.fontSizeMax=14;
+                description.color=new Color32(240,246,255,255);
+            }
+            var buttonGO=FindObject("Level"+num+"SelectButton");
+            if(buttonGO!=null)
+            {
+                var button=buttonGO.GetComponent<Button>();
+                if(button!=null)
+                {
+                    var colors=button.colors;
+                    colors.normalColor=Color.white;
+                    colors.highlightedColor=new Color32(235,247,255,255);
+                    colors.pressedColor=new Color32(184,219,240,255);
+                    colors.disabledColor=new Color32(135,150,168,175);
+                    colors.colorMultiplier=1f;
+                    colors.fadeDuration=.12f;
+                    button.colors=colors;
+                }
+            }
+        }
+        // Keep original Back and Energy controls untouched, preserving the
+        // established Stage 1 style and pre-existing UI layout.
+    }
+
+    private static GameObject FindObject(string objectName)
+    {
+        foreach(var x in Object.FindObjectsOfType<Transform>(true))
+            if(x.name==objectName)return x.gameObject;
+        return null;
+    }
+    private static TMP_Text FindText(string objectName)
+    {
+        foreach(var x in Object.FindObjectsOfType<TMP_Text>(true))
+            if(x.name==objectName)return x;
+        return null;
+    }
+
 }
