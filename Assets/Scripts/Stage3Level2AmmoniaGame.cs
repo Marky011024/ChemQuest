@@ -37,12 +37,140 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
     private void Start()
     {
         Time.timeScale = 1;
-        var old = GameObject.Find("Stage3Level2GeneratedCanvas");
-        if (old != null) Destroy(old);
         SetupInputSystem();
         EnsureEnergy();
-        BuildUI();
+        if (GameObject.Find("Stage3Level2GeneratedCanvas") != null)
+            BindExistingUI();
+        else
+            BuildUI(); // Compatibility with scenes made before this upgrade.
         RefreshEnergy();
+        UpdateOutOfEnergyUI();
+    }
+
+    // Invoked in Edit Mode by Tools > ChemQuest > Build Stage 3 Level 2.
+    // Actual UI objects are saved in the .unity scene and editable in Hierarchy.
+    public void BuildEditorUI()
+    {
+        var existing = GameObject.Find("Stage3Level2GeneratedCanvas");
+        if (existing != null)
+        {
+#if UNITY_EDITOR
+            if (!Application.isPlaying) DestroyImmediate(existing);
+            else Destroy(existing);
+#else
+            Destroy(existing);
+#endif
+        }
+        BuildUI();
+        var root=GameObject.Find("Stage3Level2GeneratedCanvas");
+        if(root!=null)
+        {
+            // The first load of this scene starts with panels closed.
+            foreach(var n in new[]{"Level2FailedPanel","Level2CompletePanel","PauseMenuPanel","OutOfEnergyPanel"})
+            {
+                var child=FindUI(root.transform,n);
+                if(child!=null)child.gameObject.SetActive(false);
+            }
+        }
+    }
+
+    private Transform FindUI(Transform root,string name)
+    {
+        foreach (var t in root.GetComponentsInChildren<Transform>(true))
+            if (t.name == name) return t;
+        return null;
+    }
+
+    private Button WireButton(Transform root,string name,Action action)
+    {
+        var t=FindUI(root,name);
+        if(t==null)
+        {
+            Debug.LogWarning("Stage3Level2 missing button "+name);
+            return null;
+        }
+        var b=t.GetComponent<Button>();
+        if(b!=null)
+        {
+            // Prevent duplicate listeners when the prefab had Stage 1 bindings.
+            b.onClick=new Button.ButtonClickedEvent();
+            b.onClick.AddListener(()=>action());
+        }
+        return b;
+    }
+
+    private void BindExistingUI()
+    {
+        var sceneCanvas=GameObject.Find("Stage3Level2GeneratedCanvas");
+        if(sceneCanvas==null)return;
+        var root=sceneCanvas.transform;
+        electronButtons.Clear(); slotTexts.Clear();
+        electronPairVisuals.Clear(); energyIcons.Clear();
+        scoreText=FindUI(root,"Score")?.GetComponent<TMP_Text>();
+        feedbackText=FindUI(root,"Feedback")?.GetComponent<TMP_Text>();
+        energyStatusText=FindUI(root,"EnergyStatus")?.GetComponent<TMP_Text>();
+        finalScoreText=FindUI(root,"FinalScoreText")?.GetComponent<TMP_Text>();
+        energyTimerText=FindUI(root,"EnergyTimerText")?.GetComponent<TMP_Text>();
+        failurePanel=FindUI(root,"Level2FailedPanel")?.gameObject;
+        completionPanel=FindUI(root,"Level2CompletePanel")?.gameObject;
+        pausePanel=FindUI(root,"PauseMenuPanel")?.gameObject;
+        outOfEnergyPanel=FindUI(root,"OutOfEnergyPanel")?.gameObject;
+        string[] visualNames={"SharedPairLeft","SharedPairRight","SharedPairBottom","NitrogenLonePair"};
+        for(int i=0;i<4;i++)
+        {
+            int index=i;
+            var slot=FindUI(root,"ElectronSlot"+i);
+            if(slot!=null)
+            {
+                electronButtons.Add(WireButton(root,"ElectronSlot"+i,()=>AddElectron(index)));
+                slotTexts.Add(slot.Find("Count")?.GetComponent<TMP_Text>());
+            }
+            var visual=FindUI(root,visualNames[i]);
+            electronPairVisuals.Add(visual!=null?visual.GetComponent<TMP_Text>():null);
+        }
+        for(int i=0;i<5;i++)
+        {
+            var image=FindUI(root,"Energy"+(i+1));
+            if(image!=null)energyIcons.Add(image.GetComponent<Image>());
+        }
+
+        WireButton(root,"CheckButton",CheckAnswer);
+        WireButton(root,"ResetButton",ResetPairs);
+        WireButton(root,"PauseButton",Pause);
+        WireButton(root,"RetryButton",Retry);
+        WireButton(root,"ReturnButton",()=>Navigate("Stage3LevelSelection"));
+        WireButton(root,"NextLevelButton",()=>Navigate("Stage3Level3"));
+        // LevelSelectionButton appears on both the completion and pause prefab.
+        foreach(var b in root.GetComponentsInChildren<Button>(true))
+        {
+            if(b.name=="LevelSelectionButton")
+            {
+                b.onClick=new Button.ButtonClickedEvent();
+                b.onClick.AddListener(()=>Navigate("Stage3LevelSelection"));
+            }
+        }
+        WireButton(root,"ContinueButton",Resume);
+        WireButton(root,"ResumeButton",Resume);
+        WireButton(root,"StageSelectionButton",()=>Navigate("StageSelection"));
+        WireButton(root,"StageSelectButton",()=>Navigate("StageSelection"));
+        WireButton(root,"LevelSelectButton",()=>Navigate("Stage3LevelSelection"));
+        WireButton(root,"BackToSelectionButton",()=>Navigate("Stage3LevelSelection"));
+
+        if(failurePanel!=null)failurePanel.SetActive(false);
+        if(completionPanel!=null)completionPanel.SetActive(false);
+        if(pausePanel!=null)pausePanel.SetActive(false);
+        if(outOfEnergyPanel!=null)outOfEnergyPanel.SetActive(false);
+        wrongAttempts=0; failed=false; completed=false; paused=false;
+        for(int i=0;i<4;i++)
+        {
+            slots[i]=0;
+            if(i<slotTexts.Count && slotTexts[i]!=null)
+                slotTexts[i].text=new[]{"LEFT N-H","RIGHT N-H","BOTTOM N-H","N LONE PAIR"}[i]+"\n0 / 2  •  TAP TO ADD";
+            if(electronPairVisuals[i]!=null)electronPairVisuals[i].text="○  ○";
+        }
+        if(scoreText!=null)scoreText.text="SCORE\n000000";
+        if(feedbackText!=null)feedbackText.text="Place two electrons into each of the four labeled slots.";
+        retryButton=FindUI(root,"RetryButton")?.GetComponent<Button>();
     }
 
     private void SetupInputSystem()
