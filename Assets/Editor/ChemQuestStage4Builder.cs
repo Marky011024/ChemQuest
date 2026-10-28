@@ -6,6 +6,42 @@ using UnityEngine.SceneManagement;
 
 public static class ChemQuestStage4Builder
 {
+    [MenuItem("Tools/ChemQuest/Refresh Stage 4 Gameplay Layout")]
+    public static void RefreshGameplay()
+    {
+        if(EditorApplication.isPlaying)
+        {
+            EditorUtility.DisplayDialog("ChemQuest","Exit Play Mode before refreshing the Stage 4 layout.","OK");
+            return;
+        }
+        EditorSceneManager.SaveOpenScenes();
+        int updated=0;
+        for(int level=1;level<=3;level++)
+        {
+            string path="Assets/Scenes/Stage4Level"+level+".unity";
+            if(AssetDatabase.LoadAssetAtPath<SceneAsset>(path)==null)
+            {
+                Debug.LogWarning("Stage 4 scene not found: "+path);
+                continue;
+            }
+            var scene=EditorSceneManager.OpenScene(path,OpenSceneMode.Single);
+            var controller=GameObject.Find("Stage4Level"+level+"Controller");
+            var game=controller!=null?controller.GetComponent<Stage4ElectronOceanGame>():null;
+            if(game==null)
+            {
+                Debug.LogWarning("Stage 4 controller missing: "+path);
+                continue;
+            }
+            game.PolishEditorScene();
+            EditorUtility.SetDirty(game);
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            updated++;
+        }
+        EditorUtility.DisplayDialog("Stage 4 Gameplay Layout",
+            "Refreshed and saved "+updated+" Stage 4 gameplay scenes. Open Stage4Level1 and inspect the Game view in Edit Mode.","OK");
+    }
+
     [MenuItem("Tools/ChemQuest/Build ALL Stage 4 Levels")]
     public static void Build()
     {
