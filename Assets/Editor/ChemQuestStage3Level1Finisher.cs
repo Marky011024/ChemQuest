@@ -149,6 +149,46 @@ public static class ChemQuestStage3Level1Finisher
         foreach(var t in outPanel.GetComponentsInChildren<TMP_Text>(true))
             if(t.gameObject.name=="EnergyTimerText") timer=t;
 
+        // The failed overlay lives on the top-sorting HUD canvas, not inside
+        // the smaller bonding puzzle panel. It remains editable in Edit Mode.
+        var failure=FindChild(hudCanvasGO.transform,"Stage3Level1FailedOverlay");
+        if(failure==null)
+        {
+            failure=CreateImage(hudCanvasGO.transform,"Stage3Level1FailedOverlay",
+                new Vector2(1280,720),Vector2.zero,new Color32(5,12,27,237));
+        }
+        var fr=failure.GetComponent<RectTransform>();
+        fr.anchorMin=Vector2.zero;fr.anchorMax=Vector2.one;
+        fr.offsetMin=Vector2.zero;fr.offsetMax=Vector2.zero;
+        // Keep the transparent dim layer blocking puzzle input behind it.
+        var background=failure.GetComponent<Image>();
+        background.raycastTarget=true;
+        var failureCard=FindChild(failure.transform,"FailureCard");
+        if(failureCard==null)
+            failureCard=CreateImage(failure.transform,"FailureCard",new Vector2(670,400),
+                Vector2.zero,new Color32(20,43,75,255));
+        var failTitle=FindChild(failureCard.transform,"FailureTitle");
+        if(failTitle==null)
+            failTitle=CreateText(failureCard.transform,"FailureTitle","STAGE FAILED!",40,
+                new Vector2(0,120),new Vector2(625,70),new Color32(255,108,110,255)).gameObject;
+        var failDesc=FindChild(failureCard.transform,"FailureMessage");
+        if(failDesc==null)
+            failDesc=CreateText(failureCard.transform,"FailureMessage",
+                "Maximum wrong attempts reached.\\nOne energy has been deducted.",22,
+                new Vector2(0,35),new Vector2(620,90),Color.white).gameObject;
+        var retry=FindChild(failureCard.transform,"RetryButton");
+        if(retry==null)
+            retry=CreateButton(failureCard.transform,"RetryButton","RETRY",
+                new Vector2(-154,-111),new Vector2(280,66)).gameObject;
+        var select=FindChild(failureCard.transform,"LevelSelectionButton");
+        if(select==null)
+            select=CreateButton(failureCard.transform,"LevelSelectionButton","LEVEL SELECTION",
+                new Vector2(154,-111),new Vector2(280,66)).gameObject;
+        // The legacy small failed panel is now replaced by this top-level overlay.
+        failure.SetActive(false);
+        failure.transform.SetAsLastSibling();
+
+        properties.FindProperty("sceneFailedPanel").objectReferenceValue=failure;
         properties.FindProperty("scenePauseButton").objectReferenceValue=
             pauseButton!=null?pauseButton.GetComponent<Button>():null;
         properties.FindProperty("scenePausePanel").objectReferenceValue=pauseMenu;
