@@ -369,11 +369,15 @@ public class Stage2IonForgeGame : MonoBehaviour
     // Editor-safe: upgrade existing saved scenes without deleting their UI or progress.
     public void UpgradeChallengeUI()
     {
-        if(Level==3)return;
         var board=GameObject.Find("Stage2Level"+Level+"Canvas");
         if(board==null)return;
         var root=Find(board.transform,"ExperimentBoard");
         if(root==null)return;
+        if(Level==3)
+        {
+            UpgradeLattice(root,board.transform);
+            return;
+        }
         if(Find(root,"VariantAButton")==null)
         {
             Button(root,"VariantAButton",Level==1?"SELECT Na":"SELECT MgO",
@@ -389,6 +393,56 @@ public class Stage2IonForgeGame : MonoBehaviour
         if(instr!=null)instr.text=Instruction;
         var check=Find(board.transform,"CheckButton")?.GetComponentInChildren<TMP_Text>(true);
         if(check!=null)check.text="FORM BOND";
+    }
+
+    private void UpgradeLattice(Transform board,Transform canvas)
+    {
+        var heading=Find(canvas,"LevelHeading")?.GetComponent<TMP_Text>();
+        if(heading!=null)heading.text=Heading;
+        var instructions=Find(canvas,"Instructions")?.GetComponent<TMP_Text>();
+        if(instructions!=null)instructions.text=Instruction;
+        var progress=Find(canvas,"ProgressText")?.GetComponent<TMP_Text>();
+        if(progress!=null)progress.text="PROGRESS  0 / 12";
+        for(int i=0;i<12;i++)
+        {
+            int kind=((i/4)+(i%4))%2==0?1:2;
+            var zone=Find(board,"LatticeSlot"+i);
+            if(zone==null)
+                Zone(board,"LatticeSlot"+i,kind,
+                    new Vector2(-270+(i%4)*180,78-(i/4)*83),new Vector2(115,65));
+            else
+            {
+                var z=zone.GetComponent<Stage2IonDropZone>();
+                if(z!=null)z.RequiredKind=kind;
+                var rect=zone.GetComponent<RectTransform>();
+                if(rect!=null){rect.anchoredPosition=new Vector2(-270+(i%4)*180,78-(i/4)*83);
+                    rect.sizeDelta=new Vector2(115,65);}
+            }
+        }
+        var bank=Find(board,"IonBank");
+        if(bank!=null)
+        {
+            var rect=bank.GetComponent<RectTransform>();
+            if(rect!=null)rect.sizeDelta=new Vector2(850,94);
+            for(int i=0;i<6;i++)
+            {
+                foreach(var kind in new[]{1,2})
+                {
+                    string tokenName=(kind==1?"Sodium":"Chloride")+i;
+                    var token=Find(bank,tokenName);
+                    var pos=new Vector2(-383+i*73,kind==1?18:-19);
+                    if(token==null)
+                        Token(bank,tokenName,kind,pos,new Vector2(62,39),
+                            kind==1?new Color32(53,174,212,255):new Color32(242,188,84,255),
+                            kind==1?"Na+":"Cl-");
+                    else
+                    {
+                        var rectToken=token.GetComponent<RectTransform>();
+                        if(rectToken!=null){rectToken.anchoredPosition=pos;rectToken.sizeDelta=new Vector2(62,39);}
+                    }
+                }
+            }
+        }
     }
 
     private void EnsureVariantButtons(Transform root)
