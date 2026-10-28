@@ -413,7 +413,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
     }
 
     public string GetPlacedSymbol(int kind) =>
-        kind==0?Metal+"⁺":kind==1?"e⁻":kind==2?"−":"+";
+        kind==0?(Metal=="Mg"?"Mg²⁺":"Cu⁺"):kind==1?"e⁻":kind==2?"−":"+";
 
     public void ZoneFilled(int kind)
     {
@@ -438,7 +438,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         {
             if(token.Kind!=0)continue;
             var label=token.GetComponentInChildren<TMP_Text>(true);
-            if(label!=null)label.text=symbol+"⁺";
+            if(label!=null)label.text=symbol=="Mg"?"Mg²⁺":"Cu⁺";
         }
     }
     private void ToggleVoltage()
