@@ -28,6 +28,10 @@ public static class ChemQuestStage3Level2Builder
         }
         var serializedGame=new SerializedObject(game);
         serializedGame.FindProperty("energySprite").objectReferenceValue=energySprite;
+        serializedGame.FindProperty("stage1PauseButtonPrefab").objectReferenceValue=
+            AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/PauseButton.prefab");
+        serializedGame.FindProperty("stage1PauseMenuPrefab").objectReferenceValue=
+            AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/PauseMenuPanel.prefab");
         serializedGame.ApplyModifiedPropertiesWithoutUndo();
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
