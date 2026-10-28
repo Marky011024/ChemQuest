@@ -303,7 +303,8 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         resultLabel=Find(root,"ExperimentResult")?.GetComponent<TMP_Text>();
         evidenceText=Find(root,"EvidenceText")?.GetComponent<TMP_Text>();
         heat=Find(root,"HeatSlider")?.GetComponent<Slider>();
-        pausePanel=Find(root,"PausePanel")?.gameObject;
+        pausePanel=Find(root,"PauseMenuPanel")?.gameObject;
+        if(pausePanel==null)pausePanel=Find(root,"PausePanel")?.gameObject;
         failPanel=Find(root,"FailedPanel")?.gameObject;
         completePanel=Find(root,"CompletePanel")?.gameObject;
         emptyPanel=Find(root,"OutOfEnergyPanel")?.gameObject;
@@ -316,9 +317,13 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         }
         foreach(var target in root.GetComponentsInChildren<Stage5SampleDrop>(true))target.Game=this;
         Wire("MenuButton",Pause);
+        Wire("PauseButton",Pause);
+        Wire("Stage5PauseButton",Pause);
         Wire("ContinueButton",Resume);
         Wire("PauseLevelButton",()=>Go("Stage5LevelSelection"));
+        Wire("LevelSelectionButton",()=>Go("Stage5LevelSelection"));
         Wire("PauseStageButton",()=>Go("StageSelection"));
+        Wire("StageSelectionButton",()=>Go("StageSelection"));
         Wire("RetryButton",()=>Go("Stage5Level"+Level));
         Wire("FailLevelButton",()=>Go("Stage5LevelSelection"));
         Wire("CompleteLevelButton",()=>Go("Stage5LevelSelection"));
