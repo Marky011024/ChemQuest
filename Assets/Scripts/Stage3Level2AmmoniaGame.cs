@@ -12,7 +12,9 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
     private readonly List<Button> electronButtons = new List<Button>();
     private readonly List<TMP_Text> slotTexts = new List<TMP_Text>();
     private readonly List<TMP_Text> electronPairVisuals = new List<TMP_Text>();
-    private readonly List<TMP_Text> energyIcons = new List<TMP_Text>();
+    private readonly List<Image> energyIcons = new List<Image>();
+    [Header("Stage 1 Assets")]
+    [SerializeField] private Sprite energySprite;
     private TMP_Text scoreText, feedbackText;
     private GameObject failurePanel, completionPanel, pausePanel;
     private Button retryButton;
@@ -119,13 +121,21 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
 
         scoreText = Label(root.transform, "Score", "SCORE\n000000", 20, new Vector2(530, 291), new Vector2(145, 72), Gold);
         // Same five-energy HUD convention as Stage 1; lightning icon replaces plain square.
-        Label(root.transform, "EnergyLabel", "ENERGY", 13, new Vector2(-540, 331), new Vector2(120, 22), Color.white);
-        for (int i=0; i<5; i++)
+        // Reuse the EXACT Stage 1 energy image (Assets/Art/Energy.png).
+        // The editor builder assigns the sprite reference so it works in player builds.
+        Label(root.transform,"EnergyLabel","ENERGY",13,new Vector2(-540,331),new Vector2(120,22),Color.white);
+        for(int i=0;i<5;i++)
         {
-            energyIcons.Add(Label(root.transform,"Energy"+(i+1),"⚡",36,
-                new Vector2(-556+i*43,291),new Vector2(43,55),Gold));
+            var icon=Rectangle(root.transform,"Energy"+(i+1),
+                new Vector2(-550+i*47,286),new Vector2(40,51),Color.white);
+            icon.sprite=energySprite;
+            icon.preserveAspect=true;
+            if(energySprite==null)
+                Debug.LogWarning("Stage3Level2: Stage 1 Energy sprite missing. Run Tools > ChemQuest > Build Stage 3 Level 2.");
+            energyIcons.Add(icon);
         }
-        energyStatusText=Label(root.transform,"EnergyStatus","5 / 5",14,new Vector2(-378,323),new Vector2(100,23),Color.white);
+        energyStatusText=Label(root.transform,"EnergyStatus","5 / 5",14,
+            new Vector2(-365,323),new Vector2(100,23),Color.white);
 
         Rectangle(root.transform, "MoleculeCardShadow", new Vector2(0, 27), new Vector2(750, 313), new Color32(12,32,56,255));
         Rectangle(root.transform, "MoleculeCard", new Vector2(0, 34), new Vector2(735, 305), Panel);
@@ -284,7 +294,7 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         {
             if(energyIcons[i]!=null)
             {
-                energyIcons[i].color = i<value ? Gold : new Color32(78,91,113,255);
+                energyIcons[i].enabled = i < value;
             }
         }
         if(energyStatusText!=null) energyStatusText.text=value+" / 5";
