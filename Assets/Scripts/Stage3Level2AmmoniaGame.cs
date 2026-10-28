@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
 using UnityEngine.SceneManagement;
 using TMPro;
 
@@ -30,11 +31,28 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         Time.timeScale = 1;
         var old = GameObject.Find("Stage3Level2GeneratedCanvas");
         if (old != null) Destroy(old);
-        if (FindObjectOfType<EventSystem>() == null)
-            new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+        SetupInputSystem();
         EnsureEnergy();
         BuildUI();
         RefreshEnergy();
+    }
+
+    private void SetupInputSystem()
+    {
+        var system = FindObjectOfType<EventSystem>();
+        if (system == null)
+            system = new GameObject("EventSystem", typeof(EventSystem)).GetComponent<EventSystem>();
+
+        // Project uses the new Input System; the legacy UI module throws
+        // InvalidOperationException when Active Input Handling is Input System.
+        foreach (var legacy in system.GetComponents<StandaloneInputModule>())
+            legacy.enabled = false;
+
+        if (system.GetComponent<InputSystemUIInputModule>() == null)
+        {
+            var module = system.gameObject.AddComponent<InputSystemUIInputModule>();
+            module.AssignDefaultActions();
+        }
     }
 
     private void EnsureEnergy()
