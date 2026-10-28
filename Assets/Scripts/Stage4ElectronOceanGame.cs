@@ -31,6 +31,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
     private static readonly Color Panel=new Color32(23,44,76,255);
     private static readonly Color Gold=new Color32(255,207,89,255);
     private static readonly Color Blue=new Color32(56,189,248,255);
+    private static readonly Color Dim=new Color32(183,203,223,255);
     public bool CanInteract => !failed&&!completed&&!paused&&Time.timeScale>0f &&
         EnergyManager.Instance!=null&&EnergyManager.Instance.HasEnergy;
     private string Metal => PlayerPrefs.GetString(MetalKey,"Cu")=="Mg"?"Mg":"Cu";
