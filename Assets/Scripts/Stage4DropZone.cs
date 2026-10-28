@@ -12,7 +12,7 @@ public class Stage4DropZone : MonoBehaviour, IDropHandler
     {
         occupied=false;
         var label=GetComponentInChildren<TMP_Text>(true);
-        if(label!=null)label.text=Kind==0?"＋":Kind==1?"·":Kind==2?"−":"＋";
+        if(label!=null)label.text=Kind==0?"+":Kind==1?".":Kind==2?"-":"+";
         var image=GetComponent<Image>();
         if(image!=null)image.color=new Color32(39,78,108,255);
     }
