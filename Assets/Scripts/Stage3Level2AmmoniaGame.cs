@@ -53,7 +53,7 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         var t = go.GetComponent<TextMeshProUGUI>();
         t.text = message; t.fontSize = size; t.color = color;
         t.alignment = TextAlignmentOptions.Center;
-        t.enableWordWrapping = true;
+        t.textWrappingMode = TextWrappingModes.Normal;
         t.raycastTarget = false;
         return t;
     }
