@@ -39,6 +39,8 @@ public class Stage3Level1HUD : MonoBehaviour
             menuPanel=scenePausePanel;
             noEnergyPanel=sceneOutOfEnergyPanel;
             timerLabel=sceneTimerText;
+            ConnectMenuButton(noEnergyPanel,"BackToSelectionButton",
+                ()=>GoTo("Stage3LevelSelection"));
             ConnectMenuButton(menuPanel,"ContinueButton",ResumeGame);
             ConnectMenuButton(menuPanel,"LevelSelectionButton",
                 ()=>GoTo("Stage3LevelSelection"));
