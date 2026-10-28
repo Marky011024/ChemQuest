@@ -241,6 +241,7 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
                 ()=>Navigate("Stage3LevelSelection"));
             WireMenuButton(pausePanel.transform,"StageSelectionButton",
                 ()=>Navigate("StageSelection"));
+            RenameMenuButton(pausePanel.transform,"StageSelectionButton","STAGE SELECTION");
         }
         else
         {
@@ -282,6 +283,17 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
             return;
         }
         Debug.LogWarning("Stage 1 pause prefab button missing: "+objectName);
+    }
+
+    private void RenameMenuButton(Transform parent,string objectName,string label)
+    {
+        foreach(var button in parent.GetComponentsInChildren<Button>(true))
+        {
+            if(button.gameObject.name!=objectName)continue;
+            var text=button.GetComponentInChildren<TMP_Text>(true);
+            if(text!=null)text.text=label;
+            return;
+        }
     }
 
     private GameObject ModalPanel(Transform parent,string name,string heading,string description)
