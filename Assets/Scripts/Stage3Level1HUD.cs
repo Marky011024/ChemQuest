@@ -20,6 +20,7 @@ public class Stage3Level1HUD : MonoBehaviour
     private void Start()
     {
         EnsureEventSystem();
+        DisableOriginalPauseButton();
         if (completeManager == null)
             completeManager = FindObjectOfType<Stage3Level1CompleteManager>();
 
@@ -44,6 +45,20 @@ public class Stage3Level1HUD : MonoBehaviour
         BuildPauseMenu(canvasGO.transform);
         BuildOutOfEnergy(canvasGO.transform);
         UpdateEnergyUI();
+    }
+
+    // The original Stage3Level1Canvas already contains a Stage 1 PauseButton.
+    // Hide only that older button; keep all game objects and other UI intact.
+    private void DisableOriginalPauseButton()
+    {
+        var originalCanvas=GameObject.Find("Stage3Level1Canvas");
+        if(originalCanvas==null)return;
+
+        foreach(var button in originalCanvas.GetComponentsInChildren<Button>(true))
+        {
+            if(button.gameObject.name=="PauseButton")
+                button.gameObject.SetActive(false);
+        }
     }
 
     private void EnsureEventSystem()
@@ -117,9 +132,9 @@ public class Stage3Level1HUD : MonoBehaviour
             var rect=go.GetComponent<RectTransform>();
             if(rect!=null)
             {
-                rect.anchorMin=new Vector2(1,1); rect.anchorMax=new Vector2(1,1);
+                rect.anchorMin=new Vector2(0,1); rect.anchorMax=new Vector2(0,1);
                 rect.pivot=new Vector2(0.5f,0.5f);
-                rect.anchoredPosition=new Vector2(-56,-59);
+                rect.anchoredPosition=new Vector2(56,-59);
             }
             var button=go.GetComponent<Button>();
             if(button!=null)
@@ -129,7 +144,7 @@ public class Stage3Level1HUD : MonoBehaviour
             }
         }
         else Button(parent,"Stage3Level1PauseButton","MENU",
-            new Vector2(505,288),new Vector2(145,52),PauseGame);
+            new Vector2(-505,288),new Vector2(145,52),PauseGame);
 
         if(pauseMenuPrefab!=null)
         {
