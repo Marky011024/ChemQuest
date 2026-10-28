@@ -23,6 +23,9 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
     private bool outOfEnergyVisible;
     private Button retryButton;
     private int[] slots = new int[4];
+    private int[] nElectrons = new int[4];
+    private int[] hElectrons = new int[4];
+    private readonly List<Stage3Level2ElectronDrag> dragElectrons = new List<Stage3Level2ElectronDrag>();
     private int wrongAttempts;
     private bool failed, completed, paused;
 
@@ -43,6 +46,7 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
             BindExistingUI();
         else
             BuildUI(); // Compatibility with scenes made before this upgrade.
+        EnsureDragAndDropUI();
         RefreshEnergy();
         UpdateOutOfEnergyUI();
     }
@@ -52,12 +56,8 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
     public void BuildEditorUI()
     {
         var existing = GameObject.Find("Stage3Level2GeneratedCanvas");
-        if(existing!=null)
-        {
-            Debug.Log("Stage 3 Level 2 UI already exists. Keeping scene edits.");
-            return;
-        }
-        BuildUI();
+        if(existing==null) BuildUI();
+        EnsureDragAndDropUI();
         var root=GameObject.Find("Stage3Level2GeneratedCanvas");
         if(root!=null)
         {
@@ -151,6 +151,7 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         WireButton(root,"StageSelectButton",()=>Navigate("StageSelection"));
         WireButton(root,"LevelSelectButton",()=>Navigate("Stage3LevelSelection"));
         WireButton(root,"BackToSelectionButton",()=>Navigate("Stage3LevelSelection"));
+        EnsureDragAndDropUI();
 
         if(failurePanel!=null)failurePanel.SetActive(false);
         if(completionPanel!=null)completionPanel.SetActive(false);
@@ -161,12 +162,100 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         {
             slots[i]=0;
             if(i<slotTexts.Count && slotTexts[i]!=null)
-                slotTexts[i].text=new[]{"LEFT N-H","RIGHT N-H","BOTTOM N-H","N LONE PAIR"}[i]+"\n0 / 2  •  TAP TO ADD";
+                slotTexts[i].text=new[]{"LEFT N-H","RIGHT N-H","BOTTOM N-H","N LONE PAIR"}[i]+"\n0 / 2  •  DRAG HERE";
             if(electronPairVisuals[i]!=null)electronPairVisuals[i].text="○  ○";
         }
         if(scoreText!=null)scoreText.text="SCORE\n000000";
         if(feedbackText!=null)feedbackText.text="Place two electrons into each of the four labeled slots.";
         retryButton=FindUI(root,"RetryButton")?.GetComponent<Button>();
+    }
+
+    // The NH3 puzzle uses five nitrogen electrons and three hydrogen electrons.
+    // Each N-H bond accepts one N and one H; the lone pair accepts two N.
+    public bool CanDragElectron() => CanPlay();
+
+    public void RegisterWrongDrop()
+    {
+        if(!CanPlay()) return;
+        WrongAttempt();
+    }
+
+    public void TryPlaceElectron(int index, Stage3Level2ElectronDrag electron)
+    {
+        if(!CanPlay() || electron==null || electron.Accepted ||
+           index<0 || index>3 || slots[index]>=2) return;
+        bool valid = index==3
+            ? electron.FromNitrogen && nElectrons[index]<2
+            : (electron.FromNitrogen ? nElectrons[index]==0 : hElectrons[index]==0);
+        if(!valid) return; // OnEndDrag handles the single wrong attempt.
+        if(electron.FromNitrogen)nElectrons[index]++;
+        else hElectrons[index]++;
+        slots[index]++;
+        electron.Accept();
+        RefreshSlot(index);
+        if(feedbackText!=null)
+            feedbackText.text="Correct! Each N-H pair shares one electron from N and one from H.";
+    }
+
+    private void RefreshSlot(int index)
+    {
+        string[] names={"LEFT N-H","RIGHT N-H","BOTTOM N-H","N LONE PAIR"};
+        if(index<slotTexts.Count && slotTexts[index]!=null)
+            slotTexts[index].text=names[index]+"\\n"+slots[index]+" / 2  •  DRAG HERE";
+        if(index<electronPairVisuals.Count && electronPairVisuals[index]!=null)
+            electronPairVisuals[index].text=slots[index]==0?"○  ○":
+                slots[index]==1?"●  ○":"●  ●";
+    }
+
+    public void EnsureDragAndDropUI()
+    {
+        var canvasObject=GameObject.Find("Stage3Level2GeneratedCanvas");
+        if(canvasObject==null)return;
+        Transform root=canvasObject.transform;
+        string[] names={"LEFT N-H","RIGHT N-H","BOTTOM N-H","N LONE PAIR"};
+        for(int i=0;i<4;i++)
+        {
+            var zone=FindUI(root,"ElectronSlot"+i);
+            if(zone==null)continue;
+            var component=zone.GetComponent<Stage3Level2ElectronDropZone>();
+            if(component==null)component=zone.gameObject.AddComponent<Stage3Level2ElectronDropZone>();
+            component.ZoneIndex=i; component.Game=this;
+            var button=zone.GetComponent<Button>();
+            if(button!=null)button.interactable=false; // UI Image remains a drop target.
+            var text=zone.Find("Count")?.GetComponent<TMP_Text>();
+            if(text!=null)text.text=names[i]+"\\n0 / 2  •  DRAG HERE";
+        }
+        var bank=FindUI(root,"ElectronBank");
+        if(bank==null)
+        {
+            var bankImg=Rectangle(root,"ElectronBank",new Vector2(0,-248),
+                new Vector2(810,45),new Color32(22,44,76,255));
+            bank=bankImg.transform;
+            for(int i=0;i<8;i++)
+            {
+                bool fromN=i<5;
+                var token=Rectangle(bank,"Electron"+(i+1),
+                    new Vector2(-308+i*88,0),new Vector2(37,37),
+                    fromN?new Color32(56,189,248,255):new Color32(249,187,81,255));
+                token.gameObject.AddComponent<CanvasGroup>();
+                var label=Label(token.transform,"Atom",fromN?"N":"H",18,Vector2.zero,
+                    new Vector2(34,34),new Color32(9,22,46,255));
+                var drag=token.gameObject.AddComponent<Stage3Level2ElectronDrag>();
+                drag.Configure(this,fromN);
+            }
+        }
+        dragElectrons.Clear();
+        foreach(var drag in bank.GetComponentsInChildren<Stage3Level2ElectronDrag>(true))
+        {
+            drag.Configure(this,drag.name.StartsWith("Electron") &&
+                int.TryParse(drag.name.Substring(8),out int id) && id<=5);
+            dragElectrons.Add(drag);
+        }
+        var feedback=FindUI(root,"Feedback")?.GetComponent<RectTransform>();
+        if(feedback!=null)feedback.anchoredPosition=new Vector2(0,-282);
+        var instruction=FindUI(root,"Instructions")?.GetComponent<TMP_Text>();
+        if(instruction!=null)
+            instruction.text="Drag 5 blue N electrons and 3 yellow H electrons.\\nEach N-H bond needs N+H; the lone pair needs N+N.";
     }
 
     private void SetupInputSystem()
@@ -444,7 +533,7 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
     private void AddElectron(int slot)
     {
         if (!CanPlay() || slots[slot]>=2) return;
-        slots[slot]++;
+        // Electron placement is drag-and-drop only.
         slotTexts[slot].text=new[]{"LEFT N-H","RIGHT N-H","BOTTOM N-H","N LONE PAIR"}[slot]+"\n"+slots[slot]+" / 2  •  TAP TO ADD";
         electronPairVisuals[slot].text = slots[slot] == 1 ? "●  ○" : "●  ●";
         feedbackText.text="Electron placed. Three bonding pairs + one lone pair = NH<sub>3</sub>.";
@@ -456,7 +545,8 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
     {
         if (!CanPlay()) return;
         bool correct=true;
-        for(int i=0;i<slots.Length;i++) if(slots[i]!=2) correct=false;
+        for(int i=0;i<slots.Length;i++)
+            if(slots[i]!=2 || (i==3 ? nElectrons[i]!=2 : nElectrons[i]!=1 || hElectrons[i]!=1))correct=false;
         if(correct)
         {
             completed=true;
@@ -470,21 +560,29 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
             completionPanel.SetActive(true);
             return;
         }
+        WrongAttempt();
+    }
+
+    private void WrongAttempt()
+    {
+        if(!CanPlay())return;
         wrongAttempts++;
         if(wrongAttempts==1)
         {
-            feedbackText.text="HINT: Nitrogen forms 3 single bonds and has 1 lone electron pair. Fill every pair (2/2).";
-            feedbackText.color=Gold;
-            ResetPairs(false);
+            if(feedbackText!=null)
+            {
+                feedbackText.text="HINT: N-H bonds need one N and one H electron. Lone pair needs two N electrons.";
+                feedbackText.color=Gold;
+            }
         }
         else
         {
             failed=true;
             EnergyManager.Instance.LoseEnergy();
             RefreshEnergy();
-            retryButton.interactable=EnergyManager.Instance.HasEnergy;
-            failurePanel.SetActive(true);
-            UpdateOutOfEnergyUI(); // If this was the last energy, zero-energy panel takes priority.
+            if(retryButton!=null)retryButton.interactable=EnergyManager.Instance.HasEnergy;
+            if(failurePanel!=null)failurePanel.SetActive(true);
+            UpdateOutOfEnergyUI();
         }
     }
 
@@ -494,11 +592,11 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         if(!CanPlay())return;
         for(int i=0;i<slots.Length;i++)
         {
-            slots[i]=0;
-            slotTexts[i].text=new[]{"LEFT N-H","RIGHT N-H","BOTTOM N-H","N LONE PAIR"}[i]+"\n0 / 2  •  TAP TO ADD";
-            electronPairVisuals[i].text="○  ○";
+            slots[i]=0; nElectrons[i]=0; hElectrons[i]=0;
+            RefreshSlot(i);
         }
-        if(feedback) feedbackText.text="Pairs reset. No wrong attempt charged.";
+        foreach(var electron in dragElectrons)if(electron!=null)electron.Restore();
+        if(feedback && feedbackText!=null)feedbackText.text="Pairs reset. No wrong attempt charged.";
     }
     private void RefreshEnergy()
     {
