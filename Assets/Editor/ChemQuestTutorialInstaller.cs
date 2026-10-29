@@ -5,7 +5,7 @@ using UnityEngine.SceneManagement;
 
 public static class ChemQuestTutorialInstaller
 {
-    [MenuItem("Tools/ChemQuest/Tutorial/Install First-Time Tutorial - ALL 5 Stages")]
+    [MenuItem("Tools/ChemQuest/Tutorial/Install Tutorials - Level 1 of Each Stage Only")]
     public static void Install()
     {
         if(EditorApplication.isPlaying)
@@ -14,10 +14,11 @@ public static class ChemQuestTutorialInstaller
             return;
         }
         if(!EditorUtility.DisplayDialog("ChemQuest First-Time Tutorial",
-            "Install the editable first-time tutorial on all existing Stage 1-5 gameplay scenes? Existing puzzles, scores and menus will not be replaced.",
+            "Install tutorials ONLY on Stage 1-5 Level 1? Tutorials already installed in Levels 2 and 3 will be removed. Puzzles, scores, and menus are preserved.",
             "Install Tutorial","Cancel"))return;
         EditorSceneManager.SaveOpenScenes();
         int changed=0;
+        int removed=0;
         for(int stage=1;stage<=5;stage++)
         {
             for(int level=1;level<=3;level++)
@@ -33,6 +34,17 @@ public static class ChemQuestTutorialInstaller
                 foreach(var go in scene.GetRootGameObjects())
                 {
                     if(go.name=="ChemQuestFirstTimeTutorial"){host=go;break;}
+                }
+                if(level!=1)
+                {
+                    if(host!=null)
+                    {
+                        Object.DestroyImmediate(host);
+                        EditorSceneManager.MarkSceneDirty(scene);
+                        EditorSceneManager.SaveScene(scene,path);
+                        removed++;
+                    }
+                    continue;
                 }
                 if(host==null)host=new GameObject("ChemQuestFirstTimeTutorial");
                 var tutorial=host.GetComponent<ChemQuestFirstTimeTutorial>();
@@ -50,7 +62,7 @@ public static class ChemQuestTutorialInstaller
         }
         EditorSceneManager.OpenScene("Assets/Scenes/Stage1Level1.unity",OpenSceneMode.Single);
         EditorUtility.DisplayDialog("ChemQuest",
-            "Tutorial installed in "+changed+" gameplay scenes. Open Stage 1 Level 1 and press Play to test. Every tutorial is editable before Play.",
+            "Tutorial installed in "+changed+" Level 1 scenes. Removed "+removed+" old tutorials from Levels 2 and 3. Open Stage 1 Level 1 and press Play to test.",
             "OK");
     }
 
