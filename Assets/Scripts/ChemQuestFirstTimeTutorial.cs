@@ -5,9 +5,9 @@ using UnityEngine.SceneManagement;
 using TMPro;
 
 /// <summary>
-/// First-play, skippable guided introduction for ChemQuest levels.
+/// First-play, skippable guided introduction only for Level 1 of each stage.
 /// UI is editable in the scene before Play, no gameplay scripts replaced.
-/// Each level is introduced once per install/player profile (PlayerPrefs).
+/// Each stage introduction is shown only once per local PlayerPrefs profile.
 /// </summary>
 public class ChemQuestFirstTimeTutorial : MonoBehaviour
 {
@@ -102,7 +102,7 @@ public class ChemQuestFirstTimeTutorial : MonoBehaviour
         // Wait for each scene's gameplay controller to initialize its own HUD.
         yield return null;
         yield return null;
-        if(ShowOnFirstPlay && PlayerPrefs.GetInt(Key,0)!=1)
+        if(Level==1 && ShowOnFirstPlay && PlayerPrefs.GetInt(Key,0)!=1)
         {
             index=0;
             practice=false;
@@ -252,7 +252,7 @@ public class ChemQuestFirstTimeTutorial : MonoBehaviour
     }
     public void ReplayTutorial()
     {
-        if(!isActiveAndEnabled)return;
+        if(!isActiveAndEnabled || Level!=1)return;
         index=0;practice=false;Show();
     }
 }
