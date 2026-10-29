@@ -389,6 +389,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         if(amount<60){Info("Increase the heat above 60% to complete this comparison.");return;}
         examined[selected]=true;
         resultLabel.text=thermal[selected];
+        ReactionEffect("THERMAL TEST COMPLETE");
         SetIndicator(selected==0?new Color32(255,177,71,255):new Color32(80,180,239,255));
         Info("Recorded thermal observation for sample "+samples[selected]+
             ". Compare all three; melting behavior alone is not conclusive.");
@@ -404,6 +405,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
             selected==1?(press?"Crystal resists deformation":"Brittle sample breaks into pieces"):
             (press?"Metallic sample flattens":"Metal retains cohesion after impact");
         resultLabel.text=response;
+        ReactionEffect(press?"PRESS OBSERVATION":"IMPACT OBSERVATION");
         SetIndicator(selected==1?new Color32(240,105,115,255):
             selected==2?new Color32(75,202,165,255):new Color32(255,205,104,255));
         if(actions[selected,0]&&actions[selected,1])examined[selected]=true;
@@ -430,6 +432,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         bool conducts=selected==1?stateIndex!=0:selected==2;
         if(resultLabel!=null)resultLabel.text="PROBE: "+(conducts?"LAMP ON — CONDUCTS":"LAMP OFF — NO DETECTABLE CONDUCTION");
         SetIndicator(conducts?new Color32(79,231,151,255):new Color32(80,91,119,255));
+        ReactionEffect(conducts?"CONDUCTIVITY DETECTED":"NO CONDUCTIVITY");
         Info("Recorded "+stateName+" conductivity for sample "+samples[selected]+".");
         UpdateEvidence();
     }
@@ -508,6 +511,11 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
     {
         var indicator=Find(root,"TestIndicator")?.GetComponent<Image>();
         if(indicator!=null)indicator.color=color;
+    }
+    private void ReactionEffect(string message)
+    {
+        var effect=FindFirstObjectByType<ChemQuestReactionEffects>();
+        if(effect!=null)effect.ExperimentFeedback(message);
     }
     private void Info(string text){if(feedback!=null)feedback.text=text;}
     private void Pause()
