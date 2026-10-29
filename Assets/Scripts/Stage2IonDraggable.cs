@@ -35,6 +35,8 @@ public class Stage2IonDraggable : MonoBehaviour, IBeginDragHandler, IDragHandler
     {
         dragging=!Accepted && Game!=null && Game.CanInteract;
         if(!dragging)return;
+        var guide=FindFirstObjectByType<ChemQuestFirstTimeTutorial>();
+        if(guide!=null)guide.NotifyFirstInteraction();
         group.blocksRaycasts=false;
         rect.SetAsLastSibling();
     }
