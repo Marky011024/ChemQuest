@@ -29,6 +29,8 @@ public class Stage5SampleDrag : MonoBehaviour, IBeginDragHandler, IDragHandler, 
     {
         if(Game==null || !Game.CanInteract)return;
         dragging=true;
+        var guide=FindFirstObjectByType<ChemQuestFirstTimeTutorial>();
+        if(guide!=null)guide.NotifyFirstInteraction();
         group.blocksRaycasts=false;
         rect.SetAsLastSibling();
     }
