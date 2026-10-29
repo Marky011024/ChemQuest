@@ -674,6 +674,12 @@ public class Stage2IonForgeGame : MonoBehaviour
     {
         if(!CanInteract)return;
         accepted++;
+        var effect=FindFirstObjectByType<ChemQuestReactionEffects>();
+        if(effect!=null)
+        {
+            if(Level==3)effect.IonSnap();
+            else effect.ElectronTransfer();
+        }
         if(progressText!=null)progressText.text=Level<3?
             "COMPOUNDS "+(Convert.ToInt32(finishedVariants[0])+Convert.ToInt32(finishedVariants[1]))+"/2  |  ELECTRONS "+accepted+"/"+Needed:
             "LATTICE IONS "+accepted+"/"+Needed;
@@ -724,6 +730,8 @@ public class Stage2IonForgeGame : MonoBehaviour
             }
         }
         completed=true;
+        var completionEffect=FindFirstObjectByType<ChemQuestReactionEffects>();
+        if(completionEffect!=null)completionEffect.BondFormed(Level==3?"NaCl LATTICE":"OCTET COMPLETE");
         if(Level<3 && progressText!=null)
             progressText.text="COMPOUNDS 2/2  |  OCTETS COMPLETED";
         if(feedback!=null)
