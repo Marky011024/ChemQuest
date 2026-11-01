@@ -1,0 +1,279 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using System.Security.Cryptography;
+using System.Text;
+using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.SceneManagement;
+using TMPro;
+
+// In-game, offline completion certificate. Certificate results come from the
+// actual fifteen completed-level keys; no demo/pretend achievements.
+public class ChemQuestCertificate : MonoBehaviour
+{
+    private const string IssuedAtKey="ChemQuestCertificateIssuedUtc";
+    private const string CodeKey="ChemQuestCertificateId";
+    private Transform page;
+    private GameObject controls;
+    private TMP_Text status;
+    private static readonly Color32 Navy=new Color32(11,26,48,255);
+    private static readonly Color32 Gold=new Color32(228,183,85,255);
+    private static readonly Color32 Blue=new Color32(46,133,178,255);
+
+    public static bool AllLevelsComplete()
+    {
+        for(int stage=1;stage<=5;stage++)
+            for(int level=1;level<=3;level++)
+                if(PlayerPrefs.GetInt("Stage"+stage+"Level"+level+"Completed",0)!=1)return false;
+        return true;
+    }
+    public static void RecordIfEligible()
+    {
+        if(!AllLevelsComplete() || PlayerPrefs.HasKey(IssuedAtKey))return;
+        var now=DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss 'UTC'");
+        var name=PlayerPrefs.GetString("StudentName","").Trim();
+        var school=PlayerPrefs.GetString("StudentSchool","").Trim();
+        var section=PlayerPrefs.GetString("StudentSection","").Trim();
+        if(string.IsNullOrEmpty(name)||string.IsNullOrEmpty(school)||string.IsNullOrEmpty(section))
+        {
+            Debug.LogWarning("ChemQuest certificate: student profile is incomplete.");
+            return;
+        }
+        string payload=name+"|"+school+"|"+section+"|"+now+"|CHEMQUEST";
+        byte[] hashed;
+        using(var sha=SHA256.Create())hashed=sha.ComputeHash(Encoding.UTF8.GetBytes(payload));
+        var id=BitConverter.ToString(hashed,0,10).Replace("-","");
+        PlayerPrefs.SetString(IssuedAtKey,now);
+        PlayerPrefs.SetString(CodeKey,"CQ-"+id);
+        PlayerPrefs.Save();
+    }
+    private static int Best(int stage,int level)=>Mathf.Clamp(
+        PlayerPrefs.GetInt("Stage"+stage+"Level"+level+"Score",0),0,100);
+    private static int Total()
+    {
+        int sum=0;
+        for(int s=1;s<=5;s++)for(int l=1;l<=3;l++)sum+=Best(s,l);
+        return sum;
+    }
+    private static string StageStars(int stage)
+    {
+        int sum=0;
+        for(int l=1;l<=3;l++)sum+=Best(stage,l);
+        // Scores alone cannot prove that no earlier failed run occurred.
+        // Therefore show performance bands, not invented attempt-history awards.
+        if(sum==300)return "3-star score band";
+        if(sum>=225)return "2-star score band";
+        return "Completion recorded";
+    }
+    private void Start()
+    {
+        Time.timeScale=1f;
+        if(transform.Find("CertificateCanvas")==null)BuildEditableUI();
+        Bind();
+        Refresh();
+    }
+    public void BuildEditableUI()
+    {
+        if(transform.Find("CertificateCanvas")!=null)return;
+        var root=new GameObject("CertificateCanvas",typeof(RectTransform),typeof(Canvas),
+            typeof(CanvasScaler),typeof(GraphicRaycaster));
+        root.transform.SetParent(transform,false);
+        var canvas=root.GetComponent<Canvas>();canvas.renderMode=RenderMode.ScreenSpaceOverlay;
+        var scaler=root.GetComponent<CanvasScaler>();
+        scaler.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution=new Vector2(1280,720);
+        scaler.matchWidthOrHeight=1f;
+        var bg=Image(root.transform,"Background",Vector2.zero,new Vector2(1280,720),Navy);
+        bg.rectTransform.anchorMin=Vector2.zero;bg.rectTransform.anchorMax=Vector2.one;
+        bg.rectTransform.offsetMin=bg.rectTransform.offsetMax=Vector2.zero;
+        var cert=Image(root.transform,"CertificatePage",new Vector2(0,41),
+            new Vector2(1100,605),new Color32(245,246,237,255));
+        cert.raycastTarget=false;
+        page=cert.transform;
+        var border=Image(page,"GoldBorder",Vector2.zero,new Vector2(1068,571),Gold);
+        border.raycastTarget=false;
+        var inner=Image(page,"IvoryPaper",Vector2.zero,new Vector2(1057,560),
+            new Color32(250,249,240,255));inner.raycastTarget=false;
+        var ink=new Color32(24,48,77,255);
+        Txt(page,"Brand","CHEMQUEST",30,new Vector2(0,231),new Vector2(900,48),ink);
+        Txt(page,"DocumentTitle","CERTIFICATE OF CHEMICAL MASTERY",34,
+            new Vector2(0,183),new Vector2(995,60),ink);
+        Txt(page,"RecipientLabel","Presented to",18,new Vector2(0,131),
+            new Vector2(900,38),ink);
+        Txt(page,"RecipientName","STUDENT NAME",37,new Vector2(0,88),new Vector2(970,58),ink);
+        Txt(page,"Identity","School  •  Class / Section",17,new Vector2(0,42),
+            new Vector2(980,38),ink);
+        Txt(page,"Achievement","For successfully completing all 15 levels across five chemistry stages.",
+            19,new Vector2(0,1),new Vector2(1020,44),ink);
+        Txt(page,"Score","OVERALL GAME SCORE  0%",24,new Vector2(0,-45),
+            new Vector2(920,45),ink);
+        Txt(page,"Stages","STAGE 1  |  STAGE 2  |  STAGE 3  |  STAGE 4  |  STAGE 5",
+            17,new Vector2(0,-96),new Vector2(1000,75),ink);
+        Txt(page,"Transcript","Level results appear here",15,new Vector2(0,-174),
+            new Vector2(980,104),ink);
+        Txt(page,"CertificateMetadata","Issue date  •  Certificate ID",14,
+            new Vector2(0,-244),new Vector2(985,40),ink);
+        controls=new GameObject("Controls",typeof(RectTransform));
+        controls.transform.SetParent(root.transform,false);
+        Btn(controls.transform,"ExportPNG","SAVE PNG",new Vector2(-365,-331),
+            new Vector2(188,42),Blue);
+        Btn(controls.transform,"ExportPDF","SAVE PDF",new Vector2(-137,-331),
+            new Vector2(188,42),Blue);
+        Btn(controls.transform,"BackButton","STAGE SELECTION",new Vector2(140,-331),
+            new Vector2(244,42),new Color32(68,91,118,255));
+        status=Txt(controls.transform,"Status","",14,new Vector2(0,-290),
+            new Vector2(1050,31),Color.white);
+    }
+    private static Image Image(Transform parent,string name,Vector2 pos,Vector2 size,Color color)
+    {
+        var go=new GameObject(name,typeof(RectTransform),typeof(Image));
+        go.transform.SetParent(parent,false);
+        var rt=go.GetComponent<RectTransform>();rt.anchoredPosition=pos;rt.sizeDelta=size;
+        var img=go.GetComponent<Image>();img.color=color;return img;
+    }
+    private static TMP_Text Txt(Transform parent,string name,string label,int font,
+        Vector2 pos,Vector2 size,Color color)
+    {
+        var go=new GameObject(name,typeof(RectTransform),typeof(TextMeshProUGUI));
+        go.transform.SetParent(parent,false);
+        var rt=go.GetComponent<RectTransform>();rt.anchoredPosition=pos;rt.sizeDelta=size;
+        var txt=go.GetComponent<TextMeshProUGUI>();txt.text=label;txt.fontSize=font;
+        txt.alignment=TextAlignmentOptions.Center;txt.color=color;txt.raycastTarget=false;
+        txt.enableAutoSizing=true;txt.fontSizeMin=12;txt.fontSizeMax=font;
+        return txt;
+    }
+    private static void Btn(Transform parent,string name,string label,Vector2 pos,
+        Vector2 size,Color color)
+    {
+        var image=Image(parent,name,pos,size,color);
+        var button=image.gameObject.AddComponent<Button>();button.targetGraphic=image;
+        Txt(image.transform,"Label",label,18,Vector2.zero,size,Color.white);
+    }
+    private Transform Find(string name)
+    {
+        foreach(var t in GetComponentsInChildren<Transform>(true))
+            if(t.name==name)return t;
+        return null;
+    }
+    private void Bind()
+    {
+        page=Find("CertificatePage");
+        controls=Find("Controls")?.gameObject;
+        status=Find("Status")?.GetComponent<TMP_Text>();
+        BindButton("ExportPNG",()=>StartCoroutine(Export(false)));
+        BindButton("ExportPDF",()=>StartCoroutine(Export(true)));
+        BindButton("BackButton",()=>SceneManager.LoadScene("StageSelection"));
+    }
+    private void BindButton(string name,UnityEngine.Events.UnityAction action)
+    {
+        var b=Find(name)?.GetComponent<Button>();
+        if(b==null)return;
+        b.onClick.RemoveAllListeners();b.onClick.AddListener(action);
+    }
+    private void Set(string name,string value)
+    {
+        var text=Find(name)?.GetComponent<TMP_Text>();
+        if(text!=null)text.text=value;
+    }
+    private void Refresh()
+    {
+        RecordIfEligible();
+        if(!AllLevelsComplete() || !PlayerPrefs.HasKey(IssuedAtKey))
+        {
+            Set("DocumentTitle","CERTIFICATE LOCKED");
+            Set("RecipientName","COMPLETE ALL 15 LEVELS");
+            Set("Achievement","This certificate is issued after all five chemistry stages are completed.");
+            Set("Score","");
+            Set("Stages","");
+            Set("Transcript","");
+            Set("CertificateMetadata","");
+            if(status!=null)status.text="Certificate not yet available.";
+            var p=Find("ExportPNG")?.GetComponent<Button>();if(p!=null)p.interactable=false;
+            p=Find("ExportPDF")?.GetComponent<Button>();if(p!=null)p.interactable=false;
+            return;
+        }
+        Set("RecipientName",PlayerPrefs.GetString("StudentName","STUDENT"));
+        Set("Identity",PlayerPrefs.GetString("StudentSchool","")+
+            "  •  "+PlayerPrefs.GetString("StudentSection",""));
+        Set("Score","OVERALL GAME SCORE   "+(Total()*100f/1500f).ToString("0.0")+"%   ("+Total()+" / 1500)");
+        var stages=new StringBuilder();
+        for(int s=1;s<=5;s++)
+        {
+            if(s>1)stages.Append("     ");
+            stages.Append("S").Append(s).Append(": ").Append(StageStars(s));
+        }
+        Set("Stages",stages.ToString());
+        var transcript=new StringBuilder();
+        for(int s=1;s<=5;s++)
+        {
+            transcript.Append("STAGE ").Append(s).Append("   ");
+            for(int l=1;l<=3;l++)
+            {
+                transcript.Append("L").Append(l).Append(" ").Append(Best(s,l)).Append("/100");
+                if(l<3)transcript.Append("   |   ");
+            }
+            if(s<5)transcript.Append("\n");
+        }
+        Set("Transcript",transcript.ToString());
+        Set("CertificateMetadata","Completed "+PlayerPrefs.GetString(IssuedAtKey)+
+            "  •  Certificate ID "+PlayerPrefs.GetString(CodeKey)+
+            "  •  Retry transcript not available in this build");
+    }
+    private IEnumerator Export(bool pdf)
+    {
+        if(!AllLevelsComplete()||!PlayerPrefs.HasKey(IssuedAtKey))yield break;
+        if(controls!=null)controls.SetActive(false);
+        yield return new WaitForEndOfFrame();
+        Texture2D screenshot=ScreenCapture.CaptureScreenshotAsTexture();
+        if(controls!=null)controls.SetActive(true);
+        if(screenshot==null)yield break;
+        byte[] data=pdf?EncodePdf(screenshot.EncodeToJPG(92),screenshot.width,screenshot.height):
+            screenshot.EncodeToPNG();
+        Destroy(screenshot);
+        string file="ChemQuest_"+PlayerPrefs.GetString(CodeKey,"Certificate").Replace("-","_")+
+            (pdf?".pdf":".png");
+        string path=Path.Combine(Application.persistentDataPath,file);
+        try
+        {
+            File.WriteAllBytes(path,data);
+            if(status!=null)status.text="Saved offline: "+path;
+            Debug.Log("ChemQuest certificate exported to "+path);
+        }
+        catch(Exception error)
+        {
+            if(status!=null)status.text="Export failed: "+error.Message;
+            Debug.LogError(error);
+        }
+    }
+    // Minimal standards-compliant one-page PDF with a JPEG image embedded.
+    private static byte[] EncodePdf(byte[] jpg,int width,int height)
+    {
+        using(var stream=new MemoryStream())
+        {
+            var offsets=new List<long>{0};
+            Action<string> write=s=>{var data=Encoding.ASCII.GetBytes(s);stream.Write(data,0,data.Length);};
+            write("%PDF-1.4\n");
+            Action<int,string> obj=(id,contents)=>{
+                offsets.Add(stream.Position);write(id+" 0 obj\n"+contents+"\nendobj\n");
+            };
+            obj(1,"<< /Type /Catalog /Pages 2 0 R >>");
+            obj(2,"<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
+            obj(3,"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /XObject << /Im0 5 0 R >> >> /Contents 4 0 R >>");
+            string content="q 842 0 0 595 0 0 cm /Im0 Do Q\n";
+            obj(4,"<< /Length "+Encoding.ASCII.GetByteCount(content)+" >>\nstream\n"+content+"endstream");
+            offsets.Add(stream.Position);
+            write("5 0 obj\n<< /Type /XObject /Subtype /Image /Width "+width+
+                " /Height "+height+" /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length "+
+                jpg.Length+" >>\nstream\n");
+            stream.Write(jpg,0,jpg.Length);
+            write("\nendstream\nendobj\n");
+            long xref=stream.Position;
+            write("xref\n0 6\n0000000000 65535 f \n");
+            for(int i=1;i<=5;i++)write(offsets[i].ToString("D10")+" 00000 n \n");
+            write("trailer\n<< /Root 1 0 R /Size 6 >>\nstartxref\n"+xref+"\n%%EOF");
+            return stream.ToArray();
+        }
+    }
+}
