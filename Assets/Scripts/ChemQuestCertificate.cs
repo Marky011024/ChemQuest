@@ -6,6 +6,8 @@ using System.Security.Cryptography;
 using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
 using UnityEngine.SceneManagement;
 using TMPro;
 
@@ -71,6 +73,8 @@ public class ChemQuestCertificate : MonoBehaviour
     {
         Time.timeScale=1f;
         if(transform.Find("CertificateCanvas")==null)BuildEditableUI();
+        EnsureInputSystem();
+        EnsureLockedUI();
         Bind();
         Refresh();
     }
@@ -126,6 +130,83 @@ public class ChemQuestCertificate : MonoBehaviour
         status=Txt(controls.transform,"Status","",14,new Vector2(0,-290),
             new Vector2(1050,31),Color.white);
     }
+    // The certificate scene can lack an EventSystem; buttons then show but cannot click.
+    public static void EnsureInputSystem()
+    {
+        var existing=UnityEngine.Object.FindFirstObjectByType<EventSystem>();
+        if(existing==null)
+        {
+            new GameObject("EventSystem",typeof(EventSystem),typeof(InputSystemUIInputModule));
+            Debug.Log("ChemQuest certificate: created missing EventSystem.");
+        }
+        else if(existing.GetComponent<BaseInputModule>()==null)
+            existing.gameObject.AddComponent<InputSystemUIInputModule>();
+    }
+    public void EnsureLockedUI()
+    {
+        var certificate=Find("CertificatePage");
+        if(certificate==null || Find("LockedProgressText")!=null)return;
+        var ink=new Color32(29,62,91,255);
+        var lockBox=Image(certificate,"LockedBadge",new Vector2(0,-59),
+            new Vector2(195,44),new Color32(238,225,189,255));
+        lockBox.raycastTarget=false;
+        Txt(lockBox.transform,"LockedBadgeText","LOCKED",21,Vector2.zero,
+            new Vector2(185,36),ink);
+        Txt(certificate,"LockedProgressText","0 / 15 LEVELS COMPLETE",23,
+            new Vector2(0,-113),new Vector2(800,44),ink);
+        var track=Image(certificate,"LockedProgressTrack",new Vector2(0,-161),
+            new Vector2(620,20),new Color32(220,228,232,255));
+        track.raycastTarget=false;
+        var fill=Image(track.transform,"LockedProgressFill",Vector2.zero,
+            new Vector2(0,20),new Color32(20,146,156,255));
+        var rect=fill.rectTransform;
+        rect.anchorMin=new Vector2(0,.5f);
+        rect.anchorMax=new Vector2(0,.5f);
+        rect.pivot=new Vector2(0,.5f);
+        rect.anchoredPosition=Vector2.zero;
+        fill.raycastTarget=false;
+        Txt(certificate,"LockedGuidance","Finish your remaining chemistry puzzles to earn this certificate.",
+            18,new Vector2(0,-204),new Vector2(950,49),ink);
+        foreach(var name in new[]{"LockedBadge","LockedProgressText","LockedProgressTrack","LockedGuidance"})
+        {
+            var t=Find(name);
+            if(t!=null)t.gameObject.SetActive(false);
+        }
+    }
+    private void SetLockedVisuals(bool locked,int completed)
+    {
+        foreach(var name in new[]{"LockedBadge","LockedProgressText","LockedProgressTrack","LockedGuidance"})
+        {
+            var t=Find(name);
+            if(t!=null)t.gameObject.SetActive(locked);
+        }
+        if(!locked)return;
+        Set("LockedProgressText",completed+" / 15 LEVELS COMPLETE");
+        Set("LockedGuidance",completed==14?
+            "Only 1 level remaining! Finish it to unlock your certificate.":
+            "Complete the remaining "+(15-completed)+" levels to earn your certificate.");
+        var rect=Find("LockedProgressFill")?.GetComponent<RectTransform>();
+        if(rect!=null)rect.sizeDelta=new Vector2(620f*completed/15f,20);
+    }
+    private static int CompletedCount()
+    {
+        int count=0;
+        for(int stage=1;stage<=5;stage++)
+            for(int level=1;level<=3;level++)
+                if(PlayerPrefs.GetInt("Stage"+stage+"Level"+level+"Completed",0)==1)count++;
+        return count;
+    }
+    public void ReturnToStageSelection()
+    {
+        Time.timeScale=1f;
+        if(!Application.CanStreamedLevelBeLoaded("StageSelection"))
+        {
+            Debug.LogError("ChemQuest certificate: StageSelection is missing or disabled in Build Settings.");
+            if(status!=null)status.text="Stage Selection scene is missing from Build Settings.";
+            return;
+        }
+        SceneManager.LoadScene("StageSelection");
+    }
     private static Image Image(Transform parent,string name,Vector2 pos,Vector2 size,Color color)
     {
         var go=new GameObject(name,typeof(RectTransform),typeof(Image));
@@ -164,7 +245,7 @@ public class ChemQuestCertificate : MonoBehaviour
         status=Find("Status")?.GetComponent<TMP_Text>();
         BindButton("ExportPNG",()=>StartCoroutine(Export(false)));
         BindButton("ExportPDF",()=>StartCoroutine(Export(true)));
-        BindButton("BackButton",()=>SceneManager.LoadScene("StageSelection"));
+        BindButton("BackButton",ReturnToStageSelection);
     }
     private void BindButton(string name,UnityEngine.Events.UnityAction action)
     {
@@ -180,11 +261,14 @@ public class ChemQuestCertificate : MonoBehaviour
     private void Refresh()
     {
         RecordIfEligible();
+        SetLockedVisuals(!AllLevelsComplete() || !PlayerPrefs.HasKey(IssuedAtKey),CompletedCount());
         if(!AllLevelsComplete() || !PlayerPrefs.HasKey(IssuedAtKey))
         {
             Set("DocumentTitle","CERTIFICATE LOCKED");
+            Set("RecipientLabel","PROGRESS TOWARDS CHEMICAL MASTERY");
+            Set("Identity","Your progress is saved across all five stages.");
             Set("RecipientName","COMPLETE ALL 15 LEVELS");
-            Set("Achievement","This certificate is issued after all five chemistry stages are completed.");
+            Set("Achievement","Complete all fifteen chemistry puzzle levels to earn your award.");
             Set("Score","");
             Set("Stages","");
             Set("Transcript","");
@@ -194,6 +278,9 @@ public class ChemQuestCertificate : MonoBehaviour
             p=Find("ExportPDF")?.GetComponent<Button>();if(p!=null)p.interactable=false;
             return;
         }
+        Set("DocumentTitle","CERTIFICATE OF CHEMICAL MASTERY");
+        Set("RecipientLabel","Presented to");
+        Set("Achievement","For successfully completing all 15 levels across five chemistry stages.");
         Set("RecipientName",PlayerPrefs.GetString("StudentName","STUDENT"));
         Set("Identity",PlayerPrefs.GetString("StudentSchool","")+
             "  •  "+PlayerPrefs.GetString("StudentSection",""));
