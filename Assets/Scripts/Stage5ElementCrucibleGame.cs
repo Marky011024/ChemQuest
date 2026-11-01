@@ -329,6 +329,24 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         Wire("CompleteLevelButton",()=>Go("Stage5LevelSelection"));
         Wire("EmptyLevelButton",()=>Go("Stage5LevelSelection"));
         Wire("NextButton",()=>Go(Level==3?"StageSelection":"Stage5Level"+(Level+1)));
+        // Certificate is only shown when all 15 levels are completed.
+        if(Level==3 && completePanel!=null)
+        {
+            var certificateButton=Find(completePanel.transform,"CertificateButton");
+            if(certificateButton==null)
+            {
+                Btn(completePanel.transform,"CertificateButton","VIEW CERTIFICATE",
+                    new Vector2(0,-94),new Vector2(292,48),Teal);
+                certificateButton=Find(completePanel.transform,"CertificateButton");
+            }
+            var button=certificateButton?.GetComponent<Button>();
+            if(button!=null)
+            {
+                button.onClick.RemoveAllListeners();
+                button.onClick.AddListener(()=>Go("ChemQuestCertificate"));
+                button.gameObject.SetActive(ChemQuestCertificate.AllLevelsComplete());
+            }
+        }
         Wire("TestButton",ApplyHeat);
         Wire("StrikeButton",()=>MechanicalTest(false));
         Wire("PressButton",()=>MechanicalTest(true));
@@ -483,6 +501,14 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         if(Level<3)PlayerPrefs.SetInt("Stage5Level"+(Level+1)+"Unlocked",1);
         else PlayerPrefs.SetInt("Stage5Completed",1);
         PlayerPrefs.Save();
+        if(Level==3)
+        {
+            ChemQuestCertificate.RecordIfEligible();
+            var certificateButton=completePanel==null?null:
+                Find(completePanel.transform,"CertificateButton")?.gameObject;
+            if(certificateButton!=null)
+                certificateButton.SetActive(ChemQuestCertificate.AllLevelsComplete());
+        }
         if(scoreText!=null)scoreText.text="SCORE\n"+points.ToString("D6");
         if(finalScore!=null)finalScore.text="FINAL SCORE "+points.ToString("D6");
         if(completePanel!=null){completePanel.SetActive(true);completePanel.transform.SetAsLastSibling();}
