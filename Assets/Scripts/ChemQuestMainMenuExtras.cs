@@ -75,6 +75,14 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
         }
 
         Transform panel=overlay.transform.Find("ChemQuestSettingsPanel");
+        // Upgrade old serialized settings UI once during Editor installation.
+        // The previous Slider's centered fill anchors caused oversize bars.
+        if(panel!=null && panel.Find("SettingsCard")==null)
+        {
+            if(Application.isPlaying)Destroy(panel.gameObject);
+            else DestroyImmediate(panel.gameObject);
+            panel=null;
+        }
         if(panel==null)panel=CreateSettingsPanel(overlay.transform).transform;
         settingsPanel=panel.gameObject;
         Transform message=overlay.transform.Find("ChemQuestNavigationFeedback");
@@ -87,9 +95,10 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
         Bind(root,"StageSelectionButton",()=>Open("StageSelection"));
         Bind(root,"SettingsButton",()=>Settings(true));
         Bind(root,"CertificateButton",()=>Open("ChemQuestCertificate"));
-        Bind(panel,"CloseButton",()=>Settings(false));
-        var music=panel.Find("MusicVolume")?.GetComponent<Slider>();
-        var sfx=panel.Find("SFXVolume")?.GetComponent<Slider>();
+        var card=panel.Find("SettingsCard");
+        Bind(card,"CloseButton",()=>Settings(false));
+        var music=card?.Find("MusicVolume")?.GetComponent<Slider>();
+        var sfx=card?.Find("SFXVolume")?.GetComponent<Slider>();
         if(music!=null)
         {
             music.onValueChanged.RemoveAllListeners();
@@ -102,7 +111,7 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
             sfx.SetValueWithoutNotify(ChemQuestAudioSettings.Sfx);
             sfx.onValueChanged.AddListener(ChemQuestAudioSettings.SetSfx);
         }
-        Bind(panel,"MuteButton",()=>{
+        Bind(card,"MuteButton",()=>{
             ChemQuestAudioSettings.ToggleMute();
             if(music!=null)music.SetValueWithoutNotify(ChemQuestAudioSettings.Music);
             if(sfx!=null)sfx.SetValueWithoutNotify(ChemQuestAudioSettings.Sfx);
@@ -171,40 +180,58 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
     }
     private static Slider VolumeSlider(Transform parent,string name,Vector2 pos,float initial)
     {
-        var rect=Rect(parent,name,pos,new Vector2(550,42));
+        var rect=Rect(parent,name,pos,new Vector2(500,46));
+        // Unity Slider controls fill anchors. Use stretch children with zero
+        // offsets, otherwise a 500px fill spills beyond the modal panel.
         var track=Panel(rect,"Background",Vector2.zero,
-            new Vector2(520,13),new Color32(67,98,124,255));
-        var fillArea=Rect(rect,"Fill Area",Vector2.zero,new Vector2(500,13));
-        var fill=Panel(fillArea,"Fill",Vector2.zero,new Vector2(500,13),Gold);
-        var handleArea=Rect(rect,"Handle Slide Area",Vector2.zero,new Vector2(500,32));
-        var handle=Panel(handleArea,"Handle",Vector2.zero,new Vector2(24,32),Color.white);
+            new Vector2(480,14),new Color32(64,103,130,255));
+        var fillArea=Rect(rect,"Fill Area",Vector2.zero,new Vector2(452,14));
+        var fill=Panel(fillArea,"Fill",Vector2.zero,Vector2.zero,Teal);
+        fill.rectTransform.anchorMin=Vector2.zero;
+        fill.rectTransform.anchorMax=Vector2.one;
+        fill.rectTransform.offsetMin=Vector2.zero;
+        fill.rectTransform.offsetMax=Vector2.zero;
+        var handleArea=Rect(rect,"Handle Slide Area",Vector2.zero,new Vector2(452,37));
+        var handle=Panel(handleArea,"Handle",Vector2.zero,new Vector2(20,30),Gold);
         var slider=rect.gameObject.AddComponent<Slider>();
         slider.fillRect=fill.rectTransform;
         slider.handleRect=handle.rectTransform;
         slider.targetGraphic=handle;
-        slider.minValue=0f;slider.maxValue=1f;
-        slider.SetValueWithoutNotify(initial);
+        slider.direction=Slider.Direction.LeftToRight;
+        slider.minValue=0f;
+        slider.maxValue=1f;
+        slider.SetValueWithoutNotify(Mathf.Clamp01(initial));
         return slider;
     }
     private static GameObject CreateSettingsPanel(Transform parent)
     {
-        var panel=Panel(parent,"ChemQuestSettingsPanel",Vector2.zero,
-            new Vector2(750,500),Navy);
-        Panel(panel.transform,"GoldAccent",new Vector2(0,234),
-            new Vector2(710,6),Gold);
-        Label(panel.transform,"SettingsHeader","AUDIO SETTINGS",new Vector2(0,175),
-            new Vector2(680,64),34,Gold);
-        Label(panel.transform,"MusicCaption","BACKGROUND MUSIC",new Vector2(0,91),
-            new Vector2(600,40),22,Color.white);
-        VolumeSlider(panel.transform,"MusicVolume",new Vector2(0,52),ChemQuestAudioSettings.Music);
-        Label(panel.transform,"SfxCaption","SOUND EFFECTS",new Vector2(0,-16),
-            new Vector2(600,40),22,Color.white);
-        VolumeSlider(panel.transform,"SFXVolume",new Vector2(0,-56),ChemQuestAudioSettings.Sfx);
-        AddButton(panel.transform,"MuteButton","MUTE / UNMUTE",new Vector2(-172,-156),
-            new Vector2(290,58),Teal);
-        AddButton(panel.transform,"CloseButton","BACK",new Vector2(172,-156),
-            new Vector2(290,58),MidNavy);
-        return panel.gameObject;
+        // Fullscreen raycast-blocking scrim keeps the main menu from
+        // visually competing with the settings modal.
+        var overlay=Panel(parent,"ChemQuestSettingsPanel",Vector2.zero,
+            new Vector2(1280,720),new Color32(3,12,27,207));
+        overlay.raycastTarget=true;
+        var card=Panel(overlay.transform,"SettingsCard",Vector2.zero,
+            new Vector2(690,460),Navy);
+        card.raycastTarget=true;
+        Panel(card.transform,"GoldAccent",new Vector2(0,212),
+            new Vector2(640,5),Gold);
+        Label(card.transform,"SettingsHeader","AUDIO SETTINGS",
+            new Vector2(0,157),new Vector2(620,56),32,Gold);
+        Label(card.transform,"SettingsHint","Customize your ChemQuest experience",
+            new Vector2(0,120),new Vector2(600,30),17,Color.white);
+        Label(card.transform,"MusicCaption","BACKGROUND MUSIC",
+            new Vector2(0,65),new Vector2(530,34),21,Color.white);
+        VolumeSlider(card.transform,"MusicVolume",new Vector2(0,22),
+            ChemQuestAudioSettings.Music);
+        Label(card.transform,"SfxCaption","SOUND EFFECTS",
+            new Vector2(0,-39),new Vector2(530,34),21,Color.white);
+        VolumeSlider(card.transform,"SFXVolume",new Vector2(0,-82),
+            ChemQuestAudioSettings.Sfx);
+        AddButton(card.transform,"MuteButton","MUTE / UNMUTE",
+            new Vector2(-157,-167),new Vector2(255,51),Teal);
+        AddButton(card.transform,"CloseButton","BACK",
+            new Vector2(157,-167),new Vector2(255,51),MidNavy);
+        return overlay.gameObject;
     }
     private static void Bind(Transform parent,string name,UnityEngine.Events.UnityAction action)
     {
