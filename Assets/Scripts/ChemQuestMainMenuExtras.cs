@@ -96,6 +96,8 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
         Bind(root,"SettingsButton",()=>Settings(true));
         Bind(root,"CertificateButton",()=>Open("ChemQuestCertificate"));
         var card=panel.Find("SettingsCard");
+        EnsureMuteStatus(card);
+        UpdateMuteStatus(card);
         Bind(card,"CloseButton",()=>Settings(false));
         var music=card?.Find("MusicVolume")?.GetComponent<Slider>();
         var sfx=card?.Find("SFXVolume")?.GetComponent<Slider>();
@@ -126,6 +128,7 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
             ChemQuestAudioSettings.ToggleMute();
             if(music!=null)music.SetValueWithoutNotify(ChemQuestAudioSettings.Music);
             if(sfx!=null)sfx.SetValueWithoutNotify(ChemQuestAudioSettings.Sfx);
+            UpdateMuteStatus(card);
         });
         var nameText=root.Find("PlayerName")?.GetComponent<TMP_Text>();
         if(nameText!=null)nameText.text="PLAYER: "+PlayerPrefs.GetString("StudentName","STUDENT").ToUpperInvariant();
@@ -246,6 +249,26 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
             new Vector2(157,-167),new Vector2(255,51),MidNavy);
         return overlay.gameObject;
     }
+    private static void EnsureMuteStatus(Transform card)
+    {
+        if(card==null || card.Find("MuteStatus")!=null)return;
+        Label(card,"MuteStatus","",new Vector2(0,-123),
+            new Vector2(590,26),17,Gold);
+    }
+    private static void UpdateMuteStatus(Transform card)
+    {
+        if(card==null)return;
+        EnsureMuteStatus(card);
+        bool muted=ChemQuestAudioSettings.Muted;
+        var indicator=card.Find("MuteStatus")?.GetComponent<TMP_Text>();
+        if(indicator!=null)
+        {
+            indicator.text=muted?"SOUND MUTED":"SOUND ON";
+            indicator.color=muted?new Color32(255,167,104,255):new Color32(110,227,202,255);
+        }
+        var label=card.Find("MuteButton/Label")?.GetComponent<TMP_Text>();
+        if(label!=null)label.text=muted?"UNMUTE SOUND":"MUTE SOUND";
+    }
     private static void Bind(Transform parent,string name,UnityEngine.Events.UnityAction action)
     {
         var button=parent?.Find(name)?.GetComponent<Button>();
@@ -257,7 +280,11 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
     {
         if(settingsPanel==null)return;
         settingsPanel.SetActive(visible);
-        if(visible)settingsPanel.transform.SetAsLastSibling();
+        if(visible)
+        {
+            settingsPanel.transform.SetAsLastSibling();
+            UpdateMuteStatus(settingsPanel.transform.Find("SettingsCard"));
+        }
     }
     private void Open(string scene)
     {
