@@ -76,6 +76,7 @@ public class ChemQuestCertificate : MonoBehaviour
         EnsureInputSystem();
         EnsureLockedUI();
         ApplyGameCertificateDesign();
+        EnsurePerformanceTable();
         Bind();
         Refresh();
     }
@@ -215,6 +216,91 @@ public class ChemQuestCertificate : MonoBehaviour
             if(t!=null)t.SetAsLastSibling();
         }
         // A locked certificate is not a fake award. Hide the victory footer at runtime.
+    }
+
+    // Two-column 15-level table fits a landscape Unity Game View without
+    // inventing old retry data. All rows are editable TextMeshPro elements.
+    public void EnsurePerformanceTable()
+    {
+        var cert=Find("CertificatePage");
+        if(cert==null)return;
+        var transcript=Find("Transcript");
+        if(transcript!=null)transcript.gameObject.SetActive(false);
+        if(Find("CertificatePerformanceTable")!=null)return;
+        var navy=new Color32(8,40,66,255);
+        var ink=new Color32(20,52,71,255);
+        var aqua=new Color32(21,135,148,255);
+        var cream=new Color32(241,249,248,255);
+        var table=new GameObject("CertificatePerformanceTable",typeof(RectTransform));
+        table.transform.SetParent(cert,false);
+        var rt=table.GetComponent<RectTransform>();
+        rt.anchoredPosition=new Vector2(0,-161);
+        rt.sizeDelta=new Vector2(1020,177);
+        var headings=new[]{"LEVEL","SCORE","RETRIES","RESULT"};
+        for(int side=0;side<2;side++)
+        {
+            float origin=side==0?-255f:255f;
+            var panel=Image(table.transform,"TablePanel"+side,
+                new Vector2(origin,0),new Vector2(498,173),cream);
+            panel.raycastTarget=false;
+            var head=Image(panel.transform,"Header",new Vector2(0,74),
+                new Vector2(492,23),navy);head.raycastTarget=false;
+            float[] x={-191,-52,45,158};
+            float[] w={130,105,103,117};
+            for(int j=0;j<4;j++)
+            {
+                Txt(head.transform,"Heading"+j,headings[j],14,new Vector2(x[j],0),
+                    new Vector2(w[j],23),Color.white);
+            }
+            for(int row=0;row<8;row++)
+            {
+                int index=side*8+row;
+                if(index>=15)break;
+                int stage=index/3+1,level=index%3+1;
+                string id="S"+stage+"L"+level;
+                float y=48-row*20;
+                if(row%2==1)
+                {
+                    var stripe=Image(panel.transform,"RowStripe"+row,new Vector2(0,y),
+                        new Vector2(488,19),new Color32(219,235,235,255));
+                    stripe.raycastTarget=false;
+                }
+                Txt(panel.transform,id+"Level",id,14,new Vector2(x[0],y),
+                    new Vector2(w[0],19),ink);
+                Txt(panel.transform,id+"Score","—",14,new Vector2(x[1],y),
+                    new Vector2(w[1],19),aqua);
+                Txt(panel.transform,id+"Retries","—",14,new Vector2(x[2],y),
+                    new Vector2(w[2],19),ink);
+                Txt(panel.transform,id+"Result","—",13,new Vector2(x[3],y),
+                    new Vector2(w[3],19),ink);
+            }
+        }
+    }
+    private void SetPerformanceTableVisible(bool visible)
+    {
+        var t=Find("CertificatePerformanceTable");
+        if(t!=null)t.gameObject.SetActive(visible);
+        var old=Find("Transcript");
+        if(old!=null)old.gameObject.SetActive(false);
+    }
+    private void PopulatePerformanceTable()
+    {
+        for(int s=1;s<=5;s++)
+        {
+            for(int l=1;l<=3;l++)
+            {
+                string id="S"+s+"L"+l;
+                int score=Best(s,l);
+                string retryKey="Stage"+s+"Level"+l+"RetryCount";
+                bool known=PlayerPrefs.HasKey("Stage"+s+"Level"+l+"RetryTrackingStarted");
+                int retries=PlayerPrefs.GetInt(retryKey,0);
+                Set(id+"Score",score+"/100");
+                Set(id+"Retries",known?retries.ToString():"—");
+                Set(id+"Result",!known?
+                    (score==100?"Perfect*":score==75?"Hint used*":"Completed*"):
+                    (retries>0?"After retry":score==75?"After hint":"First try"));
+            }
+        }
     }
     private void PositionText(string name,Vector2 pos,Vector2 size,int font,Color color)
     {
@@ -399,6 +485,7 @@ public class ChemQuestCertificate : MonoBehaviour
             Set("Score","");
             Set("Stages","");
             Set("Transcript","");
+            SetPerformanceTableVisible(false);
             Set("CertificateMetadata","");
             if(status!=null)status.text="Certificate not yet available.";
             var p=Find("ExportPNG")?.GetComponent<Button>();if(p!=null)p.interactable=false;
@@ -431,9 +518,11 @@ public class ChemQuestCertificate : MonoBehaviour
             if(s<5)transcript.Append("\n");
         }
         Set("Transcript",transcript.ToString());
+        SetPerformanceTableVisible(true);
+        PopulatePerformanceTable();
         Set("CertificateMetadata","Completed "+PlayerPrefs.GetString(IssuedAtKey)+
             "  •  Certificate ID "+PlayerPrefs.GetString(CodeKey)+
-            "  •  Retry transcript not available in this build");
+            "  •  *Historical retry counts unavailable where not tracked");
     }
     private IEnumerator Export(bool pdf)
     {
