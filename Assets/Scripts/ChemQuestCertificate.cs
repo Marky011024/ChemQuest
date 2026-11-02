@@ -75,6 +75,7 @@ public class ChemQuestCertificate : MonoBehaviour
         if(transform.Find("CertificateCanvas")==null)BuildEditableUI();
         EnsureInputSystem();
         EnsureLockedUI();
+        ApplyGameCertificateDesign();
         Bind();
         Refresh();
     }
@@ -130,6 +131,94 @@ public class ChemQuestCertificate : MonoBehaviour
         status=Txt(controls.transform,"Status","",14,new Vector2(0,-290),
             new Vector2(1050,31),Color.white);
     }
+
+    // Landscape adaptation of the approved navy/cyan/gold game certificate.
+    // Everything is a native editable Unity UI object, not flattened artwork.
+    public void ApplyGameCertificateDesign()
+    {
+        var certificate=Find("CertificatePage");
+        if(certificate==null)return;
+        if(Find("GameDesignHeader")==null)
+        {
+            var dark=new Color32(10,43,70,255);
+            var deep=new Color32(5,25,45,255);
+            var teal=new Color32(18,114,136,255);
+            var gold=new Color32(236,188,76,255);
+            var cream=new Color32(255,250,236,255);
+            var cyan=new Color32(92,221,238,255);
+
+            var header=Image(certificate,"GameDesignHeader",new Vector2(0,218),
+                new Vector2(1040,123),dark);header.raycastTarget=false;
+            var accent=Image(certificate,"GameDesignHeaderAccent",new Vector2(0,151),
+                new Vector2(1000,4),gold);accent.raycastTarget=false;
+            var topMark=Image(certificate,"ChemistryEmblem",new Vector2(-452,218),
+                new Vector2(68,68),teal);topMark.raycastTarget=false;
+            Txt(topMark.transform,"ChemistryEmblemText","H₂O",23,Vector2.zero,
+                new Vector2(67,65),cream);
+            var rightMark=Image(certificate,"AtomEmblem",new Vector2(451,218),
+                new Vector2(68,68),teal);rightMark.raycastTarget=false;
+            Txt(rightMark.transform,"AtomEmblemText","Na⁺",21,Vector2.zero,
+                new Vector2(67,65),cream);
+
+            var identity=Image(certificate,"StudentIdentityPanel",new Vector2(-225,45),
+                new Vector2(584,150),new Color32(233,244,240,255));
+            identity.raycastTarget=false;
+            var stripe=Image(certificate,"StudentIdentityAccent",new Vector2(-511,45),
+                new Vector2(7,135),teal);stripe.raycastTarget=false;
+            var badge=Image(certificate,"AccuracyBadgePanel",new Vector2(374,45),
+                new Vector2(245,150),deep);badge.raycastTarget=false;
+            var badgeStripe=Image(certificate,"AccuracyBadgeAccent",new Vector2(374,117),
+                new Vector2(231,6),gold);badgeStripe.raycastTarget=false;
+            Txt(certificate,"BadgeLabel","CHEMISTRY MASTERY",16,
+                new Vector2(373,-18),new Vector2(235,32),teal);
+            var bar=Image(certificate,"PerformanceHeader",new Vector2(0,-63),
+                new Vector2(1020,40),dark);bar.raycastTarget=false;
+            var barStripe=Image(certificate,"PerformanceHeaderAccent",
+                new Vector2(-496,-63),new Vector2(8,37),cyan);barStripe.raycastTarget=false;
+
+            for(int i=0;i<5;i++)
+            {
+                var line=Image(certificate,"TranscriptRow"+(i+1),
+                    new Vector2(0,-111-i*26),new Vector2(1000,24),
+                    i%2==0?new Color32(232,243,241,255):new Color32(244,247,238,255));
+                line.raycastTarget=false;
+            }
+            var foot=Image(certificate,"CongratulationsBanner",new Vector2(0,-255),
+                new Vector2(1028,61),deep);foot.raycastTarget=false;
+            Txt(foot.transform,"CongratsLabel","★  CONGRATULATIONS!  ★",21,
+                new Vector2(-190,8),new Vector2(620,34),gold);
+            Txt(foot.transform,"CongratsDetail","FIVE STAGES  •  FIFTEEN LEVELS  •  CHEMICAL MASTERY",
+                13,new Vector2(-190,-17),new Vector2(620,25),cream);
+            Txt(foot.transform,"AchievementTrophy","🏆",32,
+                new Vector2(399,0),new Vector2(85,54),gold);
+        }
+        // Existing dynamic text remains connected to its original fields.
+        PositionText("Brand",new Vector2(0,250),new Vector2(600,42),26,new Color32(92,221,238,255));
+        PositionText("DocumentTitle",new Vector2(0,202),new Vector2(900,63),30,new Color32(249,205,106,255));
+        PositionText("Achievement",new Vector2(0,136),new Vector2(990,34),16,new Color32(21,55,76,255));
+        PositionText("RecipientLabel",new Vector2(-228,106),new Vector2(550,31),17,new Color32(17,105,126,255));
+        PositionText("RecipientName",new Vector2(-225,61),new Vector2(547,54),31,new Color32(9,36,62,255));
+        PositionText("Identity",new Vector2(-225,17),new Vector2(550,62),16,new Color32(33,69,87,255));
+        PositionText("Score",new Vector2(373,48),new Vector2(226,100),22,new Color32(247,213,118,255));
+        PositionText("Stages",new Vector2(0,-62),new Vector2(960,40),21,Color.white);
+        PositionText("Transcript",new Vector2(0,-167),new Vector2(984,134),17,new Color32(17,50,73,255));
+        PositionText("CertificateMetadata",new Vector2(0,-286),new Vector2(1020,27),12,new Color32(35,71,89,255));
+        foreach(var key in new[]{"Brand","DocumentTitle","Achievement","RecipientLabel",
+            "RecipientName","Identity","Score","Stages","Transcript","CertificateMetadata"})
+        {
+            var t=Find(key);
+            if(t!=null)t.SetAsLastSibling();
+        }
+        // A locked certificate is not a fake award. Hide the victory footer at runtime.
+    }
+    private void PositionText(string name,Vector2 pos,Vector2 size,int font,Color color)
+    {
+        var t=Find(name)?.GetComponent<TMP_Text>();
+        if(t==null)return;
+        var rt=t.rectTransform;rt.anchoredPosition=pos;rt.sizeDelta=size;
+        t.color=color;t.fontSize=font;t.fontSizeMax=font;
+    }
+
     // The certificate scene can lack an EventSystem; buttons then show but cannot click.
     public static void EnsureInputSystem()
     {
@@ -180,6 +269,8 @@ public class ChemQuestCertificate : MonoBehaviour
             var t=Find(name);
             if(t!=null)t.gameObject.SetActive(locked);
         }
+        var banner=Find("CongratulationsBanner");
+        if(banner!=null)banner.gameObject.SetActive(!locked);
         if(!locked)return;
         Set("LockedProgressText",completed+" / 15 LEVELS COMPLETE");
         Set("LockedGuidance",completed==14?
@@ -284,18 +375,18 @@ public class ChemQuestCertificate : MonoBehaviour
         Set("RecipientName",PlayerPrefs.GetString("StudentName","STUDENT"));
         Set("Identity",PlayerPrefs.GetString("StudentSchool","")+
             "  •  "+PlayerPrefs.GetString("StudentSection",""));
-        Set("Score","OVERALL GAME SCORE   "+(Total()*100f/1500f).ToString("0.0")+"%   ("+Total()+" / 1500)");
+        Set("Score",(Total()*100f/1500f).ToString("0.0")+"%\nACCURACY");
         var stages=new StringBuilder();
         for(int s=1;s<=5;s++)
         {
             if(s>1)stages.Append("     ");
             stages.Append("S").Append(s).Append(": ").Append(StageStars(s));
         }
-        Set("Stages",stages.ToString());
+        Set("Stages","PERFORMANCE TRANSCRIPT  •  STAGE-BY-STAGE RESULTS");
         var transcript=new StringBuilder();
         for(int s=1;s<=5;s++)
         {
-            transcript.Append("STAGE ").Append(s).Append("   ");
+            transcript.Append(new[]{"","CATALYST CHRONICLES","ION FORGE","ORBITAL OVERLAP","ELECTRON OCEAN","ELEMENT CRUCIBLE"}[s]).Append("    |    ");
             for(int l=1;l<=3;l++)
             {
                 transcript.Append("L").Append(l).Append(" ").Append(Best(s,l)).Append("/100");
