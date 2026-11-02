@@ -213,7 +213,7 @@ public class ChemQuestCertificate : MonoBehaviour
         PositionText("Score",new Vector2(373,48),new Vector2(226,100),22,new Color32(247,213,118,255));
         PositionText("Stages",new Vector2(0,-29),new Vector2(960,33),20,Color.white);
         PositionText("Transcript",new Vector2(0,-167),new Vector2(984,134),17,new Color32(17,50,73,255));
-        PositionText("CertificateMetadata",new Vector2(0,-249),new Vector2(1000,22),13,Color.white);
+        PositionText("CertificateMetadata",new Vector2(0,-278),new Vector2(1000,24),13,new Color32(25,68,83,255));
         foreach(var key in new[]{"Brand","DocumentTitle","Achievement","RecipientLabel",
             "RecipientName","Identity","Score","Stages","Transcript","CertificateMetadata"})
         {
@@ -621,8 +621,8 @@ public class ChemQuestCertificate : MonoBehaviour
             };
             obj(1,"<< /Type /Catalog /Pages 2 0 R >>");
             obj(2,"<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
-            obj(3,"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /XObject << /Im0 5 0 R >> >> /Contents 4 0 R >>");
-            string content="q 842 0 0 595 0 0 cm /Im0 Do Q\n";
+            obj(3,"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 463] /Resources << /XObject << /Im0 5 0 R >> >> /Contents 4 0 R >>");
+            string content="q 842 0 0 463 0 0 cm /Im0 Do Q\n";
             obj(4,"<< /Length "+Encoding.ASCII.GetByteCount(content)+" >>\nstream\n"+content+"endstream");
             offsets.Add(stream.Position);
             write("5 0 obj\n<< /Type /XObject /Subtype /Image /Width "+width+
