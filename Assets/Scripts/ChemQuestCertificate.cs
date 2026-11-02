@@ -334,13 +334,14 @@ public class ChemQuestCertificate : MonoBehaviour
                 string id="S"+s+"L"+l;
                 int score=Best(s,l);
                 string retryKey="Stage"+s+"Level"+l+"RetryCount";
-                bool known=PlayerPrefs.HasKey("Stage"+s+"Level"+l+"RetryTrackingStarted");
+                bool known=PlayerPrefs.HasKey("Stage"+s+"Level"+l+"RetryTrackingStarted") ||
+                    PlayerPrefs.HasKey(retryKey);
                 int retries=PlayerPrefs.GetInt(retryKey,0);
                 Set(id+"Score",score+"/100");
                 Set(id+"Retries",known?retries.ToString():"--");
                 Set(id+"Result",!known?
                     (score==100?"Score: 100":score==75?"Score: 75":"Completed"):
-                    (retries>0?"After retry":score==75?"After hint":"No retry"));
+                    (retries>0?"Retry recorded":score==75?"After hint":"No retry"));
             }
         }
     }
