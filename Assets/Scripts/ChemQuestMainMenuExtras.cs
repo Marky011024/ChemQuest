@@ -193,6 +193,8 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
         fill.rectTransform.offsetMax=Vector2.zero;
         var handleArea=Rect(rect,"Handle Slide Area",Vector2.zero,new Vector2(452,37));
         var handle=Panel(handleArea,"Handle",Vector2.zero,new Vector2(20,30),Gold);
+        // GraphicRaycaster needs a raycastable target on the handle to begin dragging.
+        handle.raycastTarget=true;
         var slider=rect.gameObject.AddComponent<Slider>();
         slider.fillRect=fill.rectTransform;
         slider.handleRect=handle.rectTransform;
