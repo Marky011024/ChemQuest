@@ -10,7 +10,9 @@ public class MainMenuManager : MonoBehaviour
     {
         string studentName = PlayerPrefs.GetString("StudentName", "Student");
 
-        welcomeText.text = "WELCOME TO CHEMQUEST\n" + studentName.ToUpper();
+        if(welcomeText!=null)welcomeText.text = "WELCOME TO CHEMQUEST\n" + studentName.ToUpper();
+        if(GetComponent<ChemQuestMainMenuExtras>()==null)
+            gameObject.AddComponent<ChemQuestMainMenuExtras>();
     }
 
     public void PlayGame()
