@@ -10,7 +10,13 @@ public class StageSelectionManager : MonoBehaviour
         // Connect it directly, without touching other stage navigation.
         foreach (var button in FindObjectsOfType<Button>(true))
         {
-            if (button.gameObject.name == "Stage3SelectButton")
+            if (button.gameObject.name == "BackButton")
+            {
+                button.onClick.RemoveAllListeners();
+                button.onClick.AddListener(ReturnToMainMenu);
+                button.interactable=true;
+            }
+            else if (button.gameObject.name == "Stage3SelectButton")
             {
                 button.onClick=new Button.ButtonClickedEvent();
                 button.onClick.AddListener(OpenStage3);
@@ -48,6 +54,7 @@ public class StageSelectionManager : MonoBehaviour
         SceneManager.LoadScene(sceneName);
     }
 
+    public void ReturnToMainMenu() { OpenScene("MainMenu"); }
     public void OpenStage1() { OpenScene("Stage1LevelSelection"); }
     public void OpenStage2() { OpenScene("Stage2LevelSelection"); }
     public void OpenStage3() { OpenScene("Stage3LevelSelection"); }
