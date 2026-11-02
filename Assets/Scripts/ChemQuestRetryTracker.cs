@@ -56,10 +56,9 @@ public sealed class ChemQuestRetryTracker : MonoBehaviour
             for(int level=1;level<=3;level++)
                 if(scene=="Stage"+stage+"Level"+level)
                     activeLevel="Stage"+stage+"Level"+level;
-        if(activeLevel!=null)
+        if(activeLevel!=null && PlayerPrefs.GetInt(activeLevel+"Completed",0)!=1)
         {
-            // A previously-completed level without recorded history stays
-            // historical/unknown until the student replays it.
+            // Do not falsely claim that old completed levels had zero retries.
             PlayerPrefs.SetInt(activeLevel+"RetryTrackingStarted",1);
             PlayerPrefs.Save();
         }
