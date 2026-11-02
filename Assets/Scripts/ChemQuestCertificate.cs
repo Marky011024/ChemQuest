@@ -185,13 +185,18 @@ public class ChemQuestCertificate : MonoBehaviour
             }
             var foot=Image(certificate,"CongratulationsBanner",new Vector2(0,-255),
                 new Vector2(1028,61),deep);foot.raycastTarget=false;
-            Txt(foot.transform,"CongratsLabel","★  CONGRATULATIONS!  ★",21,
+            Txt(foot.transform,"CongratsLabel","CONGRATULATIONS!",21,
                 new Vector2(-190,8),new Vector2(620,34),gold);
             Txt(foot.transform,"CongratsDetail","FIVE STAGES  •  FIFTEEN LEVELS  •  CHEMICAL MASTERY",
                 13,new Vector2(-190,-17),new Vector2(620,25),cream);
-            Txt(foot.transform,"AchievementTrophy","★",32,
+            Txt(foot.transform,"AchievementTrophy","CQ",32,
                 new Vector2(399,0),new Vector2(85,54),gold);
         }
+        // Correct glyphs already saved in existing scene objects too.
+        var trophy=Find("AchievementTrophy")?.GetComponent<TMP_Text>();
+        if(trophy!=null)trophy.text="CQ";
+        var congrats=Find("CongratsLabel")?.GetComponent<TMP_Text>();
+        if(congrats!=null)congrats.text="CONGRATULATIONS!";
         // Existing dynamic text remains connected to its original fields.
         PositionText("Brand",new Vector2(0,250),new Vector2(600,42),26,new Color32(92,221,238,255));
         PositionText("DocumentTitle",new Vector2(0,202),new Vector2(900,63),30,new Color32(249,205,106,255));
@@ -271,6 +276,13 @@ public class ChemQuestCertificate : MonoBehaviour
         }
         var banner=Find("CongratulationsBanner");
         if(banner!=null)banner.gameObject.SetActive(!locked);
+        foreach(var name in new[]{"PerformanceHeader","PerformanceHeaderAccent","TranscriptRow1",
+            "TranscriptRow2","TranscriptRow3","TranscriptRow4","TranscriptRow5",
+            "AccuracyBadgePanel","AccuracyBadgeAccent","BadgeLabel"})
+        {
+            var visual=Find(name);
+            if(visual!=null)visual.gameObject.SetActive(!locked);
+        }
         if(locked)
         {
             PositionText("RecipientLabel",new Vector2(0,102),new Vector2(800,30),18,
