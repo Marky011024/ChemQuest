@@ -235,7 +235,7 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
         // Hide only old center buttons/text, never the existing artwork.
         foreach(var button in FindObjectsByType<Button>(FindObjectsInactive.Include,FindObjectsSortMode.None))
         {
-            if(button==null || button.GetComponentInParent<ChemQuestMainMenuExtras>()!=null)continue;
+            if(button==null || button.transform.IsChildOf(GameObject.Find("ChemQuestMenuOverlay").transform))continue;
             if(button.gameObject.scene.name!="MainMenu")continue;
             var text=button.GetComponentInChildren<TMP_Text>(true);
             if(text!=null && (text.text.Contains("ENTER ACADEMY") || text.text=="START"))
