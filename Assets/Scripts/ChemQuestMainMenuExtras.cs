@@ -232,19 +232,14 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
     }
     private static void HideLegacyButtonsForPlay()
     {
-        // Hide only old center buttons/text, never the existing artwork.
-        foreach(var button in FindObjectsByType<Button>(FindObjectsInactive.Include,FindObjectsSortMode.None))
+        // Old MainMenu.unity still contains PlayButton and WelcomeText;
+        // these are the source of the visible overlap in the screenshot.
+        var mainCanvas=GameObject.Find("Canvas");
+        if(mainCanvas==null)return;
+        foreach(var t in mainCanvas.GetComponentsInChildren<Transform>(true))
         {
-            if(button==null || button.transform.IsChildOf(GameObject.Find("ChemQuestMenuOverlay").transform))continue;
-            if(button.gameObject.scene.name!="MainMenu")continue;
-            var text=button.GetComponentInChildren<TMP_Text>(true);
-            if(text!=null && (text.text.Contains("ENTER ACADEMY") || text.text=="START"))
-                button.gameObject.SetActive(false);
-        }
-        foreach(var t in FindObjectsByType<TextMeshProUGUI>(FindObjectsInactive.Include,FindObjectsSortMode.None))
-        {
-            if(t.gameObject.scene.name!="MainMenu")continue;
-            if(t.text.StartsWith("WELCOME TO CHEMQUEST"))
+            if(t==mainCanvas.transform)continue;
+            if(t.name=="PlayButton" || t.name=="WelcomeText")
                 t.gameObject.SetActive(false);
         }
     }
