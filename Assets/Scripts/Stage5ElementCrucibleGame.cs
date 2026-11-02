@@ -212,7 +212,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
             "Workbench observations recorded successfully.");
         Txt(completePanel.transform,"FinalScore","FINAL SCORE 000000",27,
             new Vector2(0,-33),new Vector2(640,50),Gold);
-        Btn(completePanel.transform,"NextButton",Level==3?"STAGE SELECTION":"NEXT LEVEL",
+        Btn(completePanel.transform,"NextButton",Level==3?"VIEW CERTIFICATE":"NEXT LEVEL",
             new Vector2(160,-139),new Vector2(280,58),Teal);
         Btn(completePanel.transform,"CompleteLevelButton","LEVEL SELECTION",
             new Vector2(-160,-139),new Vector2(280,58),new Color32(45,83,123,255));
@@ -328,7 +328,13 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         Wire("FailLevelButton",()=>Go("Stage5LevelSelection"));
         Wire("CompleteLevelButton",()=>Go("Stage5LevelSelection"));
         Wire("EmptyLevelButton",()=>Go("Stage5LevelSelection"));
-        Wire("NextButton",()=>Go(Level==3?"StageSelection":"Stage5Level"+(Level+1)));
+        Wire("NextButton",()=>Go(Level==3?"ChemQuestCertificate":"Stage5Level"+(Level+1)));
+        // Update older serialized UI scenes without needing to rebuild Stage 5.
+        if(Level==3 && completePanel!=null)
+        {
+            var nextText=Find(completePanel.transform,"NextButton")?.GetComponentInChildren<TMP_Text>(true);
+            if(nextText!=null)nextText.text="VIEW CERTIFICATE";
+        }
         // Certificate is only shown when all 15 levels are completed.
         if(Level==3 && completePanel!=null)
         {
