@@ -99,6 +99,17 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
         Bind(card,"CloseButton",()=>Settings(false));
         var music=card?.Find("MusicVolume")?.GetComponent<Slider>();
         var sfx=card?.Find("SFXVolume")?.GetComponent<Slider>();
+        // Repair handles in already-installed scenes without requiring rebuild.
+        if(music!=null && music.handleRect!=null)
+        {
+            var image=music.handleRect.GetComponent<Image>();
+            if(image!=null)image.raycastTarget=true;
+        }
+        if(sfx!=null && sfx.handleRect!=null)
+        {
+            var image=sfx.handleRect.GetComponent<Image>();
+            if(image!=null)image.raycastTarget=true;
+        }
         if(music!=null)
         {
             music.onValueChanged.RemoveAllListeners();
