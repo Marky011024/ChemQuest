@@ -189,7 +189,7 @@ public class ChemQuestCertificate : MonoBehaviour
                 new Vector2(-190,8),new Vector2(620,34),gold);
             Txt(foot.transform,"CongratsDetail","FIVE STAGES  •  FIFTEEN LEVELS  •  CHEMICAL MASTERY",
                 13,new Vector2(-190,-17),new Vector2(620,25),cream);
-            Txt(foot.transform,"AchievementTrophy","🏆",32,
+            Txt(foot.transform,"AchievementTrophy","★",32,
                 new Vector2(399,0),new Vector2(85,54),gold);
         }
         // Existing dynamic text remains connected to its original fields.
@@ -271,6 +271,30 @@ public class ChemQuestCertificate : MonoBehaviour
         }
         var banner=Find("CongratulationsBanner");
         if(banner!=null)banner.gameObject.SetActive(!locked);
+        if(locked)
+        {
+            PositionText("RecipientLabel",new Vector2(0,102),new Vector2(800,30),18,
+                new Color32(17,105,126,255));
+            PositionText("RecipientName",new Vector2(0,57),new Vector2(970,48),28,
+                new Color32(9,36,62,255));
+            PositionText("Identity",new Vector2(0,17),new Vector2(900,34),15,
+                new Color32(33,69,87,255));
+            PositionText("Achievement",new Vector2(0,136),new Vector2(990,34),16,
+                new Color32(21,55,76,255));
+            var progress=Find("LockedProgressText")?.GetComponent<RectTransform>();
+            if(progress!=null)progress.anchoredPosition=new Vector2(0,-112);
+            var guidance=Find("LockedGuidance")?.GetComponent<RectTransform>();
+            if(guidance!=null)guidance.anchoredPosition=new Vector2(0,-213);
+        }
+        else
+        {
+            PositionText("RecipientLabel",new Vector2(-228,106),new Vector2(550,31),17,
+                new Color32(17,105,126,255));
+            PositionText("RecipientName",new Vector2(-225,61),new Vector2(547,54),31,
+                new Color32(9,36,62,255));
+            PositionText("Identity",new Vector2(-225,17),new Vector2(550,62),16,
+                new Color32(33,69,87,255));
+        }
         if(!locked)return;
         Set("LockedProgressText",completed+" / 15 LEVELS COMPLETE");
         Set("LockedGuidance",completed==14?
