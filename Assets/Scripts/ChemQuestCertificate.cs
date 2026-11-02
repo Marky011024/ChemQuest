@@ -154,11 +154,11 @@ public class ChemQuestCertificate : MonoBehaviour
                 new Vector2(1000,4),gold);accent.raycastTarget=false;
             var topMark=Image(certificate,"ChemistryEmblem",new Vector2(-452,218),
                 new Vector2(68,68),teal);topMark.raycastTarget=false;
-            Txt(topMark.transform,"ChemistryEmblemText","H₂O",23,Vector2.zero,
+            Txt(topMark.transform,"ChemistryEmblemText","H2O",23,Vector2.zero,
                 new Vector2(67,65),cream);
             var rightMark=Image(certificate,"AtomEmblem",new Vector2(451,218),
                 new Vector2(68,68),teal);rightMark.raycastTarget=false;
-            Txt(rightMark.transform,"AtomEmblemText","Na⁺",21,Vector2.zero,
+            Txt(rightMark.transform,"AtomEmblemText","Na+",21,Vector2.zero,
                 new Vector2(67,65),cream);
 
             var identity=Image(certificate,"StudentIdentityPanel",new Vector2(-225,45),
@@ -193,6 +193,11 @@ public class ChemQuestCertificate : MonoBehaviour
             Txt(foot.transform,"AchievementTrophy","CQ",32,
                 new Vector2(399,0),new Vector2(85,54),gold);
         }
+        // Update previously serialized TMP objects even if the scene was built before this change.
+        var formula=Find("ChemistryEmblemText")?.GetComponent<TMP_Text>();
+        if(formula!=null)formula.text="H2O";
+        var ionic=Find("AtomEmblemText")?.GetComponent<TMP_Text>();
+        if(ionic!=null)ionic.text="Na+";
         // Correct glyphs already saved in existing scene objects too.
         var trophy=Find("AchievementTrophy")?.GetComponent<TMP_Text>();
         if(trophy!=null)trophy.text="CQ";
@@ -208,13 +213,27 @@ public class ChemQuestCertificate : MonoBehaviour
         PositionText("Score",new Vector2(373,48),new Vector2(226,100),22,new Color32(247,213,118,255));
         PositionText("Stages",new Vector2(0,-62),new Vector2(960,40),21,Color.white);
         PositionText("Transcript",new Vector2(0,-167),new Vector2(984,134),17,new Color32(17,50,73,255));
-        PositionText("CertificateMetadata",new Vector2(0,-286),new Vector2(1020,27),12,new Color32(35,71,89,255));
+        PositionText("CertificateMetadata",new Vector2(0,-249),new Vector2(1000,22),13,Color.white);
         foreach(var key in new[]{"Brand","DocumentTitle","Achievement","RecipientLabel",
             "RecipientName","Identity","Score","Stages","Transcript","CertificateMetadata"})
         {
             var t=Find(key);
             if(t!=null)t.SetAsLastSibling();
         }
+        // Remove legacy row strips that sat on top of the new table.
+        for(int i=1;i<=5;i++)
+        {
+            var strip=Find("TranscriptRow"+i);
+            if(strip!=null)strip.gameObject.SetActive(false);
+        }
+        var footer=Find("CongratulationsBanner")?.GetComponent<RectTransform>();
+        if(footer!=null){footer.anchoredPosition=new Vector2(0,-239);footer.sizeDelta=new Vector2(1024,39);}
+        var footerHeading=Find("CongratsLabel")?.GetComponent<RectTransform>();
+        if(footerHeading!=null){footerHeading.anchoredPosition=new Vector2(-195,4);footerHeading.sizeDelta=new Vector2(610,24);}
+        var footerCaption=Find("CongratsDetail")?.GetComponent<RectTransform>();
+        if(footerCaption!=null){footerCaption.anchoredPosition=new Vector2(-195,-12);footerCaption.sizeDelta=new Vector2(610,16);}
+        var trophyMark=Find("AchievementTrophy")?.GetComponent<RectTransform>();
+        if(trophyMark!=null){trophyMark.anchoredPosition=new Vector2(401,0);trophyMark.sizeDelta=new Vector2(90,34);}
         // A locked certificate is not a fake award. Hide the victory footer at runtime.
     }
 
@@ -224,57 +243,61 @@ public class ChemQuestCertificate : MonoBehaviour
     {
         var cert=Find("CertificatePage");
         if(cert==null)return;
-        var transcript=Find("Transcript");
-        if(transcript!=null)transcript.gameObject.SetActive(false);
-        if(Find("CertificatePerformanceTable")!=null)return;
+        var old=Find("Transcript");
+        if(old!=null)old.gameObject.SetActive(false);
+        // Re-create only the display table when applying the design in Edit Mode.
+        // This never touches gameplay data, scores, or retry keys.
+        var previous=Find("CertificatePerformanceTable");
+        if(previous!=null)DestroyImmediate(previous.gameObject);
+
         var navy=new Color32(8,40,66,255);
         var ink=new Color32(20,52,71,255);
-        var aqua=new Color32(21,135,148,255);
-        var cream=new Color32(241,249,248,255);
+        var aqua=new Color32(18,113,136,255);
+        var cream=new Color32(243,249,246,255);
         var table=new GameObject("CertificatePerformanceTable",typeof(RectTransform));
         table.transform.SetParent(cert,false);
         var rt=table.GetComponent<RectTransform>();
-        rt.anchoredPosition=new Vector2(0,-161);
-        rt.sizeDelta=new Vector2(1020,177);
-        var headings=new[]{"LEVEL","SCORE","RETRIES","RESULT"};
+        rt.anchoredPosition=new Vector2(0,-128);
+        rt.sizeDelta=new Vector2(1010,161);
+        string[] headings={"LEVEL","SCORE","RETRIES","RESULT"};
         for(int side=0;side<2;side++)
         {
-            float origin=side==0?-255f:255f;
+            float origin=side==0?-251f:251f;
             var panel=Image(table.transform,"TablePanel"+side,
-                new Vector2(origin,0),new Vector2(498,173),cream);
+                new Vector2(origin,0),new Vector2(491,161),cream);
             panel.raycastTarget=false;
-            var head=Image(panel.transform,"Header",new Vector2(0,74),
-                new Vector2(492,23),navy);head.raycastTarget=false;
-            float[] x={-191,-52,45,158};
-            float[] w={130,105,103,117};
+            var head=Image(panel.transform,"Header",new Vector2(0,68),
+                new Vector2(486,24),navy);
+            head.raycastTarget=false;
+            float[] x={-180,-56,40,157};
+            float[] w={116,100,91,141};
             for(int j=0;j<4;j++)
-            {
-                Txt(head.transform,"Heading"+j,headings[j],14,new Vector2(x[j],0),
-                    new Vector2(w[j],23),Color.white);
-            }
+                Txt(head.transform,"Heading"+j,headings[j],16,
+                    new Vector2(x[j],0),new Vector2(w[j],23),Color.white);
             for(int row=0;row<8;row++)
             {
                 int index=side*8+row;
                 if(index>=15)break;
                 int stage=index/3+1,level=index%3+1;
                 string id="S"+stage+"L"+level;
-                float y=48-row*20;
+                float y=45-row*17.5f;
                 if(row%2==1)
                 {
-                    var stripe=Image(panel.transform,"RowStripe"+row,new Vector2(0,y),
-                        new Vector2(488,19),new Color32(219,235,235,255));
+                    var stripe=Image(panel.transform,"RowStripe"+row,
+                        new Vector2(0,y),new Vector2(487,17),new Color32(225,240,239,255));
                     stripe.raycastTarget=false;
                 }
-                Txt(panel.transform,id+"Level",id,14,new Vector2(x[0],y),
-                    new Vector2(w[0],19),ink);
-                Txt(panel.transform,id+"Score","—",14,new Vector2(x[1],y),
-                    new Vector2(w[1],19),aqua);
-                Txt(panel.transform,id+"Retries","—",14,new Vector2(x[2],y),
-                    new Vector2(w[2],19),ink);
-                Txt(panel.transform,id+"Result","—",13,new Vector2(x[3],y),
-                    new Vector2(w[3],19),ink);
+                Txt(panel.transform,id+"Level",id,16,new Vector2(x[0],y),
+                    new Vector2(w[0],17),ink);
+                Txt(panel.transform,id+"Score","--",16,new Vector2(x[1],y),
+                    new Vector2(w[1],17),aqua);
+                Txt(panel.transform,id+"Retries","--",16,new Vector2(x[2],y),
+                    new Vector2(w[2],17),ink);
+                Txt(panel.transform,id+"Result","--",15,new Vector2(x[3],y),
+                    new Vector2(w[3],17),ink);
             }
         }
+        table.transform.SetAsLastSibling();
     }
     private void SetPerformanceTableVisible(bool visible)
     {
@@ -295,10 +318,10 @@ public class ChemQuestCertificate : MonoBehaviour
                 bool known=PlayerPrefs.HasKey("Stage"+s+"Level"+l+"RetryTrackingStarted");
                 int retries=PlayerPrefs.GetInt(retryKey,0);
                 Set(id+"Score",score+"/100");
-                Set(id+"Retries",known?retries.ToString():"—");
+                Set(id+"Retries",known?retries.ToString():"--");
                 Set(id+"Result",!known?
-                    (score==100?"Perfect*":score==75?"Hint used*":"Completed*"):
-                    (retries>0?"After retry":score==75?"After hint":"First try"));
+                    (score==100?"Score: 100":score==75?"Score: 75":"Completed"):
+                    (retries>0?"After retry":score==75?"After hint":"No retry"));
             }
         }
     }
@@ -505,7 +528,7 @@ public class ChemQuestCertificate : MonoBehaviour
             if(s>1)stages.Append("     ");
             stages.Append("S").Append(s).Append(": ").Append(StageStars(s));
         }
-        Set("Stages","PERFORMANCE TRANSCRIPT  •  STAGE-BY-STAGE RESULTS");
+        Set("Stages","PERFORMANCE TRANSCRIPT  |  15 LEVEL RESULTS");
         var transcript=new StringBuilder();
         for(int s=1;s<=5;s++)
         {
@@ -520,34 +543,50 @@ public class ChemQuestCertificate : MonoBehaviour
         Set("Transcript",transcript.ToString());
         SetPerformanceTableVisible(true);
         PopulatePerformanceTable();
-        Set("CertificateMetadata","Completed "+PlayerPrefs.GetString(IssuedAtKey)+
-            "  •  Certificate ID "+PlayerPrefs.GetString(CodeKey)+
-            "  •  *Historical retry counts unavailable where not tracked");
+        Set("CertificateMetadata","ISSUED: "+PlayerPrefs.GetString(IssuedAtKey)+
+            "    |    ID: "+PlayerPrefs.GetString(CodeKey)+
+            "    |    -- = RETRIES NOT RECORDED");
     }
     private IEnumerator Export(bool pdf)
     {
-        if(!AllLevelsComplete()||!PlayerPrefs.HasKey(IssuedAtKey))yield break;
-        if(controls!=null)controls.SetActive(false);
+        if(!AllLevelsComplete() || !PlayerPrefs.HasKey(IssuedAtKey))yield break;
+        // Capture the certificate itself, not the Game View background or buttons.
         yield return new WaitForEndOfFrame();
-        Texture2D screenshot=ScreenCapture.CaptureScreenshotAsTexture();
-        if(controls!=null)controls.SetActive(true);
+        var screenshot=ScreenCapture.CaptureScreenshotAsTexture();
         if(screenshot==null)yield break;
-        byte[] data=pdf?EncodePdf(screenshot.EncodeToJPG(92),screenshot.width,screenshot.height):
-            screenshot.EncodeToPNG();
-        Destroy(screenshot);
-        string file="ChemQuest_"+PlayerPrefs.GetString(CodeKey,"Certificate").Replace("-","_")+
-            (pdf?".pdf":".png");
-        string path=Path.Combine(Application.persistentDataPath,file);
+        Texture2D cropped=null;
         try
         {
-            File.WriteAllBytes(path,data);
-            if(status!=null)status.text="Saved offline: "+path;
-            Debug.Log("ChemQuest certificate exported to "+path);
+            var rect=page.GetComponent<RectTransform>();
+            var corners=new Vector3[4];
+            rect.GetWorldCorners(corners);
+            float sx=(float)screenshot.width/Screen.width;
+            float sy=(float)screenshot.height/Screen.height;
+            int x=Mathf.Clamp(Mathf.FloorToInt(corners[0].x*sx),0,screenshot.width-1);
+            int y=Mathf.Clamp(Mathf.FloorToInt(corners[0].y*sy),0,screenshot.height-1);
+            int right=Mathf.Clamp(Mathf.CeilToInt(corners[2].x*sx),x+1,screenshot.width);
+            int top=Mathf.Clamp(Mathf.CeilToInt(corners[2].y*sy),y+1,screenshot.height);
+            cropped=new Texture2D(right-x,top-y,TextureFormat.RGB24,false);
+            cropped.SetPixels(screenshot.GetPixels(x,y,right-x,top-y));
+            cropped.Apply();
+            var bytes=pdf?EncodePdf(cropped.EncodeToJPG(95),cropped.width,cropped.height):
+                cropped.EncodeToPNG();
+            string file="ChemQuest_"+PlayerPrefs.GetString(CodeKey,"Certificate").Replace("-","_")+
+                (pdf?".pdf":".png");
+            string path=Path.Combine(Application.persistentDataPath,file);
+            File.WriteAllBytes(path,bytes);
+            if(status!=null)status.text="Certificate saved: "+path;
+            Debug.Log("ChemQuest certificate exported: "+path);
         }
-        catch(Exception error)
+        catch(Exception e)
         {
-            if(status!=null)status.text="Export failed: "+error.Message;
-            Debug.LogError(error);
+            if(status!=null)status.text="Export failed: "+e.Message;
+            Debug.LogException(e);
+        }
+        finally
+        {
+            if(screenshot!=null)Destroy(screenshot);
+            if(cropped!=null)Destroy(cropped);
         }
     }
     // Minimal standards-compliant one-page PDF with a JPEG image embedded.
