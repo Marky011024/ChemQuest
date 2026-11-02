@@ -77,5 +77,8 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Stage5Level3.unity
     guid: cbaa4225ccd03f14f97eef539d078cdf
+  - enabled: 1
+    path: Assets/Scenes/ChemQuestCertificate.unity
+    guid: 664aed0db9ae021498ed5e2ad2090a70
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
