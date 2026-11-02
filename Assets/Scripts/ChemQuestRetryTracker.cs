@@ -72,6 +72,8 @@ public sealed class ChemQuestRetryTracker : MonoBehaviour
             string key=activeLevel+"RetryCount";
             int deduction=previousEnergy-now;
             PlayerPrefs.SetInt(key,PlayerPrefs.GetInt(key,0)+deduction);
+            // The first observed failed run is real data even for an already completed level.
+            PlayerPrefs.SetInt(activeLevel+"RetryTrackingStarted",1);
             PlayerPrefs.Save();
             Debug.Log("ChemQuest retry tracker: "+activeLevel+
                 " failed run(s) recorded: "+deduction);
