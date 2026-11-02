@@ -28,6 +28,7 @@ public static class ChemQuestCertificateInstaller
         if(controller==null)controller=host.AddComponent<ChemQuestCertificate>();
         controller.BuildEditableUI();
         controller.EnsureLockedUI();
+        controller.ApplyGameCertificateDesign();
         ChemQuestCertificate.EnsureInputSystem();
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene,path);
