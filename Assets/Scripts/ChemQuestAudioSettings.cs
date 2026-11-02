@@ -13,7 +13,7 @@ public static class ChemQuestAudioSettings
     public static float Music=>PlayerPrefs.GetFloat(MusicKey,.65f);
     public static float Sfx=>PlayerPrefs.GetFloat(SfxKey,.85f);
     public static bool Muted=>PlayerPrefs.GetInt(MutedKey,0)==1;
-    private static readonly Dictionary<int,float> BaseLevels=new Dictionary<int,float>();
+    private static readonly Dictionary<AudioSource,float> BaseLevels=new Dictionary<AudioSource,float>();
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Boot()
     {
@@ -39,9 +39,8 @@ public static class ChemQuestAudioSettings
         foreach(var src in Object.FindObjectsByType<AudioSource>(FindObjectsInactive.Include,FindObjectsSortMode.None))
         {
             if(src==null)continue;
-            int id=src.GetEntityId();
-            if(!BaseLevels.ContainsKey(id))BaseLevels[id]=src.volume;
-            float original=BaseLevels[id];
+            if(!BaseLevels.ContainsKey(src))BaseLevels[src]=src.volume;
+            float original=BaseLevels[src];
             bool music=src.GetComponent<ChemQuestMusicSource>()!=null || src.loop;
             src.volume=original*(Muted?0f:(music?Music:Sfx));
         }
