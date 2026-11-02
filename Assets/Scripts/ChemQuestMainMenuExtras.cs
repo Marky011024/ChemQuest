@@ -34,7 +34,7 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
             new Vector2(270,60),()=>SetSettings(true));
 
         var panel=RectObject(canvas.transform,"ChemQuestSettingsPanel",Vector2.zero,new Vector2(760,490));
-        settingsPanel=panel;
+        settingsPanel=panel.gameObject;
         var background=panel.gameObject.AddComponent<Image>();background.color=Navy;
         var outline=RectObject(panel.transform,"GoldTop",new Vector2(0,225),new Vector2(720,6));
         var trim=outline.gameObject.AddComponent<Image>();trim.color=Gold;trim.raycastTarget=false;
