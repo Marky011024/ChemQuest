@@ -39,7 +39,7 @@ public static class ChemQuestAudioSettings
         foreach(var src in Object.FindObjectsByType<AudioSource>(FindObjectsInactive.Include,FindObjectsSortMode.None))
         {
             if(src==null)continue;
-            int id=src.GetInstanceID();
+            int id=src.GetEntityId();
             if(!BaseLevels.ContainsKey(id))BaseLevels[id]=src.volume;
             float original=BaseLevels[id];
             bool music=src.GetComponent<ChemQuestMusicSource>()!=null || src.loop;
