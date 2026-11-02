@@ -19,25 +19,40 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
     }
     public void Build()
     {
-        Canvas canvas=GetComponentInChildren<Canvas>(true);
-        if(canvas==null)canvas=FindFirstObjectByType<Canvas>();
-        if(canvas==null){Debug.LogWarning("ChemQuest main menu Canvas missing.");return;}
-        if(canvas.transform.Find("ChemQuestQuickNavigation")!=null)
+        // Dedicated overlay prevents UI from being hidden behind the illustrated menu.
+        var overlay=GameObject.Find("ChemQuestMenuOverlay");
+        if(overlay==null)
         {
-            BindExisting(canvas.transform);
+            overlay=new GameObject("ChemQuestMenuOverlay",typeof(RectTransform),
+                typeof(Canvas),typeof(CanvasScaler),typeof(GraphicRaycaster));
+            var overlayCanvas=overlay.GetComponent<Canvas>();
+            overlayCanvas.renderMode=RenderMode.ScreenSpaceOverlay;
+            overlayCanvas.overrideSorting=true;
+            overlayCanvas.sortingOrder=200;
+            var scaler=overlay.GetComponent<CanvasScaler>();
+            scaler.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution=new Vector2(1280,720);
+            scaler.matchWidthOrHeight=1f;
+        }
+        if(overlay.transform.Find("ChemQuestQuickNavigation")!=null)
+        {
+            BindExisting(overlay.transform);
             return;
         }
-        var root=RectObject(canvas.transform,"ChemQuestQuickNavigation",new Vector2(0,-284),
-            new Vector2(1140,70));
+        var root=RectObject(overlay.transform,"ChemQuestQuickNavigation",new Vector2(0,45),
+            new Vector2(1050,64));
+        root.anchorMin=new Vector2(.5f,0);
+        root.anchorMax=new Vector2(.5f,0);
+        root.anchoredPosition=new Vector2(0,43);
         // Keep the existing ENTER ACADEMY button: quick actions are separate.
-        AddButton(root.transform,"StageSelectionQuickButton","STAGE SELECTION",new Vector2(-349,0),
-            new Vector2(270,60),()=>Open("StageSelection"));
+        AddButton(root.transform,"StageSelectionQuickButton","STAGE SELECTION",new Vector2(-336,0),
+            new Vector2(280,60),()=>Open("StageSelection"));
         AddButton(root.transform,"CertificateQuickButton","MY CERTIFICATE",new Vector2(0,0),
-            new Vector2(270,60),()=>Open("ChemQuestCertificate"));
-        AddButton(root.transform,"SettingsQuickButton","SETTINGS",new Vector2(349,0),
-            new Vector2(270,60),()=>SetSettings(true));
+            new Vector2(280,60),()=>Open("ChemQuestCertificate"));
+        AddButton(root.transform,"SettingsQuickButton","SETTINGS",new Vector2(336,0),
+            new Vector2(280,60),()=>SetSettings(true));
 
-        var panel=RectObject(canvas.transform,"ChemQuestSettingsPanel",Vector2.zero,new Vector2(760,490));
+        var panel=RectObject(overlay.transform,"ChemQuestSettingsPanel",Vector2.zero,new Vector2(760,490));
         settingsPanel=panel.gameObject;
         var background=panel.gameObject.AddComponent<Image>();background.color=Navy;
         var outline=RectObject(panel.transform,"GoldTop",new Vector2(0,225),new Vector2(720,6));
@@ -57,7 +72,7 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
         AddButton(panel.transform,"CloseButton","BACK",new Vector2(175,-145),
             new Vector2(287,57),()=>SetSettings(false));
         settingsPanel.SetActive(false);
-        feedback=Text(canvas.transform,"ChemQuestNavigationFeedback","",new Vector2(0,-220),
+        feedback=Text(overlay.transform,"ChemQuestNavigationFeedback","",new Vector2(0,-242),
             new Vector2(950,38),18,Gold);
     }
     private static RectTransform RectObject(Transform parent,string name,Vector2 pos,Vector2 size)
