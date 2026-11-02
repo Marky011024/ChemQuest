@@ -211,7 +211,7 @@ public class ChemQuestCertificate : MonoBehaviour
         PositionText("RecipientName",new Vector2(-225,61),new Vector2(547,54),31,new Color32(9,36,62,255));
         PositionText("Identity",new Vector2(-225,17),new Vector2(550,62),16,new Color32(33,69,87,255));
         PositionText("Score",new Vector2(373,48),new Vector2(226,100),22,new Color32(247,213,118,255));
-        PositionText("Stages",new Vector2(0,-62),new Vector2(960,40),21,Color.white);
+        PositionText("Stages",new Vector2(0,-29),new Vector2(960,33),20,Color.white);
         PositionText("Transcript",new Vector2(0,-167),new Vector2(984,134),17,new Color32(17,50,73,255));
         PositionText("CertificateMetadata",new Vector2(0,-249),new Vector2(1000,22),13,Color.white);
         foreach(var key in new[]{"Brand","DocumentTitle","Achievement","RecipientLabel",
@@ -220,6 +220,25 @@ public class ChemQuestCertificate : MonoBehaviour
             var t=Find(key);
             if(t!=null)t.SetAsLastSibling();
         }
+
+        var identityPanel=Find("StudentIdentityPanel")?.GetComponent<RectTransform>();
+        if(identityPanel!=null){identityPanel.anchoredPosition=new Vector2(-225,62);identityPanel.sizeDelta=new Vector2(584,123);}
+        var identityStripe=Find("StudentIdentityAccent")?.GetComponent<RectTransform>();
+        if(identityStripe!=null){identityStripe.anchoredPosition=new Vector2(-511,62);identityStripe.sizeDelta=new Vector2(7,113);}
+        var accuracyPanel=Find("AccuracyBadgePanel")?.GetComponent<RectTransform>();
+        if(accuracyPanel!=null){accuracyPanel.anchoredPosition=new Vector2(374,62);accuracyPanel.sizeDelta=new Vector2(245,123);}
+        var accuracyStripe=Find("AccuracyBadgeAccent")?.GetComponent<RectTransform>();
+        if(accuracyStripe!=null)accuracyStripe.anchoredPosition=new Vector2(374,119);
+        var labelBadge=Find("BadgeLabel")?.GetComponent<RectTransform>();
+        if(labelBadge!=null)labelBadge.anchoredPosition=new Vector2(374,10);
+        var bar=Find("PerformanceHeader")?.GetComponent<RectTransform>();
+        if(bar!=null){bar.anchoredPosition=new Vector2(0,-29);bar.sizeDelta=new Vector2(1020,36);}
+        var barAccent=Find("PerformanceHeaderAccent")?.GetComponent<RectTransform>();
+        if(barAccent!=null){barAccent.anchoredPosition=new Vector2(-496,-29);barAccent.sizeDelta=new Vector2(8,35);}
+        PositionText("RecipientLabel",new Vector2(-228,107),new Vector2(550,25),17,new Color32(17,105,126,255));
+        PositionText("RecipientName",new Vector2(-225,72),new Vector2(550,42),29,new Color32(9,36,62,255));
+        PositionText("Identity",new Vector2(-225,36),new Vector2(550,27),16,new Color32(33,69,87,255));
+        PositionText("Score",new Vector2(374,69),new Vector2(230,78),23,new Color32(247,213,118,255));
         // Remove legacy row strips that sat on top of the new table.
         for(int i=1;i<=5;i++)
         {
@@ -248,7 +267,7 @@ public class ChemQuestCertificate : MonoBehaviour
         // Re-create only the display table when applying the design in Edit Mode.
         // This never touches gameplay data, scores, or retry keys.
         var previous=Find("CertificatePerformanceTable");
-        if(previous!=null)DestroyImmediate(previous.gameObject);
+        if(previous!=null){if(Application.isPlaying)return;DestroyImmediate(previous.gameObject);}
 
         var navy=new Color32(8,40,66,255);
         var ink=new Color32(20,52,71,255);
