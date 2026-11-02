@@ -231,8 +231,8 @@ public class ChemQuestCertificate : MonoBehaviour
         if(accuracyStripe!=null)accuracyStripe.anchoredPosition=new Vector2(374,119);
         var labelBadge=Find("BadgeLabel")?.GetComponent<RectTransform>();
         if(labelBadge!=null)labelBadge.anchoredPosition=new Vector2(374,10);
-        var bar=Find("PerformanceHeader")?.GetComponent<RectTransform>();
-        if(bar!=null){bar.anchoredPosition=new Vector2(0,-29);bar.sizeDelta=new Vector2(1020,36);}
+        var performanceHeaderRect=Find("PerformanceHeader")?.GetComponent<RectTransform>();
+        if(performanceHeaderRect!=null){performanceHeaderRect.anchoredPosition=new Vector2(0,-29);performanceHeaderRect.sizeDelta=new Vector2(1020,36);}
         var barAccent=Find("PerformanceHeaderAccent")?.GetComponent<RectTransform>();
         if(barAccent!=null){barAccent.anchoredPosition=new Vector2(-496,-29);barAccent.sizeDelta=new Vector2(8,35);}
         PositionText("RecipientLabel",new Vector2(-228,107),new Vector2(550,25),17,new Color32(17,105,126,255));
