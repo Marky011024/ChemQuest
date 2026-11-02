@@ -22,7 +22,11 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
         Canvas canvas=GetComponentInChildren<Canvas>(true);
         if(canvas==null)canvas=FindFirstObjectByType<Canvas>();
         if(canvas==null){Debug.LogWarning("ChemQuest main menu Canvas missing.");return;}
-        if(canvas.transform.Find("ChemQuestQuickNavigation")!=null)return;
+        if(canvas.transform.Find("ChemQuestQuickNavigation")!=null)
+        {
+            BindExisting(canvas.transform);
+            return;
+        }
         var root=RectObject(canvas.transform,"ChemQuestQuickNavigation",new Vector2(0,-284),
             new Vector2(1140,70));
         // Keep the existing ENTER ACADEMY button: quick actions are separate.
@@ -105,6 +109,44 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
         slider.minValue=0;slider.maxValue=1;slider.wholeNumbers=false;
         slider.value=value;slider.onValueChanged.AddListener(changed);
         return slider;
+    }
+    private void BindExisting(Transform canvas)
+    {
+        var nav=canvas.Find("ChemQuestQuickNavigation");
+        var p=canvas.Find("ChemQuestSettingsPanel");
+        settingsPanel=p==null?null:p.gameObject;
+        feedback=canvas.Find("ChemQuestNavigationFeedback")?.GetComponent<TMP_Text>();
+        BindClick(nav,"StageSelectionQuickButton",()=>Open("StageSelection"));
+        BindClick(nav,"CertificateQuickButton",()=>Open("ChemQuestCertificate"));
+        BindClick(nav,"SettingsQuickButton",()=>SetSettings(true));
+        BindClick(p,"CloseButton",()=>SetSettings(false));
+        var music=p?.Find("MusicVolume")?.GetComponent<Slider>();
+        var sfx=p?.Find("SFXVolume")?.GetComponent<Slider>();
+        if(music!=null)
+        {
+            music.onValueChanged.RemoveAllListeners();
+            music.SetValueWithoutNotify(ChemQuestAudioSettings.Music);
+            music.onValueChanged.AddListener(v=>ChemQuestAudioSettings.SetMusic(v));
+        }
+        if(sfx!=null)
+        {
+            sfx.onValueChanged.RemoveAllListeners();
+            sfx.SetValueWithoutNotify(ChemQuestAudioSettings.Sfx);
+            sfx.onValueChanged.AddListener(v=>ChemQuestAudioSettings.SetSfx(v));
+        }
+        BindClick(p,"MuteButton",()=>{
+            ChemQuestAudioSettings.ToggleMute();
+            if(music!=null)music.SetValueWithoutNotify(ChemQuestAudioSettings.Music);
+            if(sfx!=null)sfx.SetValueWithoutNotify(ChemQuestAudioSettings.Sfx);
+        });
+        if(settingsPanel!=null)settingsPanel.SetActive(false);
+    }
+    private static void BindClick(Transform parent,string name,UnityEngine.Events.UnityAction callback)
+    {
+        var button=parent?.Find(name)?.GetComponent<Button>();
+        if(button==null)return;
+        button.onClick.RemoveAllListeners();
+        button.onClick.AddListener(callback);
     }
     private void SetSettings(bool open)
     {
