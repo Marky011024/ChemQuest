@@ -332,6 +332,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Level3RetryManager
   retryButton: {fileID: 1480184359}
+  levelFailedPanel: {fileID: 1554660149}
+  failedPanelRetryButton: {fileID: 1607456922}
   energyManager: {fileID: 48662745}
 --- !u!114 &48662747
 MonoBehaviour:
@@ -7681,8 +7683,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1375193780}
-        m_TargetAssemblyTypeName: Level2AttemptManager, Assembly-CSharp
+      - m_Target: {fileID: 48662746}
+        m_TargetAssemblyTypeName: Level3RetryManager, Assembly-CSharp
         m_MethodName: RetryLevel
         m_Mode: 1
         m_Arguments:
