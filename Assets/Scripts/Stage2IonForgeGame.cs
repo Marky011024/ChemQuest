@@ -232,14 +232,15 @@ public class Stage2IonForgeGame : MonoBehaviour
     {
         var canvas=GameObject.Find("Stage2Level3Canvas");
         var board=canvas==null?null:Find(canvas.transform,"ExperimentBoard");
+        if(board==null)return;
         var bank=Find(board,"IonBank");
         if(bank==null)return;
 
         var bankRect=bank.GetComponent<RectTransform>();
         if(bankRect!=null)
         {
-            bankRect.anchoredPosition=new Vector2(0,-136);
-            bankRect.sizeDelta=new Vector2(880,98);
+            bankRect.anchoredPosition=new Vector2(0,-86);
+            bankRect.sizeDelta=new Vector2(880,94);
         }
         var bankImage=bank.GetComponent<Image>();
         if(bankImage!=null)
@@ -261,21 +262,21 @@ public class Stage2IonForgeGame : MonoBehaviour
             int kind=symbol=="Na+"?1:symbol=="Cl-"?2:3;
             string name=kind==1?"Sodium"+sodium++:
                 kind==2?"Chloride"+chloride++:"DecoyIon"+i;
-            var position=new Vector2(-350+(i%8)*100,i<8?24:-24);
+            var position=new Vector2(-350+(i%8)*100,i<8?22:-22);
             var color=kind==1?new Color32(53,174,212,255):
                 kind==2?new Color32(242,188,84,255):
                 new Color32(161,139,213,255);
             var existing=Find(bank,name);
             if(existing==null)
             {
-                Token(bank,name,kind,position,new Vector2(82,42),color,symbol);
+                Token(bank,name,kind,position,new Vector2(82,38),color,symbol);
                 continue;
             }
             var rect=existing.GetComponent<RectTransform>();
             if(rect!=null)
             {
                 rect.anchoredPosition=position;
-                rect.sizeDelta=new Vector2(82,42);
+                rect.sizeDelta=new Vector2(82,38);
             }
             var image=existing.GetComponent<Image>();
             if(image!=null)image.color=color;
@@ -288,16 +289,6 @@ public class Stage2IonForgeGame : MonoBehaviour
                 text.fontSize=21;
                 text.fontStyle=FontStyles.Bold;
             }
-        }
-
-        var label=Find(board,"DraggableIonsLabel");
-        if(label==null)
-            Label(board,"DraggableIonsLabel","DRAGGABLE IONS  |  WATCH FOR DECOYS",
-                17,new Vector2(0,-65),new Vector2(700,30),Gold);
-        else
-        {
-            var txt=label.GetComponent<TMP_Text>();
-            if(txt!=null)txt.text="DRAGGABLE IONS  |  WATCH FOR DECOYS";
         }
 
         var header=Find(board,"LatticeLabel")?.GetComponent<TMP_Text>();
@@ -319,17 +310,17 @@ public class Stage2IonForgeGame : MonoBehaviour
             Zone(parent,"LatticeSlot"+i,kind,
                 new Vector2(-270+(i%4)*180,153-(i/4)*83),new Vector2(115,65));
         }
-        var bank=Image(parent,"IonBank",new Vector2(0,-136),
-            new Vector2(880,98),new Color32(10,27,51,255));
+        var bank=Image(parent,"IonBank",new Vector2(0,-86),
+            new Vector2(880,94),new Color32(10,27,51,255));
         bank.raycastTarget=false;
         // Populate the serialized layout using the same method called on Start.
         // Existing scenes keep their editable tiles and acquire the decoy pieces.
         for(int i=0;i<6;i++)
         {
-            Token(bank.transform,"Sodium"+i,1,new Vector2(-350+i*100,24),
-                new Vector2(82,42),new Color32(53,174,212,255),"Na+");
-            Token(bank.transform,"Chloride"+i,2,new Vector2(-350+i*100,-24),
-                new Vector2(82,42),new Color32(242,188,84,255),"Cl-");
+            Token(bank.transform,"Sodium"+i,1,new Vector2(-350+i*100,22),
+                new Vector2(82,38),new Color32(53,174,212,255),"Na+");
+            Token(bank.transform,"Chloride"+i,2,new Vector2(-350+i*100,-22),
+                new Vector2(82,38),new Color32(242,188,84,255),"Cl-");
         }
     }
 
