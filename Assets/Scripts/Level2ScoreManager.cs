@@ -9,6 +9,7 @@ public class Level2ScoreManager : MonoBehaviour
 
     [Header("Level Completion UI")]
     [SerializeField] private GameObject levelCompletePanel;
+    [SerializeField] private GameObject experimentPanel;
     [SerializeField] private TMP_Text finalScoreText;
 
     private int score = 0;
@@ -51,10 +52,15 @@ public class Level2ScoreManager : MonoBehaviour
                 score.ToString("D6");
         }
 
-        // Show completion panel
+        // Hide the active experiment and answer controls before showing completion.
+        if (experimentPanel != null)
+            experimentPanel.SetActive(false);
+
+        // Show completion panel above all other gameplay UI.
         if (levelCompletePanel != null)
         {
             levelCompletePanel.SetActive(true);
+            levelCompletePanel.transform.SetAsLastSibling();
         }
         else
         {
