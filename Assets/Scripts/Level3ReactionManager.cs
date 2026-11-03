@@ -42,6 +42,13 @@ public class Level3ReactionManager : MonoBehaviour
         if (reactionStarted || reactionCompleted)
             return;
 
+        // Match the shared energy requirement used by the other Level 3 interactions.
+        if (EnergyManager.Instance == null || !EnergyManager.Instance.HasEnergy)
+        {
+            Debug.LogWarning("Stage 1 Level 3: Cannot start reaction without energy.");
+            return;
+        }
+
         reactionStarted = true;
 
         if (bubbleCO2Button != null)

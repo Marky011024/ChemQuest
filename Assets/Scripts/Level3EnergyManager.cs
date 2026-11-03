@@ -1,11 +1,13 @@
 
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 public class Level3EnergyManager : MonoBehaviour
 {
     [Header("Energy Icons")]
     [SerializeField] private Image[] energyIcons;
+    [SerializeField] private TMP_Text energyLabel;
 
     private bool runFailed = false;
 
@@ -74,10 +76,13 @@ public class Level3EnergyManager : MonoBehaviour
 
     private void UpdateEnergyDisplay()
     {
+        int energy = CurrentEnergy;
+
+        if (energyLabel != null)
+            energyLabel.text = $"ENERGY: {energy}/{EnergyManager.MaxEnergy}";
+
         if (energyIcons == null)
             return;
-
-        int energy = CurrentEnergy;
 
         for (int i = 0; i < energyIcons.Length; i++)
         {
