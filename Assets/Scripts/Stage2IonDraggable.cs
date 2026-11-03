@@ -21,6 +21,15 @@ public class Stage2IonDraggable : MonoBehaviour, IBeginDragHandler, IDragHandler
         canvas=GetComponentInParent<Canvas>();
         if(!homeCaptured){home=rect.anchoredPosition;homeCaptured=true;}
     }
+    // Update the reset/return location when the puzzle tray is rearranged at runtime.
+    public void SetHomePosition(Vector2 position)
+    {
+        if(rect==null)rect=GetComponent<RectTransform>();
+        home=position;
+        homeCaptured=true;
+        rect.anchoredPosition=position;
+    }
+
     public void Initialize(Stage2IonForgeGame game)
     {
         Game=game;
