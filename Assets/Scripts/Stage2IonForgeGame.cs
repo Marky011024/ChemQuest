@@ -281,7 +281,11 @@ public class Stage2IonForgeGame : MonoBehaviour
             var image=existing.GetComponent<Image>();
             if(image!=null)image.color=color;
             var draggable=existing.GetComponent<Stage2IonDraggable>();
-            if(draggable!=null)draggable.Kind=kind;
+            if(draggable!=null)
+            {
+                draggable.Kind=kind;
+                draggable.SetHomePosition(position);
+            }
             var text=Find(existing,"Symbol")?.GetComponent<TMP_Text>();
             if(text!=null)
             {
