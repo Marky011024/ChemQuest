@@ -28,7 +28,8 @@ public class H2BondDropZone : MonoBehaviour, IDropHandler
 
     public void OnDrop(PointerEventData eventData)
     {
-        if (puzzleCompleted || electronsAccepted >= 2)
+        if (puzzleCompleted || electronsAccepted >= 2 ||
+            (completeManager != null && !completeManager.CanInteract()) || Time.timeScale <= 0f)
             return;
 
         GameObject droppedObject = eventData.pointerDrag;
@@ -40,7 +41,7 @@ public class H2BondDropZone : MonoBehaviour, IDropHandler
             droppedObject.GetComponent<H2DraggableElectron>();
 
         // INVALID OBJECT DROPPED
-        if (electron == null || !electron.enabled)
+        if (electron == null || !electron.enabled || !electron.CanDrag)
         {
             RegisterWrongDrop();
             return;
