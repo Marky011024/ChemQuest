@@ -10,6 +10,9 @@ public class Level3RetryManager : MonoBehaviour
     [SerializeField] private GameObject levelFailedPanel;
     [SerializeField] private Button failedPanelRetryButton;
 
+    [Header("Failure UI Cleanup")]
+    [SerializeField] private GameObject ionPuzzlePanel;
+
     [Header("Energy Manager")]
     [SerializeField] private Level3EnergyManager energyManager;
 
@@ -36,6 +39,13 @@ public class Level3RetryManager : MonoBehaviour
             // Reuse the same saved Level Failed panel as Stage 1 Level 2.
             if (levelFailedPanel != null)
             {
+                // Hide the old puzzle and inline failed-message UI beneath the popup.
+                // The saved Level 2-style failed panel lives directly under Canvas.
+                if (ionPuzzlePanel != null)
+                    ionPuzzlePanel.SetActive(false);
+                if (retryButton != null)
+                    retryButton.SetActive(false);
+
                 levelFailedPanel.SetActive(true);
                 levelFailedPanel.transform.SetAsLastSibling();
             }
