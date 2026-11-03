@@ -3308,7 +3308,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Level2EnergyAnswerManager
   energyFeedbackText: {fileID: 117611242}
   scoreManager: {fileID: 1375193779}
-  attemptManager: {fileID: 1375193780}
+  attemptManager: {fileID: 1354240581}
 --- !u!1 &930996881
 GameObject:
   m_ObjectHideFlags: 0
@@ -4542,7 +4542,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1375193775}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f737794c96e949544a7c02f310696eb8, type: 3}
   m_Name: 
