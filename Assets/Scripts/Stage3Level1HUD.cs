@@ -18,6 +18,7 @@ public class Stage3Level1HUD : MonoBehaviour
     [SerializeField] private GameObject sceneOutOfEnergyPanel;
     [SerializeField] private TMP_Text sceneTimerText;
     [SerializeField] private TMP_Text sceneHintText;
+    [SerializeField] private GameObject sceneFailedPanel;
     private GameObject menuPanel, noEnergyPanel;
     private TMP_Text timerLabel;
     private float nextRefresh;
@@ -54,7 +55,16 @@ public class Stage3Level1HUD : MonoBehaviour
                 }
             menuPanel.SetActive(false);
             noEnergyPanel.SetActive(false);
-            if(completeManager!=null)completeManager.AssignFeedbackText(sceneHintText);
+            if(completeManager!=null)
+            {
+                completeManager.AssignFeedbackText(sceneHintText);
+                if(sceneFailedPanel!=null) completeManager.AssignFailurePanel(sceneFailedPanel);
+            }
+            if(sceneFailedPanel!=null)
+            {
+                ConnectMenuButton(sceneFailedPanel,"LevelSelectionButton",()=>GoTo("Stage3LevelSelection"));
+                ConnectMenuButton(sceneFailedPanel,"RetryButton",RetryFailedLevel);
+            }
             UpdateEnergyUI();
             return;
         }
@@ -260,6 +270,12 @@ public class Stage3Level1HUD : MonoBehaviour
                 (seconds/60).ToString("00")+":"+(seconds%60).ToString("00");
         }
         else if(noEnergyPanel.activeSelf)noEnergyPanel.SetActive(false);
+    }
+
+    private void RetryFailedLevel()
+    {
+        if(EnergyManager.Instance==null || !EnergyManager.Instance.HasEnergy)return;
+        GoTo("Stage3Level1");
     }
 
     public void PauseGame()

@@ -53,5 +53,17 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Stage3LevelSelection.unity
     guid: 5d28e00f917b17d4c9ba77c8d2cbe210
+  - enabled: 1
+    path: Assets/Scenes/Stage4LevelSelection.unity
+    guid: 70b8884e6f59aee44b2e63d0f3e5ff6b
+  - enabled: 1
+    path: Assets/Scenes/Stage4Level1.unity
+    guid: a3d2df05ccb845146967944c61870aa1
+  - enabled: 1
+    path: Assets/Scenes/Stage4Level2.unity
+    guid: 5588613ab66b5f140a2f55c77e82ed12
+  - enabled: 1
+    path: Assets/Scenes/Stage4Level3.unity
+    guid: 4f0a9c081da77f248bc8b59c618ed7b2
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
