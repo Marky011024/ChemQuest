@@ -55,14 +55,14 @@ public static class ChemQuestStage1LayoutPolish
             Undo.RecordObject(panelRect, "Resize Stage 1 instruction panel");
             panelRect.anchorMin = panelRect.anchorMax = new Vector2(.5f, .5f);
             panelRect.pivot = new Vector2(.5f, .5f);
-            panelRect.anchoredPosition = new Vector2(0, 182);
-            panelRect.sizeDelta = new Vector2(920, 112);
+            panelRect.anchoredPosition = new Vector2(0, 160);
+            panelRect.sizeDelta = new Vector2(1120, 168);
         }
 
         var panelImage = instruction.GetComponent<Image>();
         if (panelImage == null) panelImage = Undo.AddComponent<Image>(instruction.gameObject);
         Undo.RecordObject(panelImage, "Improve instruction contrast");
-        panelImage.color = new Color(0.025f, 0.10f, 0.20f, .89f);
+        panelImage.color = new Color(0.018f, 0.065f, 0.13f, .94f);
         panelImage.raycastTarget = false;
 
         // Keep the instructions readable, centered and away from the flask.
@@ -76,7 +76,7 @@ public static class ChemQuestStage1LayoutPolish
                 rect.anchorMin = rect.anchorMax = new Vector2(.5f, .5f);
                 rect.pivot = new Vector2(.5f, .5f);
                 rect.anchoredPosition = Vector2.zero;
-                rect.sizeDelta = new Vector2(862, 90);
+                rect.sizeDelta = new Vector2(1030, 134);
             }
             var tmp = instructionText.GetComponent<TMP_Text>();
             if (tmp != null)
@@ -85,8 +85,8 @@ public static class ChemQuestStage1LayoutPolish
                 tmp.alignment = TextAlignmentOptions.Center;
                 tmp.color = Color.white;
                 tmp.enableAutoSizing = true;
-                tmp.fontSizeMin = 17;
-                tmp.fontSizeMax = 25;
+                tmp.fontSizeMin = 26;
+                tmp.fontSizeMax = 34;
                 tmp.raycastTarget = false;
             }
         }
