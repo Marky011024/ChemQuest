@@ -55,7 +55,7 @@ EditorBuildSettings:
     guid: 5d28e00f917b17d4c9ba77c8d2cbe210
   - enabled: 1
     path: Assets/Scenes/Stage4LevelSelection.unity
-    guid: 70b8884e6f59aee44b2e63d0f3e5ff6b
+    guid: bdded8e7f1f653b4d8328fcf0c3bb1fb
   - enabled: 1
     path: Assets/Scenes/Stage4Level1.unity
     guid: a3d2df05ccb845146967944c61870aa1
@@ -67,7 +67,7 @@ EditorBuildSettings:
     guid: 4f0a9c081da77f248bc8b59c618ed7b2
   - enabled: 1
     path: Assets/Scenes/Stage5LevelSelection.unity
-    guid: 06ed4e097d6f9494d9b426c00f46f9d3
+    guid: 0d5782f322d17cc419affcbeb141b11c
   - enabled: 1
     path: Assets/Scenes/Stage5Level1.unity
     guid: 9bda8e417335c074186cd70c252dbaa3
@@ -77,5 +77,11 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Stage5Level3.unity
     guid: cbaa4225ccd03f14f97eef539d078cdf
+  - enabled: 1
+    path: Assets/Scenes/ChemQuestCertificate.unity
+    guid: 664aed0db9ae021498ed5e2ad2090a70
+  - enabled: 1
+    path: Assets/Scenes/Stage2LevelSelection.unity
+    guid: 97c04321a58c1fe4d950334e671ef396
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}

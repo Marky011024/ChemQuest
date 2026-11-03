@@ -212,7 +212,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
             "Workbench observations recorded successfully.");
         Txt(completePanel.transform,"FinalScore","FINAL SCORE 000000",27,
             new Vector2(0,-33),new Vector2(640,50),Gold);
-        Btn(completePanel.transform,"NextButton",Level==3?"STAGE SELECTION":"NEXT LEVEL",
+        Btn(completePanel.transform,"NextButton",Level==3?"VIEW CERTIFICATE":"NEXT LEVEL",
             new Vector2(160,-139),new Vector2(280,58),Teal);
         Btn(completePanel.transform,"CompleteLevelButton","LEVEL SELECTION",
             new Vector2(-160,-139),new Vector2(280,58),new Color32(45,83,123,255));
@@ -328,7 +328,31 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         Wire("FailLevelButton",()=>Go("Stage5LevelSelection"));
         Wire("CompleteLevelButton",()=>Go("Stage5LevelSelection"));
         Wire("EmptyLevelButton",()=>Go("Stage5LevelSelection"));
-        Wire("NextButton",()=>Go(Level==3?"StageSelection":"Stage5Level"+(Level+1)));
+        Wire("NextButton",()=>Go(Level==3?"ChemQuestCertificate":"Stage5Level"+(Level+1)));
+        // Update older serialized UI scenes without needing to rebuild Stage 5.
+        if(Level==3 && completePanel!=null)
+        {
+            var nextText=Find(completePanel.transform,"NextButton")?.GetComponentInChildren<TMP_Text>(true);
+            if(nextText!=null)nextText.text="VIEW CERTIFICATE";
+        }
+        // Certificate is only shown when all 15 levels are completed.
+        if(Level==3 && completePanel!=null)
+        {
+            var certificateButton=Find(completePanel.transform,"CertificateButton");
+            if(certificateButton==null)
+            {
+                Btn(completePanel.transform,"CertificateButton","VIEW CERTIFICATE",
+                    new Vector2(0,-94),new Vector2(292,48),Teal);
+                certificateButton=Find(completePanel.transform,"CertificateButton");
+            }
+            var button=certificateButton?.GetComponent<Button>();
+            if(button!=null)
+            {
+                button.onClick.RemoveAllListeners();
+                button.onClick.AddListener(()=>Go("ChemQuestCertificate"));
+                button.gameObject.SetActive(ChemQuestCertificate.AllLevelsComplete());
+            }
+        }
         Wire("TestButton",ApplyHeat);
         Wire("StrikeButton",()=>MechanicalTest(false));
         Wire("PressButton",()=>MechanicalTest(true));
@@ -483,6 +507,14 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         if(Level<3)PlayerPrefs.SetInt("Stage5Level"+(Level+1)+"Unlocked",1);
         else PlayerPrefs.SetInt("Stage5Completed",1);
         PlayerPrefs.Save();
+        if(Level==3)
+        {
+            ChemQuestCertificate.RecordIfEligible();
+            var certificateButton=completePanel==null?null:
+                Find(completePanel.transform,"CertificateButton")?.gameObject;
+            if(certificateButton!=null)
+                certificateButton.SetActive(ChemQuestCertificate.AllLevelsComplete());
+        }
         if(scoreText!=null)scoreText.text="SCORE\n"+points.ToString("D6");
         if(finalScore!=null)finalScore.text="FINAL SCORE "+points.ToString("D6");
         if(completePanel!=null){completePanel.SetActive(true);completePanel.transform.SetAsLastSibling();}
