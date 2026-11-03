@@ -5450,6 +5450,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SubMicroscopicViewManager
   subMicroscopicPanel: {fileID: 1561623393}
+  instructionPanel: {fileID: 1270097806}
 --- !u!4 &1410442656
 Transform:
   m_ObjectHideFlags: 0
