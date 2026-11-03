@@ -334,6 +334,7 @@ MonoBehaviour:
   retryButton: {fileID: 1480184359}
   levelFailedPanel: {fileID: 1554660149}
   failedPanelRetryButton: {fileID: 1607456922}
+  ionPuzzlePanel: {fileID: 1107077647}
   energyManager: {fileID: 48662745}
 --- !u!114 &48662747
 MonoBehaviour:
