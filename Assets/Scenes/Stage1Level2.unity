@@ -4369,6 +4369,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Level2AttemptManager
   levelFailedPanel: {fileID: 1554660149}
+  experimentPanel: {fileID: 1375193775}
   outOfEnergyPanel: {fileID: 1219411274}
 --- !u!4 &1354240582
 Transform:
@@ -4532,6 +4533,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Level2ScoreManager
   scoreText: {fileID: 303926320}
   levelCompletePanel: {fileID: 436145417}
+  experimentPanel: {fileID: 1375193775}
   finalScoreText: {fileID: 1559594107}
 --- !u!114 &1375193780
 MonoBehaviour:
