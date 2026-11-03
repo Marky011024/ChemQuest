@@ -57,7 +57,11 @@ public class Level3CrystalSlot : MonoBehaviour, IDropHandler
 
     public void OnDrop(PointerEventData eventData)
     {
-        if (eventData.pointerDrag == null)
+        // No crystal placement is allowed when the shared energy is exhausted.
+        if (EnergyManager.Instance == null || !EnergyManager.Instance.HasEnergy)
+            return;
+
+        if (eventData == null || eventData.pointerDrag == null)
             return;
 
         GameObject draggedObject = eventData.pointerDrag;
