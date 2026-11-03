@@ -6,6 +6,7 @@ public class Level2AttemptManager : MonoBehaviour
 {
     [Header("Level Failed Panel")]
     [SerializeField] private GameObject levelFailedPanel;
+    [SerializeField] private GameObject experimentPanel;
 
     [Header("Out Of Energy Panel")]
     [SerializeField] private GameObject outOfEnergyPanel;
@@ -113,8 +114,14 @@ public class Level2AttemptManager : MonoBehaviour
         // player still has energy.
         if (manager.HasEnergy)
         {
+            if (experimentPanel != null)
+                experimentPanel.SetActive(false);
+
             if (levelFailedPanel != null)
+            {
                 levelFailedPanel.SetActive(true);
+                levelFailedPanel.transform.SetAsLastSibling();
+            }
         }
         else
         {
