@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
@@ -48,6 +49,7 @@ public class Stage2IonForgeGame : MonoBehaviour
         if(EnergyManager.Instance==null)
             new GameObject("SharedEnergyManager",typeof(EnergyManager));
         if(GameObject.Find("Stage2Level"+Level+"Canvas")==null)BuildEditableUI();
+        if(Level==3)ConfigureLatticeChallenge();
         Bind();
         RefreshEnergy();
     }
@@ -225,25 +227,105 @@ public class Stage2IonForgeGame : MonoBehaviour
         }
 
     }
+    // Works for the serialized Stage2Level3 Unity scene AND freshly built scenes.
+    // All 12 correct pieces are retained; four wrong ion types are added as decoys.
+    private void ConfigureLatticeChallenge()
+    {
+        var canvas=GameObject.Find("Stage2Level3Canvas");
+        var board=canvas==null?null:Find(canvas.transform,"ExperimentBoard");
+        if(board==null)return;
+        var bank=Find(board,"IonBank");
+        if(bank==null)return;
+
+        var bankRect=bank.GetComponent<RectTransform>();
+        if(bankRect!=null)
+        {
+            bankRect.anchoredPosition=new Vector2(0,-86);
+            bankRect.sizeDelta=new Vector2(880,94);
+        }
+        var bankImage=bank.GetComponent<Image>();
+        if(bankImage!=null)
+        {
+            bankImage.color=new Color32(10,27,51,255);
+            bankImage.raycastTarget=false;
+        }
+
+        // Display sixteen mixed choices in a balanced, centered 8 x 2 tray.
+        // Kind 3 is intentionally incompatible with both lattice drop zones.
+        string[] order={
+            "Na+","Cl-","K+","Na+","Cl-","Mg2+","Na+","Cl-",
+            "Cl-","Na+","O2-","Cl-","Na+","Ca2+","Cl-","Na+"
+        };
+        int sodium=0,chloride=0;
+        for(int i=0;i<order.Length;i++)
+        {
+            string symbol=order[i];
+            int kind=symbol=="Na+"?1:symbol=="Cl-"?2:3;
+            string name=kind==1?"Sodium"+sodium++:
+                kind==2?"Chloride"+chloride++:"DecoyIon"+i;
+            var position=new Vector2(-350+(i%8)*100,i<8?22:-22);
+            var color=kind==1?new Color32(53,174,212,255):
+                kind==2?new Color32(242,188,84,255):
+                new Color32(161,139,213,255);
+            var existing=Find(bank,name);
+            if(existing==null)
+            {
+                Token(bank,name,kind,position,new Vector2(82,38),color,symbol);
+                continue;
+            }
+            var rect=existing.GetComponent<RectTransform>();
+            if(rect!=null)
+            {
+                rect.anchoredPosition=position;
+                rect.sizeDelta=new Vector2(82,38);
+            }
+            var image=existing.GetComponent<Image>();
+            if(image!=null)image.color=color;
+            var draggable=existing.GetComponent<Stage2IonDraggable>();
+            if(draggable!=null)
+            {
+                draggable.Kind=kind;
+                draggable.SetHomePosition(position);
+            }
+            var text=Find(existing,"Symbol")?.GetComponent<TMP_Text>();
+            if(text!=null)
+            {
+                text.text=symbol;
+                text.fontSize=21;
+                text.fontStyle=FontStyles.Bold;
+            }
+        }
+
+        var header=Find(board,"LatticeLabel")?.GetComponent<TMP_Text>();
+        if(header!=null)
+            header.text="IONIC LATTICE: Match Na+ to DROP + and Cl- to DROP -. Ignore decoys.";
+        var feedbackLabel=Find(canvas.transform,"FeedbackText")?.GetComponent<TMP_Text>();
+        if(feedbackLabel!=null && !completed)
+            feedbackLabel.text="Select correct ions; K+, Mg2+, Ca2+ and O2- are decoys.";
+    }
+
     private void BuildLattice(Transform parent)
     {
-        Label(parent,"LatticeLabel","ALTERNATE OPPOSITELY CHARGED IONS",20,
-            new Vector2(0,145),new Vector2(850,42),Blue);
+        Label(parent,"LatticeLabel",
+            "IONIC LATTICE: Match Na+ to DROP + and Cl- to DROP -. Ignore decoys.",
+            19,new Vector2(0,145),new Vector2(990,42),Blue);
         for(int i=0;i<TotalSlots;i++)
         {
             int kind=((i/4)+(i%4))%2==0?1:2;
             Zone(parent,"LatticeSlot"+i,kind,
-                new Vector2(-270+(i%4)*180,78-(i/4)*83),new Vector2(115,65));
+                new Vector2(-270+(i%4)*180,153-(i/4)*83),new Vector2(115,65));
         }
-        var bank=Image(parent,"IonBank",new Vector2(0,-161),
-            new Vector2(850,94),new Color32(11,31,54,255));
+        var bank=Image(parent,"IonBank",new Vector2(0,-86),
+            new Vector2(880,94),new Color32(10,27,51,255));
         bank.raycastTarget=false;
+        // Populate the serialized layout using the same method called on Start.
+        // Existing scenes keep their editable tiles and acquire the decoy pieces.
         for(int i=0;i<6;i++)
         {
-            Token(bank.transform,"Sodium"+i,1,new Vector2(-383+i*73,18),
-                new Vector2(62,39),new Color32(53,174,212,255),"Na+");
-            Token(bank.transform,"Chloride"+i,2,new Vector2(-383+i*73,-19),
-                new Vector2(62,39),new Color32(242,188,84,255),"Cl-");
+            Token(bank.transform,"Sodium"+i,1,new Vector2(-350+i*100,22),
+                new Vector2(82,38),new Color32(53,174,212,255),"Na+");
+            Token(bank.transform,"Chloride"+i,2,new Vector2(-350+i*100,-22),
+                new Vector2(82,38),new Color32(242,188,84,255),"Cl-");
         }
     }
 
@@ -388,7 +470,7 @@ public class Stage2IonForgeGame : MonoBehaviour
             if(p!=null)p.SetActive(false);
         if(scoreText!=null)scoreText.text="SCORE\\n000000";
         if(progressText!=null)progressText.text="PROGRESS  0 / "+Needed;
-        if(feedback!=null)feedback.text=Level<3?"SELECT THE ATOMS, THEN DRAG FROM THE DONOR OUTER SHELL INTO THE ACCEPTOR OUTER SHELL.":"Arrange alternating ions; every site matters.";
+        if(feedback!=null)feedback.text=Level<3?"SELECT THE ATOMS, THEN DRAG FROM THE DONOR OUTER SHELL INTO THE ACCEPTOR OUTER SHELL.":"Fill the 12 slots, then press FORM BOND to check your answer.";
         if(Level<3)RefreshVariant();
     }
     // Editor-safe: upgrade existing saved scenes without deleting their UI or progress.
@@ -661,6 +743,8 @@ public class Stage2IonForgeGame : MonoBehaviour
                     "Selected Mg + O. Outer shell electrons: Mg 2; O 6.");
     }
 
+    public bool IsLatticeLevel => Level == 3;
+
     public bool CanReceiveElectronAt(int slot)
     {
         if(Level==3)return true;
@@ -689,7 +773,7 @@ public class Stage2IonForgeGame : MonoBehaviour
             Level==2?(variant==1?
                 "Each Cl outer shell: "+(7+(accepted>0?1:0))+"/8 and "+(7+(accepted>1?1:0))+"/8":
                 "O outer shell: "+(6+accepted)+"/8"):
-            "Ions correctly positioned: "+accepted+" / 12";
+            "IONS PLACED: "+accepted+" / 12. Press FORM BOND to check your lattice.";
     }
     public void WrongAttempt()
     {
@@ -698,7 +782,7 @@ public class Stage2IonForgeGame : MonoBehaviour
         if(mistakes==1)
         {
             if(feedback!=null)feedback.text=Level==3?
-                "HINT: Positive and negative ions must alternate in the lattice.":
+                "HINT: Check the ion charges, then RESET and try again.":
                 "HINT: Drag each donor electron into the matching receiver slot.";
         }
         else
@@ -713,6 +797,23 @@ public class Stage2IonForgeGame : MonoBehaviour
     private void CheckAnswer()
     {
         if(!CanInteract)return;
+        if(Level==3)
+        {
+            // An incomplete lattice can still be filled; do not penalize yet.
+            if(zones.Count(z => z.RequiredKind != 0 && z.IsOccupied) < Needed)
+            {
+                if(feedback!=null)feedback.text="Fill all 12 lattice slots before pressing FORM BOND.";
+                return;
+            }
+            // A decoy or mismatched Na+/Cl- counts as a wrong answer ONLY on submit.
+            if(zones.Any(z => z.RequiredKind != 0 && !z.IsCorrect))
+            {
+                WrongAttempt();
+                if(!failed && feedback!=null)
+                    feedback.text="INCORRECT LATTICE! Check for decoys or misplaced ions. Press RESET to rearrange.";
+                return;
+            }
+        }
         if(Level<3 && variant<0){if(feedback!=null)feedback.text="Choose Na/K or MgO/MgCl2 first.";return;}
         if(accepted<Needed){WrongAttempt();return;}
         if(Level<3)
@@ -755,7 +856,9 @@ public class Stage2IonForgeGame : MonoBehaviour
         foreach(var z in zones)z.ResetZone();
         accepted=0;
         if(progressText!=null)progressText.text="PROGRESS  0 / "+Needed;
-        if(feedback!=null)feedback.text="Reset complete. Drag the electrons to complete each octet.";
+        if(feedback!=null)feedback.text=Level==3?
+            "Lattice reset. Fill the slots, then press FORM BOND to check.":
+            "Reset complete. Drag the electrons to complete each octet.";
     }
     private void Retry()
     {

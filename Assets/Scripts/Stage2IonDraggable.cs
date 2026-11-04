@@ -21,6 +21,15 @@ public class Stage2IonDraggable : MonoBehaviour, IBeginDragHandler, IDragHandler
         canvas=GetComponentInParent<Canvas>();
         if(!homeCaptured){home=rect.anchoredPosition;homeCaptured=true;}
     }
+    // Update the reset/return location when the puzzle tray is rearranged at runtime.
+    public void SetHomePosition(Vector2 position)
+    {
+        if(rect==null)rect=GetComponent<RectTransform>();
+        home=position;
+        homeCaptured=true;
+        rect.anchoredPosition=position;
+    }
+
     public void Initialize(Stage2IonForgeGame game)
     {
         Game=game;
@@ -52,7 +61,8 @@ public class Stage2IonDraggable : MonoBehaviour, IBeginDragHandler, IDragHandler
         dragging=false;
         if(Accepted)return;
         rect.anchoredPosition=home;
-        if(Game!=null&&Game.CanInteract)Game.WrongAttempt();
+        // Stage 2 Level 3 is evaluated only when FORM BOND is clicked.
+        if(Game!=null&&Game.CanInteract&&!Game.IsLatticeLevel)Game.WrongAttempt();
     }
     public void Consume()
     {
