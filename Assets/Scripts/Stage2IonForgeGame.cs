@@ -469,7 +469,7 @@ public class Stage2IonForgeGame : MonoBehaviour
             if(p!=null)p.SetActive(false);
         if(scoreText!=null)scoreText.text="SCORE\\n000000";
         if(progressText!=null)progressText.text="PROGRESS  0 / "+Needed;
-        if(feedback!=null)feedback.text=Level<3?"SELECT THE ATOMS, THEN DRAG FROM THE DONOR OUTER SHELL INTO THE ACCEPTOR OUTER SHELL.":"Choose Na+ and Cl- only. Other ions are decoys.";
+        if(feedback!=null)feedback.text=Level<3?"SELECT THE ATOMS, THEN DRAG FROM THE DONOR OUTER SHELL INTO THE ACCEPTOR OUTER SHELL.":"Fill the 12 slots, then press FORM BOND to check your answer.";
         if(Level<3)RefreshVariant();
     }
     // Editor-safe: upgrade existing saved scenes without deleting their UI or progress.
@@ -742,6 +742,8 @@ public class Stage2IonForgeGame : MonoBehaviour
                     "Selected Mg + O. Outer shell electrons: Mg 2; O 6.");
     }
 
+    public bool IsLatticeLevel => Level == 3;
+
     public bool CanReceiveElectronAt(int slot)
     {
         if(Level==3)return true;
@@ -770,7 +772,7 @@ public class Stage2IonForgeGame : MonoBehaviour
             Level==2?(variant==1?
                 "Each Cl outer shell: "+(7+(accepted>0?1:0))+"/8 and "+(7+(accepted>1?1:0))+"/8":
                 "O outer shell: "+(6+accepted)+"/8"):
-            "Ions correctly positioned: "+accepted+" / 12";
+            "IONS PLACED: "+accepted+" / 12. Press FORM BOND to check your lattice.";
     }
     public void WrongAttempt()
     {
@@ -779,7 +781,7 @@ public class Stage2IonForgeGame : MonoBehaviour
         if(mistakes==1)
         {
             if(feedback!=null)feedback.text=Level==3?
-                "HINT: Use Na+ in positive slots and Cl- in negative slots. Ignore decoy ions.":
+                "HINT: Check the ion charges, then RESET and try again.":
                 "HINT: Drag each donor electron into the matching receiver slot.";
         }
         else
@@ -794,6 +796,23 @@ public class Stage2IonForgeGame : MonoBehaviour
     private void CheckAnswer()
     {
         if(!CanInteract)return;
+        if(Level==3)
+        {
+            // An incomplete lattice can still be filled; do not penalize yet.
+            if(zones.Count(z => z.RequiredKind != 0 && z.IsOccupied) < Needed)
+            {
+                if(feedback!=null)feedback.text="Fill all 12 lattice slots before pressing FORM BOND.";
+                return;
+            }
+            // A decoy or mismatched Na+/Cl- counts as a wrong answer ONLY on submit.
+            if(zones.Any(z => z.RequiredKind != 0 && !z.IsCorrect))
+            {
+                WrongAttempt();
+                if(!failed && feedback!=null)
+                    feedback.text="INCORRECT LATTICE! Check for decoys or misplaced ions. Press RESET to rearrange.";
+                return;
+            }
+        }
         if(Level<3 && variant<0){if(feedback!=null)feedback.text="Choose Na/K or MgO/MgCl2 first.";return;}
         if(accepted<Needed){WrongAttempt();return;}
         if(Level<3)
@@ -837,7 +856,7 @@ public class Stage2IonForgeGame : MonoBehaviour
         accepted=0;
         if(progressText!=null)progressText.text="PROGRESS  0 / "+Needed;
         if(feedback!=null)feedback.text=Level==3?
-            "Lattice reset. Match Na+ and Cl-; ignore decoys.":
+            "Lattice reset. Fill the slots, then press FORM BOND to check.":
             "Reset complete. Drag the electrons to complete each octet.";
     }
     private void Retry()
