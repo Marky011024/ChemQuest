@@ -61,7 +61,8 @@ public class Stage2IonDraggable : MonoBehaviour, IBeginDragHandler, IDragHandler
         dragging=false;
         if(Accepted)return;
         rect.anchoredPosition=home;
-        if(Game!=null&&Game.CanInteract)Game.WrongAttempt();
+        // Stage 2 Level 3 is evaluated only when FORM BOND is clicked.
+        if(Game!=null&&Game.CanInteract&&!Game.IsLatticeLevel)Game.WrongAttempt();
     }
     public void Consume()
     {
