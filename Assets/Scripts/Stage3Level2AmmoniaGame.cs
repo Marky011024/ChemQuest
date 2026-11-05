@@ -149,7 +149,6 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         WireButton(root,"ResumeButton",Resume);
         WireButton(root,"StageSelectionButton",()=>Navigate("StageSelection"));
         WireButton(root,"StageSelectButton",()=>Navigate("StageSelection"));
-        WireButton(root,"LevelSelectButton",()=>Navigate("Stage3LevelSelection"));
         WireButton(root,"BackToSelectionButton",()=>Navigate("Stage3LevelSelection"));
         EnsureDragAndDropUI();
 
