@@ -47,7 +47,7 @@ public class Stage4Draggable : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         if(!Placed)
         {
             rect.anchoredPosition=home;
-            if(Game!=null && Game.CanInteract)Game.RegisterMistake();
+            if(Game!=null && Game.CanInteract && !Game.IsLevel1)Game.RegisterMistake();
         }
     }
     public void Accept()
