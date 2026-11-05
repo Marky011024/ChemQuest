@@ -34,6 +34,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
     private static readonly Color Dim=new Color32(183,203,223,255);
     public bool CanInteract => !failed&&!completed&&!paused&&Time.timeScale>0f &&
         EnergyManager.Instance!=null&&EnergyManager.Instance.HasEnergy;
+    public bool IsLevel1 => Level==1;
     private string Metal => PlayerPrefs.GetString(MetalKey,"Cu")=="Mg"?"Mg":"Cu";
     private string Title => Level==1?"LATTICE & ELECTRON CLOUD":
         Level==2?"VOLTAGE DRIFT & CONDUCTIVITY":"MALLEABILITY & STRESS TEST";
@@ -45,6 +46,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         if(EnergyManager.Instance==null)
             new GameObject("SharedEnergyManager",typeof(EnergyManager));
         if(GameObject.Find("Stage4Level"+Level+"Canvas")==null)BuildEditorScene();
+        if(IsLevel1)EnsureLevel1Decoys();
         Bind();
         UpdateEnergy();
     }
@@ -356,6 +358,57 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         for(int i=0;i<4;i++)
             AddToken(bank.transform,"FreeElectron"+i,1,
                 new Vector2(244+i*76,0),new Color32(244,189,75,255),"e-");
+    }
+
+    // Keep six matching metal cores and four genuine electrons, plus four
+    // visually distinct distractors. Scene objects are preserved if already saved
+    // by the optional Edit Mode seeder.
+    public void EnsureLevel1Decoys()
+    {
+        if(!IsLevel1)return;
+        var root=GameObject.Find("Stage4Level1Canvas");
+        if(root==null)return;
+        var bank=Find(root.transform,"MetalTokenBank");
+        if(bank==null)return;
+        var templateCore=Find(bank,"MetalCore0")?.GetComponent<Stage4Draggable>();
+        var templateElectron=Find(bank,"FreeElectron0")?.GetComponent<Stage4Draggable>();
+        if(templateCore==null||templateElectron==null)return;
+
+        string[] names={"DecoyFe","DecoyAl","DecoyProton","DecoyNeutron"};
+        string[] symbols={"Fe2+","Al3+","p+","n0"};
+        int[] kinds={4,4,5,5};
+        for(int i=0;i<names.Length;i++)
+        {
+            var existing=Find(bank,names[i]);
+            if(existing!=null)continue;
+            var source=kinds[i]==4?templateCore:templateElectron;
+            var clone=Instantiate(source.gameObject,bank,false);
+            clone.name=names[i];
+            var token=clone.GetComponent<Stage4Draggable>();
+            token.Kind=kinds[i];
+            var label=clone.GetComponentInChildren<TMP_Text>(true);
+            if(label!=null)label.text=symbols[i];
+            var image=clone.GetComponent<Image>();
+            if(image!=null)image.color=new Color32(151,119,201,255);
+        }
+
+        // All fourteen choices are centered and visible at the start of Play.
+        // The order intentionally mixes legitimate ions/electrons and decoys.
+        string[] ordered={"MetalCore0","FreeElectron0","DecoyFe",
+            "MetalCore1","FreeElectron1","MetalCore2","DecoyProton",
+            "MetalCore3","FreeElectron2","MetalCore4","DecoyAl",
+            "FreeElectron3","MetalCore5","DecoyNeutron"};
+        for(int i=0;i<ordered.Length;i++)
+        {
+            var rect=Find(bank,ordered[i])?.GetComponent<RectTransform>();
+            if(rect!=null)
+            {
+                rect.anchoredPosition=new Vector2(-455+i*70,0);
+                rect.sizeDelta=new Vector2(58,50);
+            }
+        }
+        var bankRect=bank.GetComponent<RectTransform>();
+        if(bankRect!=null)bankRect.sizeDelta=new Vector2(1024,62);
     }
 
     private void BuildLevel2(Transform board)
@@ -670,6 +723,30 @@ public class Stage4ElectronOceanGame : MonoBehaviour
     private void Check()
     {
         if(!CanInteract)return;
+        if(IsLevel1)
+        {
+            int filled=0;
+            bool allCorrect=true;
+            foreach(var zone in zones)
+            {
+                if(zone.Kind!=0 && zone.Kind!=1)continue;
+                if(zone.Occupied)filled++;
+                if(!zone.CorrectPlacement)allCorrect=false;
+            }
+            if(filled<10)
+            {
+                if(feedback!=null)feedback.text=
+                    "Fill all 6 lattice slots and 4 cloud slots, then press CHECK.";
+                return;
+            }
+            if(!allCorrect)
+            {
+                RegisterMistake();
+                if(!failed&&feedback!=null)feedback.text=
+                    "INCORRECT MODEL! Remove the decoys. Press RESET to try again.";
+                return;
+            }
+        }
         bool correct=Level==1?metalPlaced==6 && electronsPlaced==4:
             Level==2?terminalsPlaced==2 && observedDrift:
             forceApplied;
@@ -687,7 +764,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         if(mistakes==1)
         {
             if(feedback!=null)feedback.text=Level==1?
-                "HINT: Place ALL metal cores in the fixed grid and electrons in the cloud.":
+                "HINT: Remove decoys, then use RESET to arrange the correct metal cores and electrons.":
                 Level==2?"HINT: Negative left, positive right; switch ON and observe electron drift.":
                 "HINT: Apply sufficient force using the slider; metal layers must slide.";
         }
@@ -734,7 +811,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             if(text!=null)text.text="SWITCH: OFF";
         }
         if(Level==3&&forceSlider!=null){forceApplied=false;forceSlider.value=0;}
-        if(feedback!=null)feedback.text="Reset complete. No penalty.";
+        if(feedback!=null)feedback.text=IsLevel1?"Reset complete. Avoid decoys; CHECK validates the finished model.":"Reset complete. No penalty.";
     }
     private void Update()
     {
