@@ -19,7 +19,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
     private readonly List<Image> energyIcons=new List<Image>();
     private readonly List<RectTransform> driftElectrons=new List<RectTransform>();
     private GameObject pausePanel, failedPanel, winPanel, noEnergyPanel, latticeGroup;
-    private TMP_Text feedback,score,finalScore,timer,energyCount,modeLabel,forceLabel;
+    private TMP_Text feedback,progressText,score,finalScore,timer,energyCount,modeLabel,forceLabel;
     private Button retryButton, switchButton, checkButton;
     private Slider forceSlider;
     private RectTransform upperLayer, lowerLayer;
@@ -73,10 +73,12 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         Label(root.transform,"LevelTitle",Title,31,
             new Vector2(0,276),new Vector2(960,47),Color.white);
         Label(root.transform,"Instructions",
-            Level==1?"Select Cu or Mg, drag 6 metal cores into the lattice and 4 free electrons into the cloud.":
+            Level==1?"Select Cu or Mg. Place matching metal cores and electrons; ignore decoys.":
             Level==2?"Attach terminals: NEGATIVE on left, POSITIVE on right. Turn on voltage to observe electron drift.":
             "Apply force and observe metal layers slide while delocalized electrons keep the cores bonded.",
-            17,new Vector2(0,223),new Vector2(1040,42),new Color32(183,203,223,255));
+            17,Level==1?new Vector2(0,-239):new Vector2(0,223),
+            Level==1?new Vector2(1000,20):new Vector2(1040,42),
+            new Color32(183,203,223,255));
         score=Label(root.transform,"ScoreText","SCORE\n000000",19,new Vector2(533,294),new Vector2(135,68),Gold);
         Label(root.transform,"EnergyTitle","ENERGY",14,new Vector2(-500,338),new Vector2(110,24),Color.white);
         for(int i=0;i<5;i++)
@@ -87,16 +89,24 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             if(EnergySprite==null)icon.color=Gold;
         }
         Label(root.transform,"EnergyCount","5/5",15,new Vector2(-304,334),new Vector2(85,25),Color.white);
-        var board=Rect(root.transform,"ExperimentBoard",new Vector2(0,-3),
-            new Vector2(1110,398),Panel);
+        var board=Rect(root.transform,"ExperimentBoard",
+            Level==1?new Vector2(0,-35):new Vector2(0,-3),
+            Level==1?new Vector2(1110,520):new Vector2(1110,398),Panel);
         board.raycastTarget=false;
 
         if(Level==1)BuildLevel1(board.transform);
         if(Level==2)BuildLevel2(board.transform);
         if(Level==3)BuildLevel3(board.transform);
 
-        feedback=Label(root.transform,"FeedbackText","Follow the instructions to complete the metallic bonding model.",
-            16,new Vector2(0,-266),new Vector2(1080,45),Gold);
+        if(Level==1)
+            Label(root.transform,"ProgressText",
+                "SLOTS FILLED: 0/10  |  LATTICE: 0/6  |  CLOUD: 0/4",
+                15,new Vector2(0,-261),new Vector2(900,20),Blue);
+        feedback=Label(root.transform,"FeedbackText",Level==1
+                ?"Decoys can be placed. CHECK evaluates the final model."
+                :"Follow the instructions to complete the metallic bonding model.",
+            16,Level==1?new Vector2(0,-283):new Vector2(0,-266),
+            Level==1?new Vector2(1020,20):new Vector2(1080,45),Gold);
         Button(root.transform,"CheckButton","CHECK",new Vector2(0,-326),
             new Vector2(250,55),new Color32(12,132,135,255));
         Button(root.transform,"ResetButton","RESET",new Vector2(-268,-326),
@@ -257,10 +267,15 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         var boardRect=Find(root,"ExperimentBoard")?.GetComponent<RectTransform>();
         if(boardRect!=null)
         {
-            boardRect.anchoredPosition=new Vector2(0,-3);
-            boardRect.sizeDelta=new Vector2(1110,398);
+            boardRect.anchoredPosition=Level==1?new Vector2(0,-35):new Vector2(0,-3);
+            boardRect.sizeDelta=Level==1?new Vector2(1110,520):new Vector2(1110,398);
         }
-        SetPosition(root,"FeedbackText",new Vector2(0,-266));
+        SetPosition(root,"FeedbackText",Level==1?new Vector2(0,-283):new Vector2(0,-266));
+        if(Level==1)
+        {
+            SetPosition(root,"Instructions",new Vector2(0,-239));
+            SetPosition(root,"ProgressText",new Vector2(0,-261));
+        }
         SetPosition(root,"CheckButton",new Vector2(0,-326));
         SetPosition(root,"ResetButton",new Vector2(-268,-326));
         if(Level==1)
@@ -305,6 +320,16 @@ public class Stage4ElectronOceanGame : MonoBehaviour
                 else if(token.Kind==1)label.text="e-";
                 else if(token.Kind==2)label.text="-";
                 else if(token.Kind==3)label.text="+";
+                else if(token.Kind>=4 && Level==1)
+                {
+                    label.fontSize=17;
+                    label.enableAutoSizing=true;
+                    label.fontSizeMin=14;
+                    label.fontSizeMax=17;
+                    label.textWrappingMode=TextWrappingModes.NoWrap;
+                    var labelRect=label.GetComponent<RectTransform>();
+                    if(labelRect!=null)labelRect.sizeDelta=new Vector2(56,43);
+                }
             }
         }
         foreach(var label in root.GetComponentsInChildren<TMP_Text>(true))
@@ -387,7 +412,17 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             var token=clone.GetComponent<Stage4Draggable>();
             token.Kind=kinds[i];
             var label=clone.GetComponentInChildren<TMP_Text>(true);
-            if(label!=null)label.text=symbols[i];
+            if(label!=null)
+            {
+                label.text=symbols[i];
+                label.fontSize=17;
+                label.enableAutoSizing=true;
+                label.fontSizeMin=14;
+                label.fontSizeMax=17;
+                label.textWrappingMode=TextWrappingModes.NoWrap;
+                var labelRect=label.GetComponent<RectTransform>();
+                if(labelRect!=null)labelRect.sizeDelta=new Vector2(56,43);
+            }
             var image=clone.GetComponent<Image>();
             if(image!=null)image.color=new Color32(151,119,201,255);
         }
@@ -598,6 +633,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         winPanel=Find(t,"CompletePanel")?.gameObject;
         noEnergyPanel=Find(t,"OutOfEnergyPanel")?.gameObject;
         feedback=Find(t,"FeedbackText")?.GetComponent<TMP_Text>();
+        progressText=Find(t,"ProgressText")?.GetComponent<TMP_Text>();
         score=Find(t,"ScoreText")?.GetComponent<TMP_Text>();
         finalScore=Find(t,"FinalScoreText")?.GetComponent<TMP_Text>();
         timer=Find(t,"EnergyTimerText")?.GetComponent<TMP_Text>();
@@ -665,6 +701,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         if(noEnergyPanel!=null)noEnergyPanel.SetActive(false);
         if(score!=null)score.text="SCORE\n000000";
         if(modeLabel!=null)modeLabel.text="Selected: "+(Metal=="Cu"?"Copper (Cu)":"Magnesium (Mg)");
+        UpdateLevel1Progress();
     }
 
     public string GetPlacedSymbol(int kind) =>
@@ -675,9 +712,20 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         if(kind==0)metalPlaced++;
         else if(kind==1)electronsPlaced++;
         else terminalsPlaced++;
-        if(feedback!=null)feedback.text=Level==1
-            ? "Lattice: "+metalPlaced+"/6 cores   Cloud: "+electronsPlaced+"/4 electrons"
-            : "Terminals attached: "+terminalsPlaced+"/2";
+        if(Level==1)
+        {
+            UpdateLevel1Progress();
+        }
+        else if(feedback!=null)feedback.text="Terminals attached: "+terminalsPlaced+"/2";
+    }
+    private void UpdateLevel1Progress()
+    {
+        if(Level!=1 || progressText==null)return;
+        int filled=0;
+        foreach(var zone in zones)
+            if((zone.Kind==0 || zone.Kind==1) && zone.Occupied)filled++;
+        progressText.text="SLOTS FILLED: "+filled+"/10  |  LATTICE: "+
+            metalPlaced+"/6  |  CLOUD: "+electronsPlaced+"/4";
     }
     private void SelectMetal(string symbol)
     {
@@ -804,6 +852,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         foreach(var t in tokens)t.ResetToken();
         foreach(var z in zones)z.ResetZone();
         metalPlaced=electronsPlaced=terminalsPlaced=0;
+        UpdateLevel1Progress();
         if(Level==2)
         {
             powerOn=observedDrift=false;driftClock=0f;
@@ -811,7 +860,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             if(text!=null)text.text="SWITCH: OFF";
         }
         if(Level==3&&forceSlider!=null){forceApplied=false;forceSlider.value=0;}
-        if(feedback!=null)feedback.text=IsLevel1?"Reset complete. Avoid decoys; CHECK validates the finished model.":"Reset complete. No penalty.";
+        if(feedback!=null)feedback.text=IsLevel1?"Reset: arrange matching cores and electrons; avoid decoys.":"Reset complete. No penalty.";
     }
     private void Update()
     {
