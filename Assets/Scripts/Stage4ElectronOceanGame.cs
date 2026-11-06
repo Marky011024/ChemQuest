@@ -326,7 +326,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
                     label.enableAutoSizing=true;
                     label.fontSizeMin=14;
                     label.fontSizeMax=17;
-                    label.enableWordWrapping=false;
+                    label.textWrappingMode=TextWrappingModes.NoWrap;
                     var labelRect=label.GetComponent<RectTransform>();
                     if(labelRect!=null)labelRect.sizeDelta=new Vector2(56,43);
                 }
@@ -419,7 +419,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
                 label.enableAutoSizing=true;
                 label.fontSizeMin=14;
                 label.fontSizeMax=17;
-                label.enableWordWrapping=false;
+                label.textWrappingMode=TextWrappingModes.NoWrap;
                 var labelRect=label.GetComponent<RectTransform>();
                 if(labelRect!=null)labelRect.sizeDelta=new Vector2(56,43);
             }
