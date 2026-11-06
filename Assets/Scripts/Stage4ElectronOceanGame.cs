@@ -27,6 +27,11 @@ public class Stage4ElectronOceanGame : MonoBehaviour
     private TMP_Text driftPuzzleFeedback;
     private Stage4DriftSlot[] driftPuzzleSlots;
     private Stage4DriftTile[] driftPuzzleTiles;
+    private GameObject[] metalChallengePanels;
+    private Stage4DriftSlot[][] metalChallengeSlots;
+    private Stage4DriftTile[][] metalChallengeTiles;
+    private TMP_Text[] metalChallengeMessages;
+    private int metalChallengeStep;
     private int mistakes,metalPlaced,electronsPlaced,terminalsPlaced;
     private bool failed,completed,paused,powerOn,observedDrift,forceApplied;
     private float nextTick,driftClock;
@@ -53,6 +58,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         if(IsLevel1)EnsureLevel1Decoys();
         Bind();
         if(Level==2)EnsureDriftPuzzle();
+        if(Level==3)EnsureMetalChallenges();
         UpdateEnergy();
     }
 
@@ -918,12 +924,181 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             if(feedback!=null)feedback.text="Electron drift is toward the POSITIVE terminal (right).";
         }
     }
+
+    // Stage 4 Level 3: one observed stress demonstration, then two
+    // drag-and-drop checks. Only a fully filled incorrect CHECK MODEL
+    // consumes a wrong attempt; placement, RESET and incomplete checks do not.
+    public void EnsureMetalChallenges()
+    {
+        if(Level!=3)return;
+        var root=GameObject.Find("Stage4Level3Canvas");
+        if(root==null)return;
+        var canvas=root.GetComponent<Canvas>();
+        if(canvas==null)return;
+        metalChallengePanels=new GameObject[2];
+        metalChallengeSlots=new Stage4DriftSlot[2][];
+        metalChallengeTiles=new Stage4DriftTile[2][];
+        metalChallengeMessages=new TMP_Text[2];
+        for(int phase=0;phase<2;phase++)
+        {
+            string overlayName="MetalChallengeOverlay"+(phase+1);
+            var overlay=Find(root.transform,overlayName);
+            if(overlay==null)
+                overlay=BuildMetalChallenge(root.transform,phase);
+            metalChallengePanels[phase]=overlay.gameObject;
+            metalChallengeSlots[phase]=overlay.GetComponentsInChildren<Stage4DriftSlot>(true);
+            metalChallengeTiles[phase]=overlay.GetComponentsInChildren<Stage4DriftTile>(true);
+            var tray=Find(overlay,"MetalChallengeTray") as RectTransform;
+            var card=Find(overlay,"MetalChallengeCard");
+            foreach(var tile in metalChallengeTiles[phase])
+                tile.Configure(tile.AnswerId,tray,card,canvas);
+            metalChallengeMessages[phase]=Find(overlay,"MetalChallengeFeedback")?.GetComponent<TMP_Text>();
+            int captured=phase;
+            Wire(overlay,"MetalChallengeReset",()=>ResetMetalTiles(captured));
+            Wire(overlay,"MetalChallengeCheck",()=>CheckMetalChallenge(captured));
+            ResetMetalTiles(phase);
+            overlay.gameObject.SetActive(false);
+        }
+        metalChallengeStep=0;
+    }
+
+    private Transform BuildMetalChallenge(Transform root,int phase)
+    {
+        bool sheet=phase==0;
+        var overlay=Rect(root,"MetalChallengeOverlay"+(phase+1),Vector2.zero,
+            new Vector2(1280,720),new Color32(5,13,30,235));
+        overlay.raycastTarget=true;
+        var card=Rect(overlay.transform,"MetalChallengeCard",new Vector2(0,-10),
+            new Vector2(1060,540),new Color32(23,44,76,255));
+        card.raycastTarget=true;
+        Label(card.transform,"MetalChallengeHeading",
+            sheet?"PART 2 | MALLEABILITY: FORM A SHEET":
+                  "PART 3 | DUCTILITY: FORM A WIRE",
+            26,new Vector2(0,228),new Vector2(990,42),Blue);
+        Label(card.transform,"MetalChallengeInstruction",
+            sheet?"Slide the metallic layers into a sheet without breaking the metallic bond.":
+                  "Stretch the metallic structure into a wire without losing metallic bonding.",
+            16,new Vector2(0,179),new Vector2(990,36),Dim);
+        string[] targets=sheet?
+            new[]{"LAYER RESPONSE","BONDING FORCE","FINAL SHAPE"}:
+            new[]{"DRAWING ACTION","BONDING CONDITION","FINAL SHAPE"};
+        string[] correct=sheet?
+            new[]{"layers-slide","electrons-bond","sheet-forms"}:
+            new[]{"layers-extend","bond-stays","wire-forms"};
+        for(int i=0;i<3;i++)
+        {
+            float x=-337+i*337;
+            Label(card.transform,"MetalSlotTitle"+i,targets[i],17,
+                new Vector2(x,130),new Vector2(310,30),Blue);
+            var slot=Rect(card.transform,"MetalDropSlot"+i,new Vector2(x,71),
+                new Vector2(305,82),new Color32(43,86,120,255));
+            slot.gameObject.AddComponent<Stage4DriftSlot>().CorrectAnswerId=correct[i];
+            Label(slot.transform,"Placeholder","DROP HERE",16,Vector2.zero,
+                new Vector2(285,53),Dim);
+        }
+        var tray=Rect(card.transform,"MetalChallengeTray",new Vector2(0,-100),
+            new Vector2(998,155),new Color32(11,29,51,255));
+        tray.raycastTarget=false;
+        string[] ids=sheet?
+            new[]{"layers-slide","sheet-breaks","sheet-forms",
+                  "electrons-stop","electrons-bond","cores-escape"}:
+            new[]{"wire-forms","bond-breaks","layers-extend",
+                  "ions-scatter","bond-stays","sheet-forms-decoy"};
+        string[] labels=sheet?
+            new[]{"LAYERS SLIDE","METAL CRACKS","SHEET FORMS",
+                  "ELECTRONS STOP","ELECTRONS HOLD BOND","CORES ESCAPE"}:
+            new[]{"WIRE FORMS","BONDS BREAK","STRUCTURE EXTENDS",
+                  "IONS SCATTER","METALLIC BOND REMAINS","SHEET FORMS"};
+        for(int i=0;i<ids.Length;i++)
+        {
+            float x=-330+(i%3)*330;
+            float y=i<3?42:-39;
+            var tile=Rect(tray.transform,"MetalTile"+phase+"_"+i,new Vector2(x,y),
+                new Vector2(306,56),new Color32(36,117,151,255));
+            tile.gameObject.AddComponent<CanvasGroup>();
+            tile.gameObject.AddComponent<Stage4DriftTile>().AnswerId=ids[i];
+            var text=Label(tile.transform,"Text",labels[i],17,
+                Vector2.zero,new Vector2(294,48),Color.white);
+            text.enableAutoSizing=true;text.fontSizeMin=13;text.fontSizeMax=17;
+            text.textWrappingMode=TextWrappingModes.NoWrap;
+        }
+        Label(card.transform,"MetalChallengeFeedback",
+            "Place all three tiles, then CHECK MODEL. Decoys count only on CHECK.",15,
+            new Vector2(0,-195),new Vector2(990,27),Gold);
+        Button(card.transform,"MetalChallengeReset","RESET TILES",
+            new Vector2(-170,-240),new Vector2(255,51),
+            new Color32(70,86,119,255));
+        Button(card.transform,"MetalChallengeCheck","CHECK MODEL",
+            new Vector2(170,-240),new Vector2(255,51),
+            new Color32(12,132,135,255));
+        return overlay.transform;
+    }
+
+    private void ShowMetalChallenge(int phase)
+    {
+        if(metalChallengePanels==null || phase<0 || phase>=2)return;
+        metalChallengeStep=phase+1;
+        foreach(var panel in metalChallengePanels)
+            if(panel!=null)panel.SetActive(false);
+        if(metalChallengePanels[phase]!=null)
+        {
+            metalChallengePanels[phase].SetActive(true);
+            metalChallengePanels[phase].transform.SetAsLastSibling();
+        }
+    }
+
+    private void ResetMetalTiles(int phase)
+    {
+        if(metalChallengeSlots==null || phase<0 || phase>=metalChallengeSlots.Length)return;
+        foreach(var slot in metalChallengeSlots[phase])slot.ResetSlot();
+        foreach(var tile in metalChallengeTiles[phase])tile.ReturnHome();
+        if(metalChallengeMessages[phase]!=null)
+            metalChallengeMessages[phase].text="Arrange all three properties, then CHECK MODEL.";
+    }
+
+    private void CheckMetalChallenge(int phase)
+    {
+        if(Level!=3 || !CanInteract || metalChallengePanels==null ||
+            phase<0 || phase>1 || !metalChallengePanels[phase].activeSelf)return;
+        int filled=0;
+        bool correct=metalChallengeSlots[phase]!=null &&
+                     metalChallengeSlots[phase].Length==3;
+        foreach(var slot in metalChallengeSlots[phase])
+        {
+            if(slot.IsFilled)filled++;
+            if(!slot.IsCorrect)correct=false;
+        }
+        if(filled<3)
+        {
+            metalChallengeMessages[phase].text=
+                "Fill the three slots first. No penalty for incomplete models.";
+            return;
+        }
+        if(!correct)
+        {
+            RegisterMistake();
+            if(!failed && metalChallengeMessages[phase]!=null)
+                metalChallengeMessages[phase].text=phase==0?
+                    "HINT: Layers slide while delocalized electrons keep bonding intact.":
+                    "HINT: A metallic structure can elongate while metallic bonding remains.";
+            return;
+        }
+        metalChallengePanels[phase].SetActive(false);
+        if(phase==0)ShowMetalChallenge(1);
+        else Complete();
+    }
+
     private void OnForceChanged(float value)
     {
         if(Level!=3 || upperLayer==null || forceLabel==null)return;
         upperLayer.anchoredPosition=new Vector2(value*110f,54);
         forceLabel.text="FORCE: "+Mathf.RoundToInt(value*100f)+"%  |  LAYERS SHIFTING";
-        if(value>=0.75f)forceApplied=true;
+        if(value>=0.75f && !forceApplied)
+        {
+            forceApplied=true;
+            if(feedback!=null)feedback.text=
+                "Metal layers shifted while bonding remained. Press CHECK for the Malleability Puzzle.";
+        }
     }
     private void Check()
     {
@@ -951,6 +1126,18 @@ public class Stage4ElectronOceanGame : MonoBehaviour
                     "INCORRECT MODEL! Remove the decoys. Press RESET to try again.";
                 return;
             }
+        }
+        if(Level==3)
+        {
+            if(!forceApplied)
+            {
+                if(feedback!=null)feedback.text="Apply at least 75% force before starting the puzzles.";
+                return;
+            }
+            if(metalChallengePanels==null)EnsureMetalChallenges();
+            if(metalChallengePanels!=null)ShowMetalChallenge(0);
+            else if(feedback!=null)feedback.text="Malleability challenge unavailable. Reopen scene.";
+            return;
         }
         if(Level==2 && terminalsPlaced==2 && observedDrift)
         {
@@ -983,7 +1170,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             if(feedback!=null)feedback.text=Level==1?
                 "HINT: Remove decoys, then use RESET to arrange the correct metal cores and electrons.":
                 Level==2?"HINT: Negative left, positive right; switch ON and observe electron drift.":
-                "HINT: Apply sufficient force using the slider; metal layers must slide.";
+                "HINT: Observe sliding layers, then arrange the metal property tiles correctly.";
         }
         else
         {
@@ -1030,7 +1217,18 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             var text=switchButton?.GetComponentInChildren<TMP_Text>(true);
             if(text!=null)text.text="SWITCH: OFF";
         }
-        if(Level==3&&forceSlider!=null){forceApplied=false;forceSlider.value=0;}
+        if(Level==3)
+        {
+            forceApplied=false;
+            metalChallengeStep=0;
+            if(forceSlider!=null)forceSlider.value=0;
+            if(metalChallengePanels!=null)
+                for(int i=0;i<metalChallengePanels.Length;i++)
+                {
+                    if(metalChallengePanels[i]!=null)metalChallengePanels[i].SetActive(false);
+                    ResetMetalTiles(i);
+                }
+        }
         if(feedback!=null)feedback.text=IsLevel1?"Reset: arrange matching cores and electrons; avoid decoys.":"Reset complete. No penalty.";
     }
     private void Update()
