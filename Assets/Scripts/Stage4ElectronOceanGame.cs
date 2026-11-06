@@ -23,6 +23,10 @@ public class Stage4ElectronOceanGame : MonoBehaviour
     private Button retryButton, switchButton, checkButton;
     private Slider forceSlider;
     private RectTransform upperLayer, lowerLayer;
+    private GameObject driftPuzzlePanel;
+    private TMP_Text driftPuzzleFeedback;
+    private Stage4DriftSlot[] driftPuzzleSlots;
+    private Stage4DriftTile[] driftPuzzleTiles;
     private int mistakes,metalPlaced,electronsPlaced,terminalsPlaced;
     private bool failed,completed,paused,powerOn,observedDrift,forceApplied;
     private float nextTick,driftClock;
@@ -48,6 +52,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         if(GameObject.Find("Stage4Level"+Level+"Canvas")==null)BuildEditorScene();
         if(IsLevel1)EnsureLevel1Decoys();
         Bind();
+        if(Level==2)EnsureDriftPuzzle();
         UpdateEnergy();
     }
 
@@ -772,6 +777,130 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             if(label!=null)label.text=symbol=="Mg"?"Mg2+":"Cu+";
         }
     }
+
+    // Part 3 is a drag-and-drop interpretation task, not a multiple-choice quiz.
+    // Keep it hidden until the terminals are connected and drift is observed.
+    // Can also be serialized into the scene using the Editor menu item.
+    public void EnsureDriftPuzzle()
+    {
+        if(Level!=2)return;
+        var root=GameObject.Find("Stage4Level2Canvas");
+        if(root==null)return;
+        var existing=Find(root.transform,"DriftChallengeOverlay");
+        if(existing==null)
+        {
+            var overlay=Rect(root.transform,"DriftChallengeOverlay",Vector2.zero,
+                new Vector2(1280,720),new Color32(5,13,30,226));
+            overlay.raycastTarget=true;
+            var card=Rect(overlay.transform,"DriftChallengeCard",new Vector2(0,-15),
+                new Vector2(1040,515),new Color32(23,44,76,255));
+            card.raycastTarget=true;
+            Label(card.transform,"ChallengeHeading","PART 3  |  ELECTRON DRIFT CHALLENGE",28,
+                new Vector2(0,210),new Vector2(950,42),Blue);
+            Label(card.transform,"ChallengeInstructions",
+                "Drag the correct behavior tiles into all three slots. Decoys are allowed; CHECK MODEL validates.",
+                16,new Vector2(0,165),new Vector2(950,36),Dim);
+
+            string[] captions={"ELECTRON DRIFT","CONVENTIONAL CURRENT","METAL CATIONS"};
+            string[] answers={"electron-right","current-left","ions-still"};
+            for(int i=0;i<3;i++)
+            {
+                float x=-323+i*323;
+                Label(card.transform,"ChallengeSlotHeading"+i,captions[i],17,
+                    new Vector2(x,117),new Vector2(300,33),Blue);
+                var slot=Rect(card.transform,"ChallengeDropSlot"+i,new Vector2(x,61),
+                    new Vector2(294,79),new Color32(43,86,120,255));
+                slot.gameObject.AddComponent<Stage4DriftSlot>().CorrectAnswerId=answers[i];
+                Label(slot.transform,"Placeholder","DROP HERE",16,
+                    Vector2.zero,new Vector2(270,48),new Color32(169,198,220,255));
+            }
+
+            var tray=Rect(card.transform,"ChallengeTileTray",new Vector2(0,-91),
+                new Vector2(962,147),new Color32(11,29,51,255));
+            tray.raycastTarget=false;
+            string[] names={"ElectronRight","CurrentRight","IonsStill",
+                "ElectronLeft","CurrentLeft","IonsMove"};
+            string[] values={"ELECTRON -->","CURRENT -->","IONS STATIONARY",
+                "ELECTRON <--","CURRENT <--","IONS MOVE"};
+            string[] tileIds={"electron-right","current-right","ions-still",
+                "electron-left","current-left","ions-move"};
+            for(int i=0;i<names.Length;i++)
+            {
+                float x=-311+(i%3)*311;
+                float y=i<3?37:-38;
+                var tile=Rect(tray.transform,"DriftTile"+names[i],new Vector2(x,y),
+                    new Vector2(290,52),new Color32(35,118,151,255));
+                tile.gameObject.AddComponent<CanvasGroup>();
+                tile.gameObject.AddComponent<Stage4DriftTile>().AnswerId=tileIds[i];
+                var label=Label(tile.transform,"TileText",values[i],17,
+                    Vector2.zero,new Vector2(276,45),Color.white);
+                label.textWrappingMode=TextWrappingModes.NoWrap;
+                label.enableAutoSizing=true;
+                label.fontSizeMin=13;label.fontSizeMax=17;
+            }
+
+            Label(card.transform,"ChallengeFeedback",
+                "Build the model. Wrong tiles only count after CHECK MODEL.",15,
+                new Vector2(0,-183),new Vector2(940,29),Gold);
+            Button(card.transform,"ChallengeResetButton","RESET TILES",
+                new Vector2(-159,-232),new Vector2(252,53),new Color32(70,86,119,255));
+            Button(card.transform,"ChallengeCheckButton","CHECK MODEL",
+                new Vector2(159,-232),new Vector2(252,53),new Color32(12,132,135,255));
+            existing=overlay.transform;
+        }
+        driftPuzzlePanel=existing.gameObject;
+        var canvas=root.GetComponent<Canvas>();
+        var trayTransform=Find(existing,"ChallengeTileTray") as RectTransform;
+        driftPuzzleTiles=existing.GetComponentsInChildren<Stage4DriftTile>(true);
+        driftPuzzleSlots=existing.GetComponentsInChildren<Stage4DriftSlot>(true);
+        foreach(var tile in driftPuzzleTiles)
+            tile.Configure(tile.AnswerId,trayTransform,Find(existing,"DriftChallengeCard"),canvas);
+        driftPuzzleFeedback=Find(existing,"ChallengeFeedback")?.GetComponent<TMP_Text>();
+        Wire(existing,"ChallengeResetButton",ResetDriftTiles);
+        Wire(existing,"ChallengeCheckButton",CheckDriftPuzzle);
+        ResetDriftTiles();
+        driftPuzzlePanel.SetActive(false);
+    }
+
+    private void ResetDriftTiles()
+    {
+        if(driftPuzzleSlots!=null)
+            foreach(var slot in driftPuzzleSlots)slot.ResetSlot();
+        if(driftPuzzleTiles!=null)
+            foreach(var tile in driftPuzzleTiles)tile.ReturnHome();
+        if(driftPuzzleFeedback!=null)
+            driftPuzzleFeedback.text="Arrange the directions, then press CHECK MODEL.";
+    }
+
+    private void CheckDriftPuzzle()
+    {
+        if(Level!=2 || driftPuzzlePanel==null || !driftPuzzlePanel.activeSelf || !CanInteract)return;
+        int filled=0;
+        bool correct=driftPuzzleSlots!=null && driftPuzzleSlots.Length==3;
+        if(driftPuzzleSlots!=null)
+            foreach(var slot in driftPuzzleSlots)
+            {
+                if(slot.IsFilled)filled++;
+                if(!slot.IsCorrect)correct=false;
+            }
+        if(filled<3)
+        {
+            if(driftPuzzleFeedback!=null)
+                driftPuzzleFeedback.text="Fill all three slots before checking. No penalty yet.";
+            return;
+        }
+        if(!correct)
+        {
+            RegisterMistake();
+            if(!failed && driftPuzzleFeedback!=null)
+                driftPuzzleFeedback.text=
+                    "INCORRECT MODEL. Check electron drift, current direction, and stationary ions.";
+            return;
+        }
+        driftPuzzlePanel.SetActive(false);
+        Complete();
+    }
+
     private void ToggleVoltage()
     {
         if(Level!=2||!CanInteract)return;
@@ -822,6 +951,18 @@ public class Stage4ElectronOceanGame : MonoBehaviour
                     "INCORRECT MODEL! Remove the decoys. Press RESET to try again.";
                 return;
             }
+        }
+        if(Level==2 && terminalsPlaced==2 && observedDrift)
+        {
+            if(driftPuzzlePanel==null)EnsureDriftPuzzle();
+            if(driftPuzzlePanel!=null)
+            {
+                driftPuzzlePanel.SetActive(true);
+                driftPuzzlePanel.transform.SetAsLastSibling();
+                return;
+            }
+            if(feedback!=null)feedback.text="Direction challenge unavailable. Reopen the level.";
+            return;
         }
         bool correct=Level==1?metalPlaced==6 && electronsPlaced==4:
             Level==2?terminalsPlaced==2 && observedDrift:
@@ -883,6 +1024,8 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         UpdateLevel1Progress();
         if(Level==2)
         {
+            if(driftPuzzlePanel!=null)driftPuzzlePanel.SetActive(false);
+            ResetDriftTiles();
             powerOn=observedDrift=false;driftClock=0f;
             var text=switchButton?.GetComponentInChildren<TMP_Text>(true);
             if(text!=null)text.text="SWITCH: OFF";
@@ -906,7 +1049,12 @@ public class Stage4ElectronOceanGame : MonoBehaviour
                 float x=-245+Mathf.Repeat(i*76+Time.timeSinceLevelLoad*70,490);
                 r.anchoredPosition=new Vector2(x,0);
             }
-            if(driftClock>=2f)observedDrift=true;
+            if(driftClock>=2f && !observedDrift)
+            {
+                observedDrift=true;
+                if(feedback!=null)feedback.text=
+                    "Electron drift observed. Press CHECK to begin the direction puzzle.";
+            }
         }
     }
     private void UpdateEnergy()
