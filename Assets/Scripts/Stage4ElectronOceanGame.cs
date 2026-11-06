@@ -74,10 +74,12 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             new Vector2(0,276),new Vector2(960,47),Color.white);
         Label(root.transform,"Instructions",
             Level==1?"Select Cu or Mg. Place matching metal cores and electrons; ignore decoys.":
-            Level==2?"Attach terminals: NEGATIVE on left, POSITIVE on right. Turn on voltage to observe electron drift.":
+            Level==2?"Attach negative and positive terminals, switch ON, and observe electron drift.":
             "Apply force and observe metal layers slide while delocalized electrons keep the cores bonded.",
-            17,Level==1?new Vector2(0,-239):new Vector2(0,223),
-            Level==1?new Vector2(1000,20):new Vector2(1040,42),
+            17,Level==1?new Vector2(0,-239):
+                Level==2?new Vector2(0,101):new Vector2(0,223),
+            Level==1?new Vector2(1000,20):
+                Level==2?new Vector2(1020,28):new Vector2(1040,42),
             new Color32(183,203,223,255));
         score=Label(root.transform,"ScoreText","SCORE\n000000",19,new Vector2(533,294),new Vector2(135,68),Gold);
         Label(root.transform,"EnergyTitle","ENERGY",14,new Vector2(-500,338),new Vector2(110,24),Color.white);
@@ -90,8 +92,9 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         }
         Label(root.transform,"EnergyCount","5/5",15,new Vector2(-304,334),new Vector2(85,25),Color.white);
         var board=Rect(root.transform,"ExperimentBoard",
-            Level==1?new Vector2(0,-35):new Vector2(0,-3),
-            Level==1?new Vector2(1110,520):new Vector2(1110,398),Panel);
+            Level==1||Level==2?new Vector2(0,-35):new Vector2(0,-3),
+            Level==1?new Vector2(1110,520):
+                Level==2?new Vector2(1110,530):new Vector2(1110,398),Panel);
         board.raycastTarget=false;
 
         if(Level==1)BuildLevel1(board.transform);
@@ -105,8 +108,10 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         feedback=Label(root.transform,"FeedbackText",Level==1
                 ?"Decoys can be placed. CHECK evaluates the final model."
                 :"Follow the instructions to complete the metallic bonding model.",
-            16,Level==1?new Vector2(0,-283):new Vector2(0,-266),
-            Level==1?new Vector2(1020,20):new Vector2(1080,45),Gold);
+            16,Level==1?new Vector2(0,-283):
+                Level==2?new Vector2(0,-275):new Vector2(0,-266),
+            Level==1?new Vector2(1020,20):
+                Level==2?new Vector2(1030,25):new Vector2(1080,45),Gold);
         Button(root.transform,"CheckButton","CHECK",new Vector2(0,-326),
             new Vector2(250,55),new Color32(12,132,135,255));
         Button(root.transform,"ResetButton","RESET",new Vector2(-268,-326),
@@ -267,10 +272,32 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         var boardRect=Find(root,"ExperimentBoard")?.GetComponent<RectTransform>();
         if(boardRect!=null)
         {
-            boardRect.anchoredPosition=Level==1?new Vector2(0,-35):new Vector2(0,-3);
-            boardRect.sizeDelta=Level==1?new Vector2(1110,520):new Vector2(1110,398);
+            boardRect.anchoredPosition=Level==1||Level==2?new Vector2(0,-35):new Vector2(0,-3);
+            boardRect.sizeDelta=Level==1?new Vector2(1110,520):
+                Level==2?new Vector2(1110,530):new Vector2(1110,398);
         }
-        SetPosition(root,"FeedbackText",Level==1?new Vector2(0,-283):new Vector2(0,-266));
+        SetPosition(root,"FeedbackText",Level==1?new Vector2(0,-283):
+            Level==2?new Vector2(0,-275):new Vector2(0,-266));
+        if(Level==2)
+        {
+            SetPosition(root,"StageTitle",new Vector2(0,322));
+            SetPosition(root,"LevelTitle",new Vector2(0,277));
+            var stage=Find(root,"StageTitle");if(stage!=null)stage.gameObject.SetActive(false);
+            var level=Find(root,"LevelTitle");if(level!=null)level.gameObject.SetActive(false);
+            SetPosition(root,"Instructions",new Vector2(0,101));
+            SetPosition(root,"SlabTitle",new Vector2(0,180));
+            SetPosition(root,"MetalSlab",new Vector2(0,18));
+            SetPosition(root,"NegativeTerminalSlot",new Vector2(-379,20));
+            SetPosition(root,"PositiveTerminalSlot",new Vector2(379,20));
+            SetPosition(root,"TerminalBank",new Vector2(0,-130));
+            SetPosition(root,"DriftLabel",new Vector2(0,-168));
+            SetPosition(root,"VoltageSwitch",new Vector2(0,-208));
+            for(int i=0;i<9;i++)
+                SetPosition(root,"Core"+i,new Vector2(-190+(i%3)*190,
+                    i/3==0?72:i/3==1?26:-72));
+            for(int i=0;i<7;i++)
+                SetPosition(root,"DriftingElectron"+i,new Vector2(-245+i*76,-23));
+        }
         if(Level==1)
         {
             SetPosition(root,"Instructions",new Vector2(0,-239));
@@ -448,33 +475,34 @@ public class Stage4ElectronOceanGame : MonoBehaviour
 
     private void BuildLevel2(Transform board)
     {
-        Label(board,"SlabTitle","METAL SLAB  |  VOLTAGE EXPERIMENT",20,
-            new Vector2(0,144),new Vector2(670,34),Blue);
-        var slab=Rect(board,"MetalSlab",new Vector2(0,22),new Vector2(600,186),
+        Label(board,"SlabTitle","METAL SLAB  |  VOLTAGE EXPERIMENT",24,
+            new Vector2(0,180),new Vector2(880,38),Blue);
+        var slab=Rect(board,"MetalSlab",new Vector2(0,18),new Vector2(600,200),
             new Color32(31,75,105,255));
         slab.raycastTarget=false;
         for(int i=0;i<9;i++)
         {
             int x=i%3,y=i/3;
             Label(slab.transform,"Core"+i,"M+",28,
-                new Vector2(-190+x*190,58-y*58),new Vector2(75,42),Dim);
+                new Vector2(-190+x*190,y==0?72:y==1?26:-72),
+                new Vector2(75,42),Dim);
         }
         for(int i=0;i<7;i++)
             Label(slab.transform,"DriftingElectron"+i,"e-",22,
-                new Vector2(-245+i*76,0),new Vector2(56,35),Gold);
-        AddZone(board,"NegativeTerminalSlot",2,new Vector2(-379,40),new Vector2(115,94));
-        AddZone(board,"PositiveTerminalSlot",3,new Vector2(379,40),new Vector2(115,94));
-        var bank=Rect(board,"TerminalBank",new Vector2(0,-91),
-            new Vector2(510,56),new Color32(12,28,51,255));
+                new Vector2(-245+i*76,-23),new Vector2(56,35),Gold);
+        AddZone(board,"NegativeTerminalSlot",2,new Vector2(-379,20),new Vector2(115,94));
+        AddZone(board,"PositiveTerminalSlot",3,new Vector2(379,20),new Vector2(115,94));
+        var bank=Rect(board,"TerminalBank",new Vector2(0,-130),
+            new Vector2(510,52),new Color32(12,28,51,255));
         bank.raycastTarget=false;
         AddToken(bank.transform,"NegativeTerminal",2,new Vector2(-123,0),
             new Color32(82,155,200,255),"-");
         AddToken(bank.transform,"PositiveTerminal",3,new Vector2(123,0),
             new Color32(235,149,70,255),"+");
-        Button(board,"VoltageSwitch","SWITCH: OFF",new Vector2(0,-155),
+        Button(board,"VoltageSwitch","SWITCH: OFF",new Vector2(0,-208),
             new Vector2(260,42),new Color32(87,103,133,255));
         Label(board,"DriftLabel","Electron drift: OFF  |  conventional current flows opposite",
-            14,new Vector2(0,-126),new Vector2(740,28),Dim);
+            14,new Vector2(0,-168),new Vector2(740,28),Dim);
     }
 
     private void BuildLevel3(Transform board)
