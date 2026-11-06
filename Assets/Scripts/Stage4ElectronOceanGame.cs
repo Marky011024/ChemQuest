@@ -19,7 +19,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
     private readonly List<Image> energyIcons=new List<Image>();
     private readonly List<RectTransform> driftElectrons=new List<RectTransform>();
     private GameObject pausePanel, failedPanel, winPanel, noEnergyPanel, latticeGroup;
-    private TMP_Text feedback,score,finalScore,timer,energyCount,modeLabel,forceLabel;
+    private TMP_Text feedback,progressText,score,finalScore,timer,energyCount,modeLabel,forceLabel;
     private Button retryButton, switchButton, checkButton;
     private Slider forceSlider;
     private RectTransform upperLayer, lowerLayer;
@@ -387,7 +387,17 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             var token=clone.GetComponent<Stage4Draggable>();
             token.Kind=kinds[i];
             var label=clone.GetComponentInChildren<TMP_Text>(true);
-            if(label!=null)label.text=symbols[i];
+            if(label!=null)
+            {
+                label.text=symbols[i];
+                label.fontSize=17;
+                label.enableAutoSizing=true;
+                label.fontSizeMin=14;
+                label.fontSizeMax=17;
+                label.enableWordWrapping=false;
+                var labelRect=label.GetComponent<RectTransform>();
+                if(labelRect!=null)labelRect.sizeDelta=new Vector2(56,43);
+            }
             var image=clone.GetComponent<Image>();
             if(image!=null)image.color=new Color32(151,119,201,255);
         }
@@ -598,6 +608,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         winPanel=Find(t,"CompletePanel")?.gameObject;
         noEnergyPanel=Find(t,"OutOfEnergyPanel")?.gameObject;
         feedback=Find(t,"FeedbackText")?.GetComponent<TMP_Text>();
+        progressText=Find(t,"ProgressText")?.GetComponent<TMP_Text>();
         score=Find(t,"ScoreText")?.GetComponent<TMP_Text>();
         finalScore=Find(t,"FinalScoreText")?.GetComponent<TMP_Text>();
         timer=Find(t,"EnergyTimerText")?.GetComponent<TMP_Text>();
@@ -665,6 +676,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         if(noEnergyPanel!=null)noEnergyPanel.SetActive(false);
         if(score!=null)score.text="SCORE\n000000";
         if(modeLabel!=null)modeLabel.text="Selected: "+(Metal=="Cu"?"Copper (Cu)":"Magnesium (Mg)");
+        UpdateLevel1Progress();
     }
 
     public string GetPlacedSymbol(int kind) =>
@@ -675,9 +687,20 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         if(kind==0)metalPlaced++;
         else if(kind==1)electronsPlaced++;
         else terminalsPlaced++;
-        if(feedback!=null)feedback.text=Level==1
-            ? "Lattice: "+metalPlaced+"/6 cores   Cloud: "+electronsPlaced+"/4 electrons"
-            : "Terminals attached: "+terminalsPlaced+"/2";
+        if(Level==1)
+        {
+            UpdateLevel1Progress();
+        }
+        else if(feedback!=null)feedback.text="Terminals attached: "+terminalsPlaced+"/2";
+    }
+    private void UpdateLevel1Progress()
+    {
+        if(Level!=1 || progressText==null)return;
+        int filled=0;
+        foreach(var zone in zones)
+            if((zone.Kind==0 || zone.Kind==1) && zone.Occupied)filled++;
+        progressText.text="SLOTS FILLED: "+filled+"/10  |  LATTICE: "+
+            metalPlaced+"/6  |  CLOUD: "+electronsPlaced+"/4";
     }
     private void SelectMetal(string symbol)
     {
@@ -804,6 +827,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         foreach(var t in tokens)t.ResetToken();
         foreach(var z in zones)z.ResetZone();
         metalPlaced=electronsPlaced=terminalsPlaced=0;
+        UpdateLevel1Progress();
         if(Level==2)
         {
             powerOn=observedDrift=false;driftClock=0f;
@@ -811,7 +835,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             if(text!=null)text.text="SWITCH: OFF";
         }
         if(Level==3&&forceSlider!=null){forceApplied=false;forceSlider.value=0;}
-        if(feedback!=null)feedback.text=IsLevel1?"Reset complete. Avoid decoys; CHECK validates the finished model.":"Reset complete. No penalty.";
+        if(feedback!=null)feedback.text=IsLevel1?"Reset: arrange matching cores and electrons; avoid decoys.":"Reset complete. No penalty.";
     }
     private void Update()
     {
