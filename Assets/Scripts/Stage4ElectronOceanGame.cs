@@ -542,13 +542,16 @@ public class Stage4ElectronOceanGame : MonoBehaviour
                 new Vector2(-343+i*111,16),new Vector2(56,34),Gold);
         var sliderGO=new GameObject("ForceSlider",typeof(RectTransform),typeof(Slider));
         sliderGO.transform.SetParent(board,false);
-        var rect=sliderGO.GetComponent<RectTransform>();rect.anchoredPosition=new Vector2(0,-107);
-        rect.sizeDelta=new Vector2(590,33);
+        var rect=sliderGO.GetComponent<RectTransform>();
+        rect.anchorMin=rect.anchorMax=new Vector2(.5f,.5f);
+        rect.pivot=new Vector2(.5f,.5f);
+        rect.anchoredPosition=new Vector2(0,-107);
+        rect.sizeDelta=new Vector2(650,45);
         var bg=Rect(sliderGO.transform,"Background",Vector2.zero,
-            new Vector2(590,16),new Color32(55,87,113,255));
-        var fill=Rect(sliderGO.transform,"Fill",new Vector2(-294,0),
-            new Vector2(590,16),new Color32(18,157,143,255));
-        var handle=Rect(sliderGO.transform,"Handle",new Vector2(-294,0),
+            new Vector2(650,16),new Color32(55,87,113,255));
+        var fill=Rect(sliderGO.transform,"Fill",Vector2.zero,
+            new Vector2(650,16),new Color32(18,157,143,255));
+        var handle=Rect(sliderGO.transform,"Handle",Vector2.zero,
             new Vector2(34,39),Gold);
         var slide=sliderGO.GetComponent<Slider>();slide.direction=Slider.Direction.LeftToRight;
         slide.minValue=0;slide.maxValue=1;slide.value=0;
@@ -733,6 +736,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             }
         if(forceSlider!=null)
         {
+            FixLevel3ForceSliderLayout();
             forceSlider.onValueChanged.RemoveAllListeners();
             forceSlider.onValueChanged.AddListener(OnForceChanged);
             forceSlider.value=0f;
@@ -1091,6 +1095,58 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         metalChallengePanels[phase].SetActive(false);
         if(phase==0)ShowMetalChallenge(1);
         else Complete();
+    }
+
+
+    // Repair both newly built and already serialized Level 3 slider objects.
+    // Unity's Slider component controls fill/handle anchors at runtime, so
+    // they must not retain fixed -294 X offsets from an older scene.
+    public void FixLevel3ForceSliderLayout()
+    {
+        if(Level!=3)return;
+        var root=GameObject.Find("Stage4Level3Canvas");
+        if(root==null)return;
+        var slider=Find(root.transform,"ForceSlider")?.GetComponent<Slider>();
+        if(slider==null)return;
+
+        RectTransform track=slider.GetComponent<RectTransform>();
+        track.anchorMin=track.anchorMax=new Vector2(.5f,.5f);
+        track.pivot=new Vector2(.5f,.5f);
+        track.anchoredPosition=new Vector2(0,-107);
+        track.sizeDelta=new Vector2(650,45);
+
+        var back=Find(track,"Background")?.GetComponent<RectTransform>();
+        if(back!=null)
+        {
+            back.anchorMin=back.anchorMax=new Vector2(.5f,.5f);
+            back.pivot=new Vector2(.5f,.5f);
+            back.anchoredPosition=Vector2.zero;
+            back.sizeDelta=new Vector2(650,16);
+        }
+        var fill=slider.fillRect;
+        if(fill!=null)
+        {
+            fill.anchorMin=new Vector2(0,0.5f);
+            fill.anchorMax=new Vector2(0,0.5f);
+            fill.pivot=new Vector2(0,0.5f);
+            fill.anchoredPosition=Vector2.zero;
+            fill.sizeDelta=new Vector2(0,16);
+            fill.offsetMin=new Vector2(0,-8);
+            fill.offsetMax=new Vector2(0,8);
+        }
+        var handle=slider.handleRect;
+        if(handle!=null)
+        {
+            handle.anchorMin=handle.anchorMax=new Vector2(0,0.5f);
+            handle.pivot=new Vector2(.5f,.5f);
+            handle.anchoredPosition=Vector2.zero;
+            handle.sizeDelta=new Vector2(34,39);
+        }
+        slider.direction=Slider.Direction.LeftToRight;
+        slider.minValue=0;
+        slider.maxValue=1;
+        slider.wholeNumbers=false;
+        slider.value=0;
     }
 
     private void OnForceChanged(float value)
