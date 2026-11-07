@@ -1412,13 +1412,13 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         var strip=Find(root,"Level3FeedbackStrip")?.GetComponent<Image>();
         if(strip==null)
         {
-            strip=Rect(root,"Level3FeedbackStrip",new Vector2(0,-235),
-                new Vector2(980,44),new Color32(12,57,85,255));
+            strip=Rect(root,"Level3FeedbackStrip",new Vector2(0,-212),
+                new Vector2(980,42),new Color32(12,57,85,255));
             strip.transform.SetSiblingIndex(board.GetSiblingIndex()+1);
         }
         strip.rectTransform.anchorMin=strip.rectTransform.anchorMax=new Vector2(.5f,.5f);
-        strip.rectTransform.anchoredPosition=new Vector2(0,-235);
-        strip.rectTransform.sizeDelta=new Vector2(980,44);
+        strip.rectTransform.anchoredPosition=new Vector2(0,-212);
+        strip.rectTransform.sizeDelta=new Vector2(980,42);
         strip.color=new Color32(12,57,85,255);
         strip.raycastTarget=false;
         var stripOutline=strip.GetComponent<Outline>();
@@ -1430,8 +1430,13 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         if(status!=null)
         {
             status.rectTransform.anchorMin=status.rectTransform.anchorMax=new Vector2(.5f,.5f);
-            status.rectTransform.anchoredPosition=new Vector2(0,-235);
-            status.rectTransform.sizeDelta=new Vector2(935,40);
+            status.rectTransform.anchoredPosition=new Vector2(0,-212);
+            status.rectTransform.sizeDelta=new Vector2(935,38);
+            // Saved scenes can still contain the old generic instruction.
+            // Update that initial copy without overwriting active puzzle hints.
+            if(string.IsNullOrWhiteSpace(status.text) ||
+                status.text=="Follow the instructions to complete the metallic bonding model.")
+                status.text="Drag the slider to apply force, then press CHECK.";
             status.enableAutoSizing=true;
             status.fontSizeMin=13;
             status.fontSizeMax=17;
@@ -1446,7 +1451,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             var button=Find(root,spec.Name)?.GetComponent<RectTransform>();
             if(button==null)continue;
             button.anchorMin=button.anchorMax=new Vector2(.5f,.5f);
-            button.anchoredPosition=new Vector2(spec.X,-313);
+            button.anchoredPosition=new Vector2(spec.X,-287);
             button.sizeDelta=new Vector2(spec.Width,55);
         }
     }
