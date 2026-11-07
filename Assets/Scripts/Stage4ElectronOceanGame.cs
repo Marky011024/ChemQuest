@@ -547,7 +547,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         var rect=sliderGO.GetComponent<RectTransform>();
         rect.anchorMin=rect.anchorMax=new Vector2(.5f,.5f);
         rect.pivot=new Vector2(.5f,.5f);
-        rect.anchoredPosition=new Vector2(0,-103);
+        rect.anchoredPosition=new Vector2(0,-86);
         rect.sizeDelta=new Vector2(650,42);
         var bg=Rect(sliderGO.transform,"Background",Vector2.zero,
             new Vector2(650,16),new Color32(55,87,113,255));
@@ -560,9 +560,9 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         slide.fillRect=fill.rectTransform;slide.handleRect=handle.rectTransform;
         slide.targetGraphic=handle;
         Label(board,"ForceValue","FORCE: 0%  |  LAYERS ALIGNED",17,
-            new Vector2(0,-138),new Vector2(690,30),Gold);
+            new Vector2(0,-126),new Vector2(690,28),Gold);
         Label(board,"BindingNote","Delocalized electrons continue to attract metal cores as layers move.",
-            14,new Vector2(0,-167),new Vector2(880,25),Dim);
+            14,new Vector2(0,-155),new Vector2(880,22),Dim);
     }
 
     private void AddZone(Transform parent,string name,int kind,Vector2 p,Vector2 size)
@@ -1114,7 +1114,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         RectTransform track=slider.GetComponent<RectTransform>();
         track.anchorMin=track.anchorMax=new Vector2(.5f,.5f);
         track.pivot=new Vector2(.5f,.5f);
-        track.anchoredPosition=new Vector2(0,-103);
+        track.anchoredPosition=new Vector2(0,-86);
         track.sizeDelta=new Vector2(650,42);
 
         var back=Find(track,"Background")?.GetComponent<RectTransform>();
@@ -1133,6 +1133,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             fill.pivot=new Vector2(0,0.5f);
             fill.anchoredPosition=Vector2.zero;
             fill.sizeDelta=new Vector2(0,16);
+            // Constrain fill to a thin strip even when the Slider adjusts its width.
             fill.offsetMin=new Vector2(0,-8);
             fill.offsetMax=new Vector2(0,8);
         }
@@ -1397,27 +1398,27 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         var indicator=Find(board,"ForceValue")?.GetComponent<TMP_Text>();
         if(indicator!=null)
         {
-            indicator.rectTransform.anchoredPosition=new Vector2(0,-138);
-            indicator.rectTransform.sizeDelta=new Vector2(750,30);
+            indicator.rectTransform.anchoredPosition=new Vector2(0,-126);
+            indicator.rectTransform.sizeDelta=new Vector2(750,28);
             indicator.fontSize=18;
         }
         var note=Find(board,"BindingNote")?.GetComponent<TMP_Text>();
         if(note!=null)
         {
-            note.rectTransform.anchoredPosition=new Vector2(0,-167);
-            note.rectTransform.sizeDelta=new Vector2(900,25);
-            note.fontSize=14;
+            note.rectTransform.anchoredPosition=new Vector2(0,-155);
+            note.rectTransform.sizeDelta=new Vector2(900,22);
+            note.fontSize=13;
         }
 
         var strip=Find(root,"Level3FeedbackStrip")?.GetComponent<Image>();
         if(strip==null)
         {
-            strip=Rect(root,"Level3FeedbackStrip",new Vector2(0,-212),
+            strip=Rect(root,"Level3FeedbackStrip",new Vector2(0,-221),
                 new Vector2(980,42),new Color32(12,57,85,255));
             strip.transform.SetSiblingIndex(board.GetSiblingIndex()+1);
         }
         strip.rectTransform.anchorMin=strip.rectTransform.anchorMax=new Vector2(.5f,.5f);
-        strip.rectTransform.anchoredPosition=new Vector2(0,-212);
+        strip.rectTransform.anchoredPosition=new Vector2(0,-221);
         strip.rectTransform.sizeDelta=new Vector2(980,42);
         strip.color=new Color32(12,57,85,255);
         strip.raycastTarget=false;
@@ -1430,7 +1431,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         if(status!=null)
         {
             status.rectTransform.anchorMin=status.rectTransform.anchorMax=new Vector2(.5f,.5f);
-            status.rectTransform.anchoredPosition=new Vector2(0,-212);
+            status.rectTransform.anchoredPosition=new Vector2(0,-221);
             status.rectTransform.sizeDelta=new Vector2(935,38);
             // Saved scenes can still contain the old generic instruction.
             // Update that initial copy without overwriting active puzzle hints.
