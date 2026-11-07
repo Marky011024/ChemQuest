@@ -58,7 +58,11 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         if(IsLevel1)EnsureLevel1Decoys();
         Bind();
         if(Level==2)EnsureDriftPuzzle();
-        if(Level==3)EnsureMetalChallenges();
+        if(Level==3)
+        {
+            EnsureMetalChallenges();
+            PolishLevel3Presentation();
+        }
         UpdateEnergy();
     }
 
@@ -166,7 +170,8 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         failedPanel.SetActive(false);
 
         winPanel=Modal(root.transform,"CompletePanel","LEVEL COMPLETE!",
-            "Metallic bonding model successfully completed.");
+            Level==3?"Malleability and ductility challenges successfully completed!":
+                "Metallic bonding model successfully completed.");
         finalScore=Label(winPanel.transform,"FinalScoreText","FINAL SCORE: 000000",27,
             new Vector2(0,-36),new Vector2(610,56),Gold);
         Button(winPanel.transform,"NextButton",Level==3?"STAGE SELECTION":"NEXT LEVEL",
@@ -1255,6 +1260,36 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             }
         }
     }
+
+    // Also works with scenes previously serialized in Edit Mode.
+    // The illustrated background already contains the STAGE 4 banner,
+    // and the experiment board has its own readable heading. Hide the
+    // duplicated floating labels that overlap the illustrated banner.
+    public void PolishLevel3Presentation()
+    {
+        if(Level!=3)return;
+        var root=GameObject.Find("Stage4Level3Canvas");
+        if(root==null)return;
+        foreach(var name in new[]{"StageTitle","LevelTitle","Instructions"})
+        {
+            var duplicate=Find(root.transform,name);
+            if(duplicate!=null)duplicate.gameObject.SetActive(false);
+        }
+        var complete=Find(root.transform,"CompletePanel");
+        if(complete!=null)
+        {
+            var description=Find(complete,"Description")?.GetComponent<TMP_Text>();
+            if(description!=null)
+            {
+                description.text="Malleability and ductility challenges successfully completed!";
+                description.enableAutoSizing=true;
+                description.fontSizeMin=17;
+                description.fontSizeMax=21;
+                description.textWrappingMode=TextWrappingModes.Normal;
+            }
+        }
+    }
+
     private void UpdateEnergy()
     {
         var energy=EnergyManager.Instance;
