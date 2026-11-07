@@ -123,7 +123,8 @@ public class Stage4ElectronOceanGame : MonoBehaviour
                 15,new Vector2(0,-261),new Vector2(900,20),Blue);
         feedback=Label(root.transform,"FeedbackText",Level==1
                 ?"Decoys can be placed. CHECK evaluates the final model."
-                :"Follow the instructions to complete the metallic bonding model.",
+                :Level==3?"Drag the slider to apply force, then press CHECK.":
+                    "Follow the instructions to complete the metallic bonding model.",
             16,Level==1?new Vector2(0,-283):
                 Level==2?new Vector2(0,-275):new Vector2(0,-266),
             Level==1?new Vector2(1020,20):
@@ -1292,7 +1293,10 @@ public class Stage4ElectronOceanGame : MonoBehaviour
                     ResetMetalTiles(i);
                 }
         }
-        if(feedback!=null)feedback.text=IsLevel1?"Reset: arrange matching cores and electrons; avoid decoys.":"Reset complete. No penalty.";
+        if(feedback!=null)feedback.text=IsLevel1?
+            "Reset: arrange matching cores and electrons; avoid decoys.":
+            Level==3?"Drag the slider to apply force, then press CHECK.":
+                "Reset complete. No penalty.";
     }
     private void Update()
     {
