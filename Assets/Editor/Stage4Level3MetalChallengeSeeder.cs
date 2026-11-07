@@ -27,7 +27,7 @@ public static class Stage4Level3MetalChallengeSeeder
         }
         game.EnsureMetalChallenges();
         game.PolishLevel3Presentation();
-        game.FixLevel3ForceSliderLayout();
+        game.PolishLevel3GameUILayout();
         var scene=SceneManager.GetActiveScene();
         EditorSceneManager.MarkSceneDirty(scene);
         if(EditorSceneManager.SaveScene(scene))
