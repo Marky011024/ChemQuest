@@ -62,6 +62,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         {
             EnsureMetalChallenges();
             PolishLevel3Presentation();
+            PolishLevel3GameUILayout();
         }
         UpdateEnergy();
     }
@@ -107,9 +108,9 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         }
         Label(root.transform,"EnergyCount","5/5",15,new Vector2(-304,334),new Vector2(85,25),Color.white);
         var board=Rect(root.transform,"ExperimentBoard",
-            Level==1||Level==2?new Vector2(0,-35):new Vector2(0,-3),
+            Level==1||Level==2?new Vector2(0,-35):new Vector2(0,-26),
             Level==1?new Vector2(1110,520):
-                Level==2?new Vector2(1110,530):new Vector2(1110,398),Panel);
+                Level==2?new Vector2(1110,530):new Vector2(1110,444),Panel);
         board.raycastTarget=false;
 
         if(Level==1)BuildLevel1(board.transform);
@@ -530,7 +531,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         for(int layer=0;layer<2;layer++)
         {
             var layerGO=Rect(board,layer==0?"UpperMetalLayer":"LowerMetalLayer",
-                new Vector2(0,layer==0?54:-21),new Vector2(730,68),
+                new Vector2(0,layer==0?56:-33),new Vector2(730,58),
                 new Color32(35,77,107,255));
             layerGO.raycastTarget=false;
             for(int i=0;i<6;i++)
@@ -538,29 +539,29 @@ public class Stage4ElectronOceanGame : MonoBehaviour
                     new Vector2(-308+i*123,0),new Vector2(77,50),Blue);
         }
         for(int i=0;i<7;i++)
-            Label(board,"ElectronCloud"+i,"e-",22,
-                new Vector2(-343+i*111,16),new Vector2(56,34),Gold);
+            Label(board,"ElectronCloud"+i,"e-",19,
+                new Vector2(-336+i*112,12),new Vector2(47,22),Gold);
         var sliderGO=new GameObject("ForceSlider",typeof(RectTransform),typeof(Slider));
         sliderGO.transform.SetParent(board,false);
         var rect=sliderGO.GetComponent<RectTransform>();
         rect.anchorMin=rect.anchorMax=new Vector2(.5f,.5f);
         rect.pivot=new Vector2(.5f,.5f);
-        rect.anchoredPosition=new Vector2(0,-107);
-        rect.sizeDelta=new Vector2(650,45);
+        rect.anchoredPosition=new Vector2(0,-103);
+        rect.sizeDelta=new Vector2(650,42);
         var bg=Rect(sliderGO.transform,"Background",Vector2.zero,
             new Vector2(650,16),new Color32(55,87,113,255));
         var fill=Rect(sliderGO.transform,"Fill",Vector2.zero,
             new Vector2(650,16),new Color32(18,157,143,255));
         var handle=Rect(sliderGO.transform,"Handle",Vector2.zero,
-            new Vector2(34,39),Gold);
+            new Vector2(30,34),Gold);
         var slide=sliderGO.GetComponent<Slider>();slide.direction=Slider.Direction.LeftToRight;
         slide.minValue=0;slide.maxValue=1;slide.value=0;
         slide.fillRect=fill.rectTransform;slide.handleRect=handle.rectTransform;
         slide.targetGraphic=handle;
         Label(board,"ForceValue","FORCE: 0%  |  LAYERS ALIGNED",17,
-            new Vector2(0,-149),new Vector2(690,32),Gold);
+            new Vector2(0,-138),new Vector2(690,30),Gold);
         Label(board,"BindingNote","Delocalized electrons continue to attract metal cores as layers move.",
-            14,new Vector2(0,-181),new Vector2(780,27),Dim);
+            14,new Vector2(0,-167),new Vector2(880,25),Dim);
     }
 
     private void AddZone(Transform parent,string name,int kind,Vector2 p,Vector2 size)
@@ -1112,8 +1113,8 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         RectTransform track=slider.GetComponent<RectTransform>();
         track.anchorMin=track.anchorMax=new Vector2(.5f,.5f);
         track.pivot=new Vector2(.5f,.5f);
-        track.anchoredPosition=new Vector2(0,-107);
-        track.sizeDelta=new Vector2(650,45);
+        track.anchoredPosition=new Vector2(0,-103);
+        track.sizeDelta=new Vector2(650,42);
 
         var back=Find(track,"Background")?.GetComponent<RectTransform>();
         if(back!=null)
@@ -1140,7 +1141,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             handle.anchorMin=handle.anchorMax=new Vector2(0,0.5f);
             handle.pivot=new Vector2(.5f,.5f);
             handle.anchoredPosition=Vector2.zero;
-            handle.sizeDelta=new Vector2(34,39);
+            handle.sizeDelta=new Vector2(30,34);
         }
         slider.direction=Slider.Direction.LeftToRight;
         slider.minValue=0;
@@ -1152,8 +1153,9 @@ public class Stage4ElectronOceanGame : MonoBehaviour
     private void OnForceChanged(float value)
     {
         if(Level!=3 || upperLayer==null || forceLabel==null)return;
-        upperLayer.anchoredPosition=new Vector2(value*110f,54);
-        forceLabel.text="FORCE: "+Mathf.RoundToInt(value*100f)+"%  |  LAYERS SHIFTING";
+        upperLayer.anchoredPosition=new Vector2(value*90f,56);
+        forceLabel.text="FORCE: "+Mathf.RoundToInt(value*100f)+"%  |  "+
+            (value<=0.001f?"LAYERS ALIGNED":"LAYERS SHIFTING");
         if(value>=0.75f && !forceApplied)
         {
             forceApplied=true;
@@ -1314,6 +1316,134 @@ public class Stage4ElectronOceanGame : MonoBehaviour
                 if(feedback!=null)feedback.text=
                     "Electron drift observed. Press CHECK to begin the direction puzzle.";
             }
+        }
+    }
+
+
+    // Make the existing Stage4Level3 scene match the approved clean UI mockup.
+    // Applies to serialized scenes AND newly generated UI without affecting
+    // any of the other Stage 4 levels or puzzle/energy logic.
+    public void PolishLevel3GameUILayout()
+    {
+        if(Level!=3)return;
+        var canvas=GameObject.Find("Stage4Level3Canvas");
+        if(canvas==null)return;
+        var root=canvas.transform;
+        var board=Find(root,"ExperimentBoard")?.GetComponent<RectTransform>();
+        if(board==null)return;
+
+        // Grow downward only; leave the illustrated top banner unobstructed.
+        board.anchorMin=board.anchorMax=new Vector2(.5f,.5f);
+        board.anchoredPosition=new Vector2(0,-26);
+        board.sizeDelta=new Vector2(1110,444);
+
+        var boardImage=board.GetComponent<Image>();
+        if(boardImage!=null)boardImage.color=new Color32(18,42,74,255);
+        var outline=board.GetComponent<Outline>();
+        if(outline==null)outline=board.gameObject.AddComponent<Outline>();
+        outline.effectColor=new Color32(44,174,210,185);
+        outline.effectDistance=new Vector2(2,-2);
+
+        var heading=Find(board,"LayerHeading")?.GetComponent<TMP_Text>();
+        if(heading!=null)
+        {
+            heading.fontSize=25;
+            heading.enableAutoSizing=true;
+            heading.fontSizeMin=20;
+            heading.fontSizeMax=25;
+            heading.rectTransform.anchoredPosition=new Vector2(0,145);
+            heading.rectTransform.sizeDelta=new Vector2(850,42);
+        }
+        var sub=Find(board,"ForceInfo")?.GetComponent<TMP_Text>();
+        if(sub!=null)
+        {
+            sub.fontSize=16;
+            sub.rectTransform.anchoredPosition=new Vector2(0,109);
+            sub.rectTransform.sizeDelta=new Vector2(830,30);
+        }
+
+        // Place all electrons in the open gap instead of on a lattice edge.
+        for(int layer=0;layer<2;layer++)
+        {
+            var r=Find(board,layer==0?"UpperMetalLayer":"LowerMetalLayer")?.GetComponent<RectTransform>();
+            if(r==null)continue;
+            r.anchoredPosition=new Vector2(layer==0?forceSlider!=null?forceSlider.value*90f:0:0,
+                layer==0?56:-33);
+            r.sizeDelta=new Vector2(730,58);
+            var img=r.GetComponent<Image>();
+            if(img!=null)img.color=new Color32(31,92,124,255);
+            var edge=r.GetComponent<Outline>();
+            if(edge==null)edge=r.gameObject.AddComponent<Outline>();
+            edge.effectColor=new Color32(51,180,216,255);
+            edge.effectDistance=new Vector2(1,1);
+        }
+        for(int i=0;i<7;i++)
+        {
+            var electron=Find(board,"ElectronCloud"+i)?.GetComponent<TMP_Text>();
+            if(electron==null)continue;
+            electron.rectTransform.anchoredPosition=new Vector2(-336+i*112,12);
+            electron.rectTransform.sizeDelta=new Vector2(47,22);
+            electron.fontSize=19;
+            electron.alignment=TextAlignmentOptions.Center;
+        }
+
+        // The force indicator, explanation and feedback remain fully inside
+        // the board; bottom controls are visibly separated from them.
+        FixLevel3ForceSliderLayout();
+        var indicator=Find(board,"ForceValue")?.GetComponent<TMP_Text>();
+        if(indicator!=null)
+        {
+            indicator.rectTransform.anchoredPosition=new Vector2(0,-138);
+            indicator.rectTransform.sizeDelta=new Vector2(750,30);
+            indicator.fontSize=18;
+        }
+        var note=Find(board,"BindingNote")?.GetComponent<TMP_Text>();
+        if(note!=null)
+        {
+            note.rectTransform.anchoredPosition=new Vector2(0,-167);
+            note.rectTransform.sizeDelta=new Vector2(900,25);
+            note.fontSize=14;
+        }
+
+        var strip=Find(root,"Level3FeedbackStrip")?.GetComponent<Image>();
+        if(strip==null)
+        {
+            strip=Rect(root,"Level3FeedbackStrip",new Vector2(0,-235),
+                new Vector2(980,44),new Color32(12,57,85,255));
+            strip.transform.SetSiblingIndex(board.GetSiblingIndex()+1);
+        }
+        strip.rectTransform.anchorMin=strip.rectTransform.anchorMax=new Vector2(.5f,.5f);
+        strip.rectTransform.anchoredPosition=new Vector2(0,-235);
+        strip.rectTransform.sizeDelta=new Vector2(980,44);
+        strip.color=new Color32(12,57,85,255);
+        strip.raycastTarget=false;
+        var stripOutline=strip.GetComponent<Outline>();
+        if(stripOutline==null)stripOutline=strip.gameObject.AddComponent<Outline>();
+        stripOutline.effectColor=new Color32(36,191,211,205);
+        stripOutline.effectDistance=new Vector2(1,1);
+
+        var status=Find(root,"FeedbackText")?.GetComponent<TMP_Text>();
+        if(status!=null)
+        {
+            status.rectTransform.anchorMin=status.rectTransform.anchorMax=new Vector2(.5f,.5f);
+            status.rectTransform.anchoredPosition=new Vector2(0,-235);
+            status.rectTransform.sizeDelta=new Vector2(935,40);
+            status.enableAutoSizing=true;
+            status.fontSizeMin=13;
+            status.fontSizeMax=17;
+            status.color=Color.white;
+            status.alignment=TextAlignmentOptions.Center;
+            status.textWrappingMode=TextWrappingModes.Normal;
+        }
+        foreach(var spec in new[]{
+            new {Name="ResetButton",X=-144f,Width=220f},
+            new {Name="CheckButton",X=144f,Width=220f}})
+        {
+            var button=Find(root,spec.Name)?.GetComponent<RectTransform>();
+            if(button==null)continue;
+            button.anchorMin=button.anchorMax=new Vector2(.5f,.5f);
+            button.anchoredPosition=new Vector2(spec.X,-313);
+            button.sizeDelta=new Vector2(spec.Width,55);
         }
     }
 
