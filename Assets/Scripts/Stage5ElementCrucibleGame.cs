@@ -52,6 +52,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         if(GameObject.Find("Stage5Level"+Level+"Canvas")==null)BuildEditableUI();
         root=GameObject.Find("Stage5Level"+Level+"Canvas").transform;
         Bind();
+        if(Level==1)PolishStage5Level1Layout();
         RefreshEnergy();
     }
 
@@ -224,6 +225,160 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         Btn(emptyPanel.transform,"EmptyLevelButton","LEVEL SELECTION",
             new Vector2(0,-152),new Vector2(300,55),Teal);
         emptyPanel.SetActive(false);
+    }
+
+
+    // Polishes an existing serialized Stage5Level1 scene, so none of the
+    // gameplay components, drag targets, or scoring logic are replaced.
+    // Positions use the 1280x720 canvas reference resolution.
+    public void PolishStage5Level1Layout()
+    {
+        if(Level!=1)return;
+        Transform canvas=GameObject.Find("Stage5Level1Canvas")?.transform;
+        if(canvas==null)return;
+
+        // The illustrated background already contains the Stage 5 branding.
+        // Remove only duplicate floating headings that cover it.
+        foreach(string name in new[]{"StageText","LevelTitle","Instructions"})
+        {
+            Transform duplicate=Find(canvas,name);
+            if(duplicate!=null)duplicate.gameObject.SetActive(false);
+        }
+
+        Transform board=Find(canvas,"LabBoard");
+        SetRect(board,new Vector2(0,-24),new Vector2(1100,486));
+        Image boardImage=board?.GetComponent<Image>();
+        if(boardImage!=null)
+        {
+            boardImage.color=new Color32(15,40,71,255);
+            var outline=boardImage.GetComponent<Outline>();
+            if(outline==null)outline=boardImage.gameObject.AddComponent<Outline>();
+            outline.effectColor=new Color32(65,168,212,200);
+            outline.effectDistance=new Vector2(1.5f,1.5f);
+        }
+
+        var title=Find(board,"BoardTitle")?.GetComponent<TMP_Text>();
+        if(title!=null)
+        {
+            title.text="THERMAL RESISTANCE TRIAL";
+            title.fontStyle=FontStyles.Bold;
+            title.color=Gold;
+            title.fontSize=25;
+            SetRect(title.transform,new Vector2(0,200),new Vector2(920,43));
+        }
+        Transform prompt=Find(board,"Stage5Level1Prompt");
+        if(prompt==null)
+        {
+            var text=Txt(board,"Stage5Level1Prompt",
+                "Drag each unknown sample onto the heating bench. Apply heat and record evidence.",
+                16,new Vector2(0,164),new Vector2(1000,33),Color.white);
+            prompt=text.transform;
+        }
+        else
+        {
+            var text=prompt.GetComponent<TMP_Text>();
+            if(text!=null)text.text=
+                "Drag each unknown sample onto the heating bench. Apply heat and record evidence.";
+        }
+        SetRect(prompt,new Vector2(0,164),new Vector2(1000,33));
+
+        Transform bank=Find(board,"SampleBank");
+        SetRect(bank,new Vector2(-383,4),new Vector2(260,245));
+        SetRect(Find(bank,"BankLabel"),new Vector2(0,99),new Vector2(248,30));
+        for(int i=0;i<3;i++)
+            SetRect(Find(bank,"Sample"+i),
+                new Vector2(0,42-i*64),new Vector2(216,53));
+
+        Transform station=Find(board,"TestStation");
+        SetRect(station,new Vector2(-8,4),new Vector2(430,245));
+        SetRect(Find(station,"StationLabel"),new Vector2(0,78),new Vector2(405,39));
+        SetRect(Find(station,"SelectedSample"),new Vector2(0,10),new Vector2(410,48));
+        SetRect(Find(station,"ExperimentResult"),new Vector2(0,-65),new Vector2(410,58));
+        SetRect(Find(station,"TestIndicator"),new Vector2(0,-103),new Vector2(100,10));
+
+        Transform notebook=Find(board,"EvidenceBoard");
+        SetRect(notebook,new Vector2(392,4),new Vector2(244,245));
+        SetRect(Find(notebook,"EvidenceTitle"),new Vector2(0,98),new Vector2(235,32));
+        SetRect(Find(notebook,"EvidenceText"),new Vector2(0,-12),new Vector2(232,178));
+
+        // Place the slider and its fill/handle safely within the lab panel.
+        Transform heatCaption=Find(canvas,"HeatLabel");
+        SetRect(heatCaption,new Vector2(-364,-221),new Vector2(190,31));
+        if(heatCaption!=null)
+        {
+            var label=heatCaption.GetComponent<TMP_Text>();
+            if(label!=null){label.text="HEAT LEVEL";label.fontSize=16;}
+        }
+        Slider slider=Find(canvas,"HeatSlider")?.GetComponent<Slider>();
+        if(slider!=null)
+        {
+            SetRect(slider.transform,new Vector2(90,-221),new Vector2(650,45));
+            RectTransform track=Find(slider.transform,"Track")?.GetComponent<RectTransform>();
+            if(track!=null)
+            {
+                track.anchorMin=track.anchorMax=new Vector2(.5f,.5f);
+                track.pivot=new Vector2(.5f,.5f);
+                track.anchoredPosition=Vector2.zero;
+                track.sizeDelta=new Vector2(650,14);
+            }
+            RectTransform fill=slider.fillRect;
+            if(fill!=null)
+            {
+                fill.anchorMin=fill.anchorMax=new Vector2(0,.5f);
+                fill.pivot=new Vector2(0,.5f);
+                fill.anchoredPosition=Vector2.zero;
+                fill.sizeDelta=new Vector2(0,14);
+            }
+            RectTransform handle=slider.handleRect;
+            if(handle!=null)
+            {
+                handle.anchorMin=handle.anchorMax=new Vector2(0,.5f);
+                handle.pivot=new Vector2(.5f,.5f);
+                handle.anchoredPosition=Vector2.zero;
+                handle.sizeDelta=new Vector2(28,34);
+            }
+            slider.direction=Slider.Direction.LeftToRight;
+        }
+
+        // One action row well above the bottom edge, with progress between buttons.
+        SetRect(Find(canvas,"TestButton"),new Vector2(-326,-308),new Vector2(284,50));
+        SetRect(Find(canvas,"Progress"),new Vector2(0,-308),new Vector2(240,42));
+        SetRect(Find(canvas,"SubmitButton"),new Vector2(327,-308),new Vector2(283,50));
+        var submit=Find(canvas,"SubmitButton")?.GetComponentInChildren<TMP_Text>(true);
+        if(submit!=null)
+        {
+            submit.text="SUBMIT LAB RESULTS";
+            submit.enableAutoSizing=true;
+            submit.fontSizeMin=13;
+            submit.fontSizeMax=18;
+        }
+        var progressLabel=Find(canvas,"Progress")?.GetComponent<TMP_Text>();
+        if(progressLabel!=null)
+        {
+            progressLabel.fontSize=19;
+            progressLabel.fontStyle=FontStyles.Bold;
+        }
+
+        // Status line is positioned inside the lower edge of the workspace.
+        var feedbackText=Find(canvas,"Feedback")?.GetComponent<TMP_Text>();
+        if(feedbackText!=null)
+        {
+            SetRect(feedbackText.transform,new Vector2(0,-255),new Vector2(1010,27));
+            feedbackText.enableAutoSizing=true;
+            feedbackText.fontSizeMin=12;
+            feedbackText.fontSizeMax=16;
+        }
+    }
+
+    private static void SetRect(Transform target,Vector2 position,Vector2 size)
+    {
+        if(target==null)return;
+        var rect=target.GetComponent<RectTransform>();
+        if(rect==null)return;
+        rect.anchorMin=rect.anchorMax=new Vector2(.5f,.5f);
+        rect.pivot=new Vector2(.5f,.5f);
+        rect.anchoredPosition=position;
+        rect.sizeDelta=size;
     }
 
     private static Image Image(Transform parent,string name,Vector2 pos,Vector2 size,Color tint)
