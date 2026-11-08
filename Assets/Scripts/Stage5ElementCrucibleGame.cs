@@ -303,7 +303,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
 
         // Place the slider and its fill/handle safely within the lab panel.
         Transform heatCaption=Find(canvas,"HeatLabel");
-        SetRect(heatCaption,new Vector2(-364,-221),new Vector2(190,31));
+        SetRect(heatCaption,new Vector2(-367,-201),new Vector2(190,31));
         if(heatCaption!=null)
         {
             var label=heatCaption.GetComponent<TMP_Text>();
@@ -312,14 +312,14 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         Slider slider=Find(canvas,"HeatSlider")?.GetComponent<Slider>();
         if(slider!=null)
         {
-            SetRect(slider.transform,new Vector2(90,-221),new Vector2(650,45));
+            SetRect(slider.transform,new Vector2(65,-201),new Vector2(600,45));
             RectTransform track=Find(slider.transform,"Track")?.GetComponent<RectTransform>();
             if(track!=null)
             {
                 track.anchorMin=track.anchorMax=new Vector2(.5f,.5f);
                 track.pivot=new Vector2(.5f,.5f);
                 track.anchoredPosition=Vector2.zero;
-                track.sizeDelta=new Vector2(650,14);
+                track.sizeDelta=new Vector2(600,14);
             }
             RectTransform fill=slider.fillRect;
             if(fill!=null)
@@ -340,10 +340,36 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
             slider.direction=Slider.Direction.LeftToRight;
         }
 
-        // One action row well above the bottom edge, with progress between buttons.
-        SetRect(Find(canvas,"TestButton"),new Vector2(-326,-308),new Vector2(284,50));
-        SetRect(Find(canvas,"Progress"),new Vector2(0,-308),new Vector2(240,42));
-        SetRect(Find(canvas,"SubmitButton"),new Vector2(327,-308),new Vector2(283,50));
+        // Show the actual slider setting as a percentage (not a temperature).
+        // The experiment currently uses a 0-100 relative heat input.
+        Transform readout=Find(canvas,"HeatValueText");
+        if(readout==null)
+            readout=Txt(canvas,"HeatValueText","HEAT: 0%",16,
+                new Vector2(445,-201),new Vector2(120,33),Gold).transform;
+        SetRect(readout,new Vector2(445,-201),new Vector2(120,33));
+        var valueText=readout.GetComponent<TMP_Text>();
+        if(valueText!=null && slider!=null)
+            valueText.text="HEAT: "+Mathf.RoundToInt(slider.value)+"%";
+
+        // Raise the action row and give progress its own dark plate.
+        const float actionY=-288f;
+        Transform progressPlate=Find(canvas,"Level1ProgressPlate");
+        if(progressPlate==null)
+        {
+            var image=Image(canvas,"Level1ProgressPlate",new Vector2(0,actionY),
+                new Vector2(240,50),new Color32(10,34,63,255));
+            image.raycastTarget=false;
+            progressPlate=image.transform;
+            var edge=image.gameObject.AddComponent<Outline>();
+            edge.effectColor=new Color32(55,183,223,255);
+            edge.effectDistance=new Vector2(1,1);
+        }
+        SetRect(progressPlate,new Vector2(0,actionY),new Vector2(240,50));
+        // Behind the progress text and controls, but in front of the background.
+        progressPlate.SetSiblingIndex(Mathf.Max(0,Find(canvas,"LabBoard").GetSiblingIndex()+1));
+        SetRect(Find(canvas,"TestButton"),new Vector2(-326,actionY),new Vector2(284,50));
+        SetRect(Find(canvas,"Progress"),new Vector2(0,actionY),new Vector2(240,42));
+        SetRect(Find(canvas,"SubmitButton"),new Vector2(327,actionY),new Vector2(283,50));
         var submit=Find(canvas,"SubmitButton")?.GetComponentInChildren<TMP_Text>(true);
         if(submit!=null)
         {
@@ -363,7 +389,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         var feedbackText=Find(canvas,"Feedback")?.GetComponent<TMP_Text>();
         if(feedbackText!=null)
         {
-            SetRect(feedbackText.transform,new Vector2(0,-255),new Vector2(1010,27));
+            SetRect(feedbackText.transform,new Vector2(0,-244),new Vector2(1010,24));
             feedbackText.enableAutoSizing=true;
             feedbackText.fontSizeMin=12;
             feedbackText.fontSizeMax=16;
@@ -458,6 +484,12 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         resultLabel=Find(root,"ExperimentResult")?.GetComponent<TMP_Text>();
         evidenceText=Find(root,"EvidenceText")?.GetComponent<TMP_Text>();
         heat=Find(root,"HeatSlider")?.GetComponent<Slider>();
+        if(Level==1 && heat!=null)
+        {
+            heat.onValueChanged.RemoveListener(UpdateHeatReadout);
+            heat.onValueChanged.AddListener(UpdateHeatReadout);
+            UpdateHeatReadout(heat.value);
+        }
         pausePanel=Find(root,"PauseMenuPanel")?.gameObject;
         if(pausePanel==null)pausePanel=Find(root,"PausePanel")?.gameObject;
         failPanel=Find(root,"FailedPanel")?.gameObject;
@@ -560,6 +592,13 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         SetIndicator(new Color32(70,90,120,255));
         if(feedback!=null)feedback.text="Sample "+samples[index]+" placed on workbench.";
     }
+    private void UpdateHeatReadout(float level)
+    {
+        if(Level!=1 || root==null)return;
+        var label=Find(root,"HeatValueText")?.GetComponent<TMP_Text>();
+        if(label!=null)label.text="HEAT: "+Mathf.RoundToInt(level)+"%";
+    }
+
     private void ApplyHeat()
     {
         if(!CanInteract||Level!=1)return;
