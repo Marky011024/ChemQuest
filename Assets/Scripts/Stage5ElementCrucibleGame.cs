@@ -51,8 +51,8 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         if(EnergyManager.Instance==null)new GameObject("SharedEnergyManager",typeof(EnergyManager));
         if(GameObject.Find("Stage5Level"+Level+"Canvas")==null)BuildEditableUI();
         root=GameObject.Find("Stage5Level"+Level+"Canvas").transform;
-        Bind();
         if(Level==1)PolishStage5Level1Layout();
+        Bind();
         RefreshEnergy();
     }
 
