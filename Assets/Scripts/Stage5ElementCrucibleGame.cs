@@ -352,23 +352,23 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
             valueText.text="HEAT: "+Mathf.RoundToInt(slider.value)+"%";
 
         // Raise the action row and give progress its own dark plate.
-        const float actionY=-288f;
+        const float actionY=-304f;
         Transform progressPlate=Find(canvas,"Level1ProgressPlate");
         if(progressPlate==null)
         {
             var image=Image(canvas,"Level1ProgressPlate",new Vector2(0,actionY),
-                new Vector2(240,50),new Color32(10,34,63,255));
+                new Vector2(300,50),new Color32(10,34,63,255));
             image.raycastTarget=false;
             progressPlate=image.transform;
             var edge=image.gameObject.AddComponent<Outline>();
             edge.effectColor=new Color32(55,183,223,255);
             edge.effectDistance=new Vector2(1,1);
         }
-        SetRect(progressPlate,new Vector2(0,actionY),new Vector2(240,50));
+        SetRect(progressPlate,new Vector2(0,actionY),new Vector2(300,50));
         // Behind the progress text and controls, but in front of the background.
         progressPlate.SetSiblingIndex(Mathf.Max(0,Find(canvas,"LabBoard").GetSiblingIndex()+1));
         SetRect(Find(canvas,"TestButton"),new Vector2(-326,actionY),new Vector2(284,50));
-        SetRect(Find(canvas,"Progress"),new Vector2(0,actionY),new Vector2(240,42));
+        SetRect(Find(canvas,"Progress"),new Vector2(0,actionY),new Vector2(292,42));
         SetRect(Find(canvas,"SubmitButton"),new Vector2(327,actionY),new Vector2(283,50));
         var submit=Find(canvas,"SubmitButton")?.GetComponentInChildren<TMP_Text>(true);
         if(submit!=null)
@@ -381,18 +381,40 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         var progressLabel=Find(canvas,"Progress")?.GetComponent<TMP_Text>();
         if(progressLabel!=null)
         {
-            progressLabel.fontSize=19;
+            progressLabel.fontSize=17;
             progressLabel.fontStyle=FontStyles.Bold;
+            progressLabel.enableAutoSizing=true;
+            progressLabel.fontSizeMin=15;
+            progressLabel.fontSizeMax=17;
+            progressLabel.textWrappingMode=TextWrappingModes.NoWrap;
         }
 
-        // Status line is positioned inside the lower edge of the workspace.
+        // Dedicated lower workbench strip: not part of the action button row.
+        Transform instructionStrip=Find(canvas,"Level1InstructionStrip");
+        if(instructionStrip==null)
+        {
+            var background=Image(canvas,"Level1InstructionStrip",
+                new Vector2(0,-243),new Vector2(930,31),
+                new Color32(10,34,63,255));
+            background.raycastTarget=false;
+            instructionStrip=background.transform;
+            var line=background.gameObject.AddComponent<Outline>();
+            line.effectColor=new Color32(39,143,183,190);
+            line.effectDistance=new Vector2(1,1);
+        }
+        SetRect(instructionStrip,new Vector2(0,-243),new Vector2(930,31));
+        instructionStrip.GetComponent<Image>().raycastTarget=false;
+        instructionStrip.SetSiblingIndex(
+            Mathf.Max(0,Find(canvas,"LabBoard").GetSiblingIndex()+1));
+
         var feedbackText=Find(canvas,"Feedback")?.GetComponent<TMP_Text>();
         if(feedbackText!=null)
         {
-            SetRect(feedbackText.transform,new Vector2(0,-244),new Vector2(1010,24));
+            SetRect(feedbackText.transform,new Vector2(0,-243),new Vector2(890,27));
             feedbackText.enableAutoSizing=true;
             feedbackText.fontSizeMin=12;
             feedbackText.fontSizeMax=16;
+            feedbackText.textWrappingMode=TextWrappingModes.NoWrap;
         }
     }
 
