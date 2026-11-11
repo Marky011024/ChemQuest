@@ -52,6 +52,7 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         EnsureDragAndDropUI();
         PolishTopInstructions();
         EnsureBowLearningCheck();
+        PolishModalLayering();
         RefreshEnergy();
         UpdateOutOfEnergyUI();
     }
@@ -565,6 +566,7 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
             PlayerPrefs.SetInt("Stage3Level3Unlocked",1);
             PlayerPrefs.Save();
             completionPanel.SetActive(true);
+            completionPanel.transform.SetAsLastSibling();
             return;
         }
         WrongAttempt();
@@ -666,6 +668,38 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         else {bowPanel.SetActive(false);CheckAnswer();}
     }
 
+    // Full-screen opaque modals prevent the completed electron slots,
+    // bottom feedback and buttons from showing through the BOW / success card.
+    // This also fixes older serialized scenes without requiring a rebuild.
+    private void PolishModalLayering()
+    {
+        foreach(var panel in new[]{bowPanel,completionPanel,failurePanel,pausePanel,outOfEnergyPanel})
+        {
+            if(panel==null)continue;
+            var rect=panel.GetComponent<RectTransform>();
+            if(rect!=null)
+            {
+                rect.anchorMin=Vector2.zero;
+                rect.anchorMax=Vector2.one;
+                rect.offsetMin=Vector2.zero;
+                rect.offsetMax=Vector2.zero;
+            }
+            var background=panel.GetComponent<Image>();
+            if(background!=null)
+            {
+                background.color=new Color32(8,20,42,255);
+                background.raycastTarget=true;
+            }
+            // Keep only the inner dialog card visible above an opaque mask.
+            var card=FindUI(panel.transform,"Panel");
+            if(card!=null)
+            {
+                var cardImage=card.GetComponent<Image>();
+                if(cardImage!=null)cardImage.color=new Color32(24,49,80,255);
+            }
+        }
+    }
+
     private void WrongAttempt()
     {
         if(!CanPlay())return;
@@ -684,7 +718,11 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
             EnergyManager.Instance.LoseEnergy();
             RefreshEnergy();
             if(retryButton!=null)retryButton.interactable=EnergyManager.Instance.HasEnergy;
-            if(failurePanel!=null)failurePanel.SetActive(true);
+            if(failurePanel!=null)
+            {
+                failurePanel.SetActive(true);
+                failurePanel.transform.SetAsLastSibling();
+            }
             UpdateOutOfEnergyUI();
         }
     }
