@@ -36,18 +36,34 @@ public static class Stage5Level2LayoutFix
         Place(board, 0, -12, 1080, 462);
         Hide(root, "StageText");
         Hide(root, "BoardTitle");
-        Place(root, "LevelTitle", 0, 180, 950, 44);
-        SetText(root, "LevelTitle", "HARDNESS & DUCTILITY ASSAY", 29);
-        Place(root, "Instructions", 0, 142, 980, 43);
-        SetText(root, "Instructions", "Drag a sample to the bench. Use STRIKE and PRESS to compare its behavior.", 17);
+        // Render the heading and instructions as topmost children of the board.
+        // Previously they were behind the board Image, so they disappeared.
+        var title = Find(root, "LevelTitle");
+        var instructions = Find(root, "Instructions");
+        if (title != null)
+        {
+            title.SetParent(board, false);
+            title.gameObject.SetActive(true);
+            Place(title, 0, 191, 980, 43);
+            SetText(board, "LevelTitle", "HARDNESS & DUCTILITY ASSAY", 29);
+            title.SetAsLastSibling();
+        }
+        if (instructions != null)
+        {
+            instructions.SetParent(board, false);
+            instructions.gameObject.SetActive(true);
+            Place(instructions, 0, 151, 960, 37);
+            SetText(board, "Instructions", "Drag a sample to the bench. Use STRIKE and PRESS to compare its behavior.", 17);
+            instructions.SetAsLastSibling();
+        }
         Place(board, "SampleBank", -340, -40, 260, 258);
         Place(board, "TestStation", 35, -34, 430, 258);
         Place(board, "EvidenceBoard", 385, -40, 230, 258);
         Place(root, "MenuButton", -535, 294, 105, 40);
-        Place(root, "StrikeButton", -158, -269, 258, 47);
-        Place(root, "PressButton", 155, -269, 258, 47);
-        Place(root, "Progress", -210, -309, 330, 31);
-        Place(root, "SubmitButton", 408, -308, 246, 46);
+        Place(root, "StrikeButton", -158, -255, 258, 46);
+        Place(root, "PressButton", 155, -255, 258, 46);
+        Place(root, "Progress", -210, -299, 330, 31);
+        Place(root, "SubmitButton", 408, -298, 246, 44);
         SetText(root, "SubmitButton", "SUBMIT LAB RESULTS", 16);
 
         var strip = Find(root, "Level2FeedbackStrip");
@@ -60,12 +76,12 @@ public static class Stage5Level2LayoutFix
             img.color = new Color32(8, 29, 51, 245);
             img.raycastTarget = false;
         }
-        Place(strip, 0, -342, 1010, 30);
+        Place(strip, 0, -335, 1010, 29);
         var feedback = Find(root, "Feedback");
         if (feedback != null)
         {
             strip.SetSiblingIndex(feedback.GetSiblingIndex());
-            Place(feedback, 0, -342, 985, 27);
+            Place(feedback, 0, -335, 985, 27);
             SetText(root, "Feedback", null, 14);
         }
         EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
