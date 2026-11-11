@@ -261,8 +261,37 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
                 int.TryParse(drag.name.Substring(8),out int id) && id<=5);
             dragElectrons.Add(drag);
         }
+        // Bottom layout polish (also applies to existing serialized scenes).
+        // Keep the draggable electron bank, feedback, and buttons in distinct rows.
+        var bankRect=bank.GetComponent<RectTransform>();
+        if(bankRect!=null)
+        {
+            bankRect.anchoredPosition=new Vector2(0,-239);
+            bankRect.sizeDelta=new Vector2(810,42);
+        }
         var feedback=FindUI(root,"Feedback")?.GetComponent<RectTransform>();
-        if(feedback!=null)feedback.anchoredPosition=new Vector2(0,-282);
+        if(feedback!=null)
+        {
+            feedback.anchoredPosition=new Vector2(0,-282);
+            feedback.sizeDelta=new Vector2(1000,24);
+            var feedbackLabel=feedback.GetComponent<TMP_Text>();
+            if(feedbackLabel!=null)
+            {
+                feedbackLabel.fontSize=16;
+                feedbackLabel.alignment=TextAlignmentOptions.Center;
+                feedbackLabel.textWrappingMode=TextWrappingModes.NoWrap;
+                feedbackLabel.overflowMode=TextOverflowModes.Ellipsis;
+            }
+        }
+        foreach(var buttonName in new[]{"ResetButton","CheckButton"})
+        {
+            var rect=FindUI(root,buttonName)?.GetComponent<RectTransform>();
+            if(rect!=null)
+            {
+                rect.anchoredPosition=new Vector2(buttonName=="ResetButton"?-270:0,-330);
+                rect.sizeDelta=new Vector2(buttonName=="ResetButton"?180:260,44);
+            }
+        }
         var instruction=FindUI(root,"Instructions")?.GetComponent<TMP_Text>();
         if(instruction!=null)
             instruction.text="Drag 5 blue N electrons and 3 yellow H electrons.\nEach N-H bond needs N+H; the lone pair needs N+N.";
