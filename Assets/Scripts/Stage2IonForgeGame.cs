@@ -22,6 +22,10 @@ public class Stage2IonForgeGame : MonoBehaviour
     private Button retryButton;
     private int accepted,mistakes;
     private int variant=-1;
+    // BOW checks run only after the two original ionic-transfer puzzles are finished.
+    private int bowCheckIndex=-1;
+    private GameObject bowCheckPanel;
+    private TMP_Text bowCheckQuestion;
 
     private readonly bool[] finishedVariants=new bool[2];
     private TMP_Text titleLabel,instructionLabel,donorSymbol,acceptorSymbol,transferExplanation;
@@ -471,7 +475,11 @@ public class Stage2IonForgeGame : MonoBehaviour
         if(scoreText!=null)scoreText.text="SCORE\\n000000";
         if(progressText!=null)progressText.text="PROGRESS  0 / "+Needed;
         if(feedback!=null)feedback.text=Level<3?"SELECT THE ATOMS, THEN DRAG FROM THE DONOR OUTER SHELL INTO THE ACCEPTOR OUTER SHELL.":"Fill the 12 slots, then press FORM BOND to check your answer.";
-        if(Level<3)RefreshVariant();
+        if(Level<3)
+        {
+            RefreshVariant();
+            PrepareBowCheck(t);
+        }
     }
     // Editor-safe: upgrade existing saved scenes without deleting their UI or progress.
     public void UpgradeChallengeUI()
@@ -830,6 +838,11 @@ public class Stage2IonForgeGame : MonoBehaviour
                 return;
             }
         }
+        if(Level<3 && bowCheckIndex<0)
+        {
+            BeginBowCheck();
+            return;
+        }
         completed=true;
         var completionEffect=FindFirstObjectByType<ChemQuestReactionEffects>();
         if(completionEffect!=null)completionEffect.BondFormed(Level==3?"NaCl LATTICE":"OCTET COMPLETE");
@@ -848,6 +861,115 @@ public class Stage2IonForgeGame : MonoBehaviour
         if(scoreText!=null)scoreText.text="SCORE\\n"+score.ToString("D6");
         if(finalScore!=null)finalScore.text="FINAL SCORE: "+score.ToString("D6");
         if(completedPanel!=null){completedPanel.SetActive(true);completedPanel.transform.SetAsLastSibling();}
+    }
+    // Curriculum-focused assessment; the existing electron-transfer gameplay remains intact.
+    // Questions are shown after forming both compounds, before score/unlock are saved.
+    private void PrepareBowCheck(Transform canvas)
+    {
+        bowCheckIndex=-1;
+        bowCheckPanel=Find(canvas,"Stage2BowCheckPanel")?.gameObject;
+        if(bowCheckPanel==null)
+        {
+            var overlay=Image(canvas,"Stage2BowCheckPanel",Vector2.zero,
+                new Vector2(1280,720),new Color32(5,13,28,235));
+            var rect=overlay.rectTransform;
+            rect.anchorMin=Vector2.zero;
+            rect.anchorMax=Vector2.one;
+            rect.offsetMin=Vector2.zero;
+            rect.offsetMax=Vector2.zero;
+            bowCheckPanel=overlay.gameObject;
+            var card=Image(overlay.transform,"BowCheckCard",Vector2.zero,
+                new Vector2(860,390),Panel);
+            card.raycastTarget=false;
+            Label(overlay.transform,"BowCheckHeading","BOW LEARNING CHECK",30,
+                new Vector2(0,128),new Vector2(720,55),Gold);
+            Label(overlay.transform,"BowCheckInstruction",
+                "Answer both questions to complete this ionic-bonding level.",19,
+                new Vector2(0,72),new Vector2(780,46),Blue);
+            Label(overlay.transform,"BowCheckQuestion","",23,
+                new Vector2(0,6),new Vector2(780,70),Color.white);
+            Button(overlay.transform,"BowAnswerA","OPTION A",new Vector2(-200,-105),
+                new Vector2(350,65),new Color32(23,128,145,255));
+            Button(overlay.transform,"BowAnswerB","OPTION B",new Vector2(200,-105),
+                new Vector2(350,65),new Color32(45,83,123,255));
+        }
+        bowCheckQuestion=Find(bowCheckPanel.transform,"BowCheckQuestion")?.GetComponent<TMP_Text>();
+        Wire(bowCheckPanel.transform,"BowAnswerA",()=>SubmitBowAnswer(0));
+        Wire(bowCheckPanel.transform,"BowAnswerB",()=>SubmitBowAnswer(1));
+        bowCheckPanel.SetActive(false);
+    }
+    private void BeginBowCheck()
+    {
+        if(bowCheckPanel==null)
+        {
+            // Fail open for older or modified scenes rather than blocking progress.
+            bowCheckIndex=2;
+            CheckAnswer();
+            return;
+        }
+        bowCheckIndex=0;
+        UpdateBowCheck();
+        bowCheckPanel.SetActive(true);
+        bowCheckPanel.transform.SetAsLastSibling();
+    }
+    private void UpdateBowCheck()
+    {
+        if(bowCheckQuestion==null || bowCheckPanel==null)return;
+        string question;
+        string answerA;
+        string answerB;
+        if(Level==1 && bowCheckIndex==0)
+        {
+            question="From its periodic-table group, how many valence electrons does sodium (Na) have?";
+            answerA="1 valence electron";answerB="7 valence electrons";
+        }
+        else if(Level==1)
+        {
+            question="What is the correct formula and name for potassium chloride?";
+            answerA="KCl - potassium chloride";answerB="K2Cl - potassium chloride";
+        }
+        else if(bowCheckIndex==0)
+        {
+            question="How many valence electrons does magnesium (Mg) have?";
+            answerA="2 valence electrons";answerB="6 valence electrons";
+        }
+        else
+        {
+            question="Which formula and name describe magnesium chloride?";
+            answerA="MgCl - magnesium chloride";answerB="MgCl2 - magnesium chloride";
+        }
+        bowCheckQuestion.text=question;
+        var a=Find(bowCheckPanel.transform,"BowAnswerA")?.GetComponentInChildren<TMP_Text>(true);
+        var b=Find(bowCheckPanel.transform,"BowAnswerB")?.GetComponentInChildren<TMP_Text>(true);
+        if(a!=null)a.text=answerA;
+        if(b!=null)b.text=answerB;
+    }
+    private void SubmitBowAnswer(int chosen)
+    {
+        if(!CanInteract || bowCheckIndex<0 || bowCheckIndex>=2)return;
+        int correct=(Level==2 && bowCheckIndex==1)?1:0;
+        if(chosen!=correct)
+        {
+            WrongAttempt(); // Reuse the original two-strike and energy policy.
+            if(failed)
+            {
+                bowCheckPanel.SetActive(false);
+                if(failedPanel!=null)failedPanel.transform.SetAsLastSibling();
+            }
+            else if(bowCheckQuestion!=null)
+            {
+                bowCheckQuestion.text="HINT: Use the element's group and balance the ion charges. Try again!";
+            }
+            return;
+        }
+        bowCheckIndex++;
+        if(bowCheckIndex<2)
+        {
+            UpdateBowCheck();
+            return;
+        }
+        bowCheckPanel.SetActive(false);
+        CheckAnswer(); // Re-enter the original success, score and unlock path.
     }
     private void Reset()
     {
