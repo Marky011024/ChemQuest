@@ -64,11 +64,17 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         var existing = GameObject.Find("Stage3Level2GeneratedCanvas");
         if(existing==null) BuildUI();
         EnsureDragAndDropUI();
+        // Apply the same UI adjustments in Edit Mode so the actual saved
+        // objects match the Game view and remain inspectable before Play.
+        PolishTopInstructions();
+        EnsureBowLearningCheck();
+        PolishModalLayering();
         var root=GameObject.Find("Stage3Level2GeneratedCanvas");
         if(root!=null)
         {
-            // The first load of this scene starts with panels closed.
-            foreach(var n in new[]{"Level2FailedPanel","Level2CompletePanel","PauseMenuPanel","OutOfEnergyPanel"})
+            // Keep popup objects serialized in the hierarchy but initially hidden.
+            foreach(var n in new[]{"Level2FailedPanel","Level2CompletePanel",
+                "PauseMenuPanel","OutOfEnergyPanel","Stage3Level2BowPanel"})
             {
                 var child=FindUI(root.transform,n);
                 if(child!=null)child.gameObject.SetActive(false);
