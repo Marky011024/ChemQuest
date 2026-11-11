@@ -427,15 +427,31 @@ public class Stage3Level3Game : MonoBehaviour
         // Explicit, repeatable draw order. A newer full-size Image (footer or
         // workbench) must never be allowed to cover electron tokens or buttons.
         // Keep decorative images behind both puzzle canvases. Keep modals on top.
-        foreach(var name in new[]{"Background","Stage3ReferenceWorkbench",
+        // Explicitly include the shared-energy icons and pause button.
+        // These were omitted in the previous ordering and became hidden behind
+        // the opaque decorative workbench after applying the reference design.
+        var order=new List<string>{"Background","Stage3ReferenceWorkbench",
             "BottomActionFooter","OxygenPuzzle","CarbonDioxidePuzzle",
-            "StageTitle","LevelTitle","ScoreText","EnergyHeading","EnergyCount",
-            "FeedbackText","ResetButton","CheckButton",
-            "PauseMenuPanel","FailedPanel","OxygenCompletePanel",
-            "Stage3CompletePanel","OutOfEnergyPanel","Stage3BowLearningCheck"})
+            "StageTitle","LevelTitle","FeedbackText","ResetButton","CheckButton",
+            "EnergyHeading","EnergyCount","ScoreText"};
+        for(int i=1;i<=5;i++)order.Add("Energy"+i);
+        order.Add("Level3PauseButton");
+        // Every modal remains above the gameplay and HUD.
+        order.AddRange(new[]{"PauseMenuPanel","FailedPanel","OxygenCompletePanel",
+            "Stage3CompletePanel","OutOfEnergyPanel","Stage3BowLearningCheck"});
+        foreach(var name in order)
         {
             var item=Find(root,name);
             if(item!=null && item.parent==root)item.SetAsLastSibling();
+        }
+        // Keep HUD icons and pause control enabled in the saved scene. Energy
+        //Manager.UpdateEnergy() still decides which icons are visible at runtime.
+        var pauseControl=Find(root,"Level3PauseButton");
+        if(pauseControl!=null)pauseControl.gameObject.SetActive(true);
+        for(int i=1;i<=5;i++)
+        {
+            var energyIcon=Find(root,"Energy"+i);
+            if(energyIcon!=null)energyIcon.gameObject.SetActive(true);
         }
     }
 
