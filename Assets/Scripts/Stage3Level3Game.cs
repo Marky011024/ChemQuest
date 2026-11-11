@@ -252,6 +252,7 @@ public class Stage3Level3Game : MonoBehaviour
             instruction.anchoredPosition=new Vector2(0,-245);
             instruction.sizeDelta=new Vector2(1050,36);
         }
+        ApplyReferenceStyle(root.transform);
         var background=Find(root.transform,"Background")?.GetComponent<RectTransform>();
         if(background!=null)
         {
@@ -259,6 +260,171 @@ public class Stage3Level3Game : MonoBehaviour
             background.anchorMax=Vector2.one;
             background.offsetMin=Vector2.zero;
             background.offsetMax=Vector2.zero;
+        }
+    }
+
+    // Stage 3 Level 3 visual polish based on the approved CHEMQUEST mockup.
+    // Idempotent and Editor-safe: every styled element is saved in the scene
+    // by Tools > ChemQuest > Stage 3 > Fix Level 3 Canvas and Save Hierarchy.
+    private void ApplyReferenceStyle(Transform root)
+    {
+        var navy=new Color32(9,30,63,255);
+        var cyan=new Color32(42,205,249,255);
+        var teal=new Color32(13,164,166,255);
+        var pale=new Color32(214,230,251,255);
+        var workbench=Find(root,"Stage3ReferenceWorkbench");
+        if(workbench==null)
+        {
+            var created=Image(root,"Stage3ReferenceWorkbench",
+                new Vector2(0,-66),new Vector2(1084,572),navy);
+            created.raycastTarget=false;
+            workbench=created.transform;
+        }
+        var wbRect=workbench.GetComponent<RectTransform>();
+        if(wbRect!=null)
+        {
+            wbRect.anchoredPosition=new Vector2(0,-66);
+            wbRect.sizeDelta=new Vector2(1084,572);
+        }
+        DecorateGraphic(workbench.gameObject,navy,cyan,3f,false);
+        // Background is below both molecule boards and all modal panels.
+        var oxygen=Find(root,"OxygenPuzzle");
+        var carbon=Find(root,"CarbonDioxidePuzzle");
+        if(oxygen!=null && carbon!=null)
+            workbench.SetSiblingIndex(Math.Min(oxygen.GetSiblingIndex(),carbon.GetSiblingIndex()));
+        foreach(var puzzleName in new[]{"OxygenPuzzle","CarbonDioxidePuzzle"})
+        {
+            var board=Find(root,puzzleName);
+            if(board==null)continue;
+            // Transparent working area over the framed navy reference board.
+            var boardImage=board.GetComponent<Image>();
+            if(boardImage!=null)
+            {
+                boardImage.color=new Color32(9,30,63,0);
+                boardImage.raycastTarget=false;
+            }
+            var heading=Find(board,"PuzzleTitle")?.GetComponent<TMP_Text>();
+            if(heading!=null)
+            {
+                heading.fontSize=25;
+                heading.fontStyle=FontStyles.Bold;
+                heading.color=cyan;
+            }
+            foreach(var zone in board.GetComponentsInChildren<Stage3Level3PairDropZone>(true))
+            {
+                var graphic=zone.GetComponent<Image>();
+                if(graphic!=null)
+                {
+                    graphic.color=new Color32(32,79,111,255);
+                    graphic.raycastTarget=true;
+                    var border=zone.GetComponent<Outline>();
+                    if(border==null)border=zone.gameObject.AddComponent<Outline>();
+                    border.effectColor=cyan;
+                    border.effectDistance=new Vector2(2,-2);
+                    border.useGraphicAlpha=false;
+                }
+                var label=zone.GetComponentInChildren<TMP_Text>(true);
+                if(label!=null){label.fontSize=24;label.color=Gold;}
+            }
+            foreach(var drag in board.GetComponentsInChildren<Stage3Level3PairDrag>(true))
+            {
+                var token=drag.GetComponent<Image>();
+                if(token==null)continue;
+                token.color=drag.IsBondPair?new Color32(36,159,223,255):
+                    new Color32(249,180,51,255);
+                var border=drag.GetComponent<Outline>();
+                if(border==null)border=drag.gameObject.AddComponent<Outline>();
+                border.effectColor=drag.IsBondPair?
+                    new Color32(104,226,255,255):new Color32(255,223,132,255);
+                border.effectDistance=new Vector2(2,-2);
+                border.useGraphicAlpha=false;
+            }
+            var bank=Find(board,puzzleName=="OxygenPuzzle"?"O2ElectronBank":"CO2ElectronBank");
+            if(bank!=null)
+            {
+                var img=bank.GetComponent<Image>();
+                if(img!=null)img.color=new Color32(6,24,52,255);
+                DecorateGraphic(bank.gameObject,new Color32(6,24,52,255),
+                    new Color32(35,133,186,255),1.5f,false);
+                var bankLabel=Find(bank,"BankTitle")?.GetComponent<TMP_Text>();
+                if(bankLabel!=null)
+                {
+                    bankLabel.fontSize=16;
+                    bankLabel.fontStyle=FontStyles.Bold;
+                    bankLabel.color=pale;
+                }
+            }
+            var legend=Find(board,"BankLegend")?.GetComponent<TMP_Text>();
+            if(legend!=null){legend.fontSize=15;legend.color=pale;}
+        }
+        // Put the game feedback and action buttons on a single unified card.
+        var footer=Find(root,"BottomActionFooter");
+        if(footer!=null)
+        {
+            var footerRect=footer.GetComponent<RectTransform>();
+            if(footerRect!=null)
+            {
+                footerRect.anchoredPosition=new Vector2(0,-289);
+                footerRect.sizeDelta=new Vector2(1050,124);
+            }
+            var image=footer.GetComponent<Image>();
+            if(image!=null){image.color=navy;image.raycastTarget=false;}
+        }
+        var instruction=Find(root,"FeedbackText")?.GetComponent<TMP_Text>();
+        if(instruction!=null)
+        {
+            instruction.fontSize=15;
+            instruction.fontStyle=FontStyles.Bold;
+            instruction.color=Gold;
+            instruction.alignment=TextAlignmentOptions.Center;
+        }
+        foreach(var buttonName in new[]{"ResetButton","CheckButton"})
+        {
+            var button=Find(root,buttonName);
+            if(button==null)continue;
+            var rect=button.GetComponent<RectTransform>();
+            if(rect!=null)
+            {
+                rect.anchoredPosition=new Vector2(buttonName=="ResetButton"?-155:155,-299);
+                rect.sizeDelta=new Vector2(290,52);
+            }
+            var baseColor=buttonName=="ResetButton"?
+                new Color32(70,97,143,255):teal;
+            DecorateGraphic(button.gameObject,baseColor,
+                buttonName=="ResetButton"?new Color32(152,184,227,255):
+                    new Color32(58,241,240,255),2f,true);
+            var label=button.GetComponentInChildren<TMP_Text>(true);
+            if(label!=null)
+            {
+                label.fontSize=20;
+                label.fontStyle=FontStyles.Bold;
+                label.color=Color.white;
+            }
+        }
+    }
+
+    private void DecorateGraphic(GameObject obj,Color fill,Color border,
+        float thickness,bool withShadow)
+    {
+        var graphic=obj.GetComponent<Image>();
+        if(graphic==null)return;
+        graphic.color=fill;
+        var outline=obj.GetComponent<Outline>();
+        if(outline==null)outline=obj.AddComponent<Outline>();
+        outline.effectColor=border;
+        outline.effectDistance=new Vector2(thickness,-thickness);
+        outline.useGraphicAlpha=false;
+        if(withShadow)
+        {
+            var shadow=obj.GetComponent<Shadow>();
+            // Outline derives from Shadow; GetComponent<Shadow> may return the
+            // Outline itself. Only add a separate shadow when one is absent.
+            if(shadow==null)
+            {
+                shadow=obj.AddComponent<Shadow>();
+                shadow.effectColor=new Color32(0,9,27,170);
+                shadow.effectDistance=new Vector2(0,-4);
+            }
         }
     }
 
