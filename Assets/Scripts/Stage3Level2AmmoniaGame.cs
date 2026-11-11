@@ -274,12 +274,14 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         {
             // Put the instruction between the H atom and the four drop zones,
             // away from the electron bank and bottom action buttons.
-            feedback.anchoredPosition=new Vector2(0,-164);
-            feedback.sizeDelta=new Vector2(1000,26);
+            // H-bottom glyph ends near Y=-120 and slot tops start at Y=-156.
+            // Center the short hint at -138 so neither element is covered.
+            feedback.anchoredPosition=new Vector2(0,-138);
+            feedback.sizeDelta=new Vector2(1000,22);
             var feedbackLabel=feedback.GetComponent<TMP_Text>();
             if(feedbackLabel!=null)
             {
-                feedbackLabel.fontSize=16;
+                feedbackLabel.fontSize=14;
                 feedbackLabel.alignment=TextAlignmentOptions.Center;
                 feedbackLabel.textWrappingMode=TextWrappingModes.NoWrap;
                 feedbackLabel.overflowMode=TextOverflowModes.Ellipsis;
