@@ -43,6 +43,7 @@ public class Stage3Level3Game : MonoBehaviour
         if(EnergyManager.Instance==null)
             new GameObject("SharedEnergyManager",typeof(EnergyManager));
         if(GameObject.Find("Stage3Level3Canvas")==null) BuildInEditor();
+        RepairCanvasLayout();
         BindScene();
         UpdateEnergy();
     }
@@ -50,7 +51,11 @@ public class Stage3Level3Game : MonoBehaviour
     // Called by the Unity Editor builder: creates *saved* Hierarchy objects before Play.
     public void BuildInEditor()
     {
-        if(GameObject.Find("Stage3Level3Canvas")!=null) return; // preserve manual layout edits
+        if(GameObject.Find("Stage3Level3Canvas")!=null)
+        {
+            RepairCanvasLayout(); // retain saved puzzle objects
+            return;
+        }
         var root=new GameObject("Stage3Level3Canvas",typeof(RectTransform),
             typeof(Canvas),typeof(CanvasScaler),typeof(GraphicRaycaster));
         var canvas=root.GetComponent<Canvas>();
@@ -169,6 +174,42 @@ public class Stage3Level3Game : MonoBehaviour
         Button(energyPanel.transform,"EnergyBackButton","BACK TO LEVEL SELECTION",
             new Vector2(0,-150),new Vector2(360,65),new Color32(7,134,140,255));
         energyPanel.SetActive(false);
+    }
+
+    // Repair serialized Canvas transforms on saved scenes. A zero local scale
+    // makes the entire challenge appear as a tiny inset in the Game view.
+    public void RepairCanvasLayout()
+    {
+        var root=GameObject.Find("Stage3Level3Canvas");
+        if(root==null)return;
+        var rect=root.GetComponent<RectTransform>();
+        if(rect!=null)
+        {
+            rect.localScale=Vector3.one;
+            rect.localRotation=Quaternion.identity;
+        }
+        var canvas=root.GetComponent<Canvas>();
+        if(canvas!=null)
+        {
+            canvas.renderMode=RenderMode.ScreenSpaceOverlay;
+            canvas.overrideSorting=false;
+        }
+        var scaler=root.GetComponent<CanvasScaler>();
+        if(scaler!=null)
+        {
+            scaler.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution=new Vector2(1280,720);
+            scaler.screenMatchMode=CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+            scaler.matchWidthOrHeight=1f;
+        }
+        var background=Find(root.transform,"Background")?.GetComponent<RectTransform>();
+        if(background!=null)
+        {
+            background.anchorMin=Vector2.zero;
+            background.anchorMax=Vector2.one;
+            background.offsetMin=Vector2.zero;
+            background.offsetMax=Vector2.zero;
+        }
     }
 
     private GameObject BuildOxygen(Transform root)
