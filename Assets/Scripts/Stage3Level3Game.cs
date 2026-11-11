@@ -73,10 +73,10 @@ public class Stage3Level3Game : MonoBehaviour
 
         Text(root.transform,"StageTitle","STAGE 3  |  LEVEL 3",20,
             new Vector2(0,320),new Vector2(640,38),Accent);
-        Text(root.transform,"LevelTitle","DOUBLE BOND CHALLENGE  -  O₂ & CO₂",30,
+        Text(root.transform,"LevelTitle","DOUBLE BOND CHALLENGE  -  O<sub>2</sub> & CO<sub>2</sub>",30,
             new Vector2(0,275),new Vector2(890,47),Color.white);
         Text(root.transform,"Instruction",
-            "Drag electron PAIRS into their correct bond or lone-pair positions.\nO₂ has one double bond; CO₂ has two C=O double bonds.",
+            "Drag electron PAIRS into their correct bond or lone-pair positions.\nO<sub>2</sub> has one double bond; CO<sub>2</sub> has two C=O double bonds.",
             17,new Vector2(0,222),new Vector2(960,58),Dim);
         scoreText=Text(root.transform,"ScoreText","SCORE\n000000",20,
             new Vector2(532,296),new Vector2(140,70),Gold);
@@ -97,7 +97,7 @@ public class Stage3Level3Game : MonoBehaviour
         puzzles[1].SetActive(false);
 
         feedback=Text(root.transform,"FeedbackText",
-            "O₂: Place 2 bonding pairs between oxygen atoms and 2 lone pairs around EACH oxygen.",
+            "O<sub>2</sub>: Place 2 bonding pairs between oxygen atoms and 2 lone pairs around EACH oxygen.",
             16,new Vector2(0,-248),new Vector2(1050,49),Gold);
 
         Button(root.transform,"CheckButton","CHECK MOLECULE",
@@ -151,14 +151,14 @@ public class Stage3Level3Game : MonoBehaviour
             new Vector2(0,-162),new Vector2(280,54),new Color32(64,83,119,255));
         failedPanel.SetActive(false);
 
-        transitionPanel=MakeModal(root.transform,"OxygenCompletePanel","O₂ COMPLETE!",
+        transitionPanel=MakeModal(root.transform,"OxygenCompletePanel","O<sub>2</sub> COMPLETE!",
             "One O=O double bond, four oxygen lone pairs. Each O has an octet.");
-        Button(transitionPanel.transform,"NextMoleculeButton","NEXT: CO₂",
+        Button(transitionPanel.transform,"NextMoleculeButton","NEXT: CO<sub>2</sub>",
             new Vector2(0,-116),new Vector2(270,65),new Color32(7,134,140,255));
         transitionPanel.SetActive(false);
 
         completedPanel=MakeModal(root.transform,"Stage3CompletePanel","STAGE 3 COMPLETE!",
-            "O₂ and CO₂ double bonds formed successfully!");
+            "O<sub>2</sub> and CO<sub>2</sub> double bonds formed successfully!");
         Text(completedPanel.transform,"FinalScoreText","FINAL SCORE: 000000",29,
             new Vector2(0,-44),new Vector2(590,65),Gold);
         Button(completedPanel.transform,"CompleteLevelSelectionButton","LEVEL SELECTION",
@@ -202,6 +202,26 @@ public class Stage3Level3Game : MonoBehaviour
             scaler.screenMatchMode=CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
             scaler.matchWidthOrHeight=1f;
         }
+        // Existing saved scene text may still contain an unsupported Unicode
+        // subscript. TMP rich-text gives the same chemistry notation safely.
+        foreach(var label in root.GetComponentsInChildren<TMP_Text>(true))
+        {
+            if(label!=null && label.text.Contains("₂"))
+                label.text=label.text.Replace("₂","<sub>2</sub>");
+        }
+        // Keep the actions fully within the 720p game viewport.
+        foreach(var actionName in new[]{"CheckButton","ResetButton"})
+        {
+            var action=Find(root.transform,actionName)?.GetComponent<RectTransform>();
+            if(action!=null)
+                action.anchoredPosition=new Vector2(action.anchoredPosition.x,-306);
+        }
+        var instruction=Find(root.transform,"FeedbackText")?.GetComponent<RectTransform>();
+        if(instruction!=null)
+        {
+            instruction.anchoredPosition=new Vector2(0,-245);
+            instruction.sizeDelta=new Vector2(1050,36);
+        }
         var background=Find(root.transform,"Background")?.GetComponent<RectTransform>();
         if(background!=null)
         {
@@ -217,7 +237,7 @@ public class Stage3Level3Game : MonoBehaviour
         var board=Image(root,"OxygenPuzzle",new Vector2(0,18),
             new Vector2(1050,360),Panel);
         board.raycastTarget=false;
-        Text(board.transform,"PuzzleTitle","PUZZLE 1 / 2: OXYGEN  O₂",21,
+        Text(board.transform,"PuzzleTitle","PUZZLE 1 / 2: OXYGEN  O<sub>2</sub>",21,
             new Vector2(0,150),new Vector2(670,36),Accent);
         Text(board.transform,"LeftOxygen","O",70,new Vector2(-170,60),
             new Vector2(100,99),Color.white);
@@ -240,7 +260,7 @@ public class Stage3Level3Game : MonoBehaviour
         var board=Image(root,"CarbonDioxidePuzzle",new Vector2(0,18),
             new Vector2(1050,360),Panel);
         board.raycastTarget=false;
-        Text(board.transform,"PuzzleTitle","PUZZLE 2 / 2: CARBON DIOXIDE  CO₂",21,
+        Text(board.transform,"PuzzleTitle","PUZZLE 2 / 2: CARBON DIOXIDE  CO<sub>2</sub>",21,
             new Vector2(0,150),new Vector2(670,36),Accent);
         Text(board.transform,"LeftOxygen","O",68,new Vector2(-300,63),
             new Vector2(90,90),Color.white);
@@ -448,7 +468,7 @@ public class Stage3Level3Game : MonoBehaviour
         foreach(var modal in new[]{pausePanel,failedPanel,energyPanel,transitionPanel,completedPanel})
             if(modal!=null)modal.SetActive(false);
         if(feedback!=null)feedback.text=
-            "O₂: Place 2 shared bonding pairs and 4 lone pairs (2 around each O).";
+            "O<sub>2</sub>: Place 2 shared bonding pairs and 4 lone pairs (2 around each O).";
         if(scoreText!=null)scoreText.text="SCORE\n000000";
     }
 
@@ -509,7 +529,7 @@ public class Stage3Level3Game : MonoBehaviour
         if(puzzles[0]!=null)puzzles[0].SetActive(false);
         if(puzzles[1]!=null)puzzles[1].SetActive(true);
         if(feedback!=null)feedback.text=
-            "CO₂: Each C=O double bond needs 2 shared pairs; each O has 2 lone pairs.";
+            "CO<sub>2</sub>: Each C=O double bond needs 2 shared pairs; each O has 2 lone pairs.";
     }
 
     private void Complete()
