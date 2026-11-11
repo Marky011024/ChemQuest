@@ -59,48 +59,89 @@ public static class Stage5Level3LayoutFix
         MoveInsideBoard(root, board, "Instructions", 0, 152, 1000, 38,
             "Test each sample in SOLID and MOLTEN states. Test AQUEOUS when applicable, then classify.", 16);
 
-        // Larger evidence column and smaller font prevent the long notes from
-        // running outside their panel. No notebook content is discarded.
-        Place(board, "SampleBank", -377, -35, 225, 260);
-        Place(board, "TestStation", -45, -33, 405, 262);
-        Place(board, "EvidenceBoard", 347, -30, 305, 282);
+        // Reserve more space for notebook text without squeezing the sample bank.
+        Place(board, "SampleBank", -402, -34, 215, 260);
+        Place(board, "TestStation", -91, -33, 380, 262);
+        Place(board, "EvidenceBoard", 326, -26, 352, 300);
         Place(root, "MenuButton", -535, 295, 112, 42);
 
+        var evidencePanel = Find(root, "EvidenceBoard");
         var evidence = Find(root, "EvidenceText");
-        if (evidence != null)
+        if (evidencePanel != null && evidence != null)
         {
-            Place(evidence, 0, -12, 286, 222);
-            SetText(evidence, null, 12);
+            // A scrollable notebook allows readable 14pt text while keeping
+            // every observation available, including additional probe results.
+            var viewport = Find(evidencePanel, "Level3NotebookViewport");
+            if (viewport == null)
+            {
+                var go = new GameObject("Level3NotebookViewport",
+                    typeof(RectTransform), typeof(Image),
+                    typeof(RectMask2D), typeof(ScrollRect));
+                go.transform.SetParent(evidencePanel, false);
+                viewport = go.transform;
+                var image = go.GetComponent<Image>();
+                image.color = new Color(0f, 0f, 0f, 0f);
+                image.raycastTarget = true;
+            }
+            Place(viewport, 0, -23, 326, 238);
+            var viewRect = viewport.GetComponent<RectTransform>();
+            var scroll = viewport.GetComponent<ScrollRect>();
+            if (evidence.parent != viewport) evidence.SetParent(viewport, false);
+            evidence.SetAsLastSibling();
+            var evidenceRect = evidence.GetComponent<RectTransform>();
+            evidenceRect.anchorMin = new Vector2(0, 1);
+            evidenceRect.anchorMax = new Vector2(1, 1);
+            evidenceRect.pivot = new Vector2(.5f, 1);
+            evidenceRect.anchoredPosition = Vector2.zero;
+            evidenceRect.sizeDelta = new Vector2(0, 0);
+            var fitter = evidence.GetComponent<ContentSizeFitter>();
+            if (fitter == null) fitter = evidence.gameObject.AddComponent<ContentSizeFitter>();
+            fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
             var tmp = evidence.GetComponent<TMP_Text>();
             if (tmp != null)
             {
+                tmp.fontSize = 14;
+                tmp.enableAutoSizing = false;
                 tmp.textWrappingMode = TextWrappingModes.Normal;
-                tmp.overflowMode = TextOverflowModes.Ellipsis;
+                tmp.overflowMode = TextOverflowModes.Overflow;
                 tmp.alignment = TextAlignmentOptions.TopLeft;
+                tmp.raycastTarget = false;
             }
+            scroll.viewport = viewRect;
+            scroll.content = evidenceRect;
+            scroll.horizontal = false;
+            scroll.vertical = true;
+            scroll.movementType = ScrollRect.MovementType.Clamped;
+            scroll.scrollSensitivity = 25f;
+            scroll.verticalNormalizedPosition = 1f;
         }
-        Place(root, "EvidenceTitle", 0, 123, 285, 32);
+        Place(root, "EvidenceTitle", 0, 119, 326, 32);
         SetText(Find(root, "EvidenceTitle"), "LAB NOTEBOOK", 17);
 
-        // One row of four experiments, one separate classification row.
-        Place(root, "SolidButton", -365, -245, 157, 42);
-        Place(root, "MoltenButton", -190, -245, 157, 42);
-        Place(root, "AqueousButton", -15, -245, 157, 42);
-        Place(root, "ProbeButton", 214, -245, 240, 42);
+        // Each row has its own space: tests, classification and feedback.
+        Place(root, "SolidButton", -368, -247, 158, 41);
+        Place(root, "MoltenButton", -190, -247, 158, 41);
+        Place(root, "AqueousButton", -12, -247, 158, 41);
+        Place(root, "ProbeButton", 221, -247, 241, 41);
 
-        Place(root, "Progress", 0, -207, 760, 30);
+        Place(root, "Progress", 0, -209, 760, 28);
         SetText(Find(root, "Progress"), null, 16);
-        Place(root, "Bin0", -350, -296, 265, 49);
-        Place(root, "Bin1", -56, -296, 265, 49);
-        Place(root, "Bin2", 237, -296, 265, 49);
+        Place(root, "Bin0", -366, -293, 250, 43);
+        Place(root, "Bin1", -78, -293, 250, 43);
+        Place(root, "Bin2", 210, -293, 250, 43);
         foreach (var name in new[] { "Bin0", "Bin1", "Bin2" })
         {
             var bin = Find(root, name);
-            if (bin != null) SetText(Find(bin, "Label"), null, 14);
+            if (bin != null)
+            {
+                var label = Find(bin, "Label");
+                Place(label, 0, 0, 238, 40);
+                SetText(label, null, 13);
+            }
         }
-
-        Place(root, "SubmitButton", 475, -296, 180, 49);
-        SetText(Find(root, "SubmitButton"), "CHECK CLASSIFICATION", 13);
+        Place(root, "SubmitButton", 455, -293, 205, 43);
+        SetText(Find(root, "SubmitButton"), "CHECK CLASSIFICATION", 12);
 
         // Readable bottom feedback strip with non-interactive background.
         var strip = Find(root, "Level3FeedbackStrip");
@@ -114,13 +155,13 @@ public static class Stage5Level3LayoutFix
             image.color = new Color32(8, 29, 51, 245);
             image.raycastTarget = false;
         }
-        Place(strip, 0, -339, 1060, 29);
+        Place(strip, 0, -339, 1060, 28);
         var feedback = Find(root, "Feedback");
         if (feedback != null)
         {
             // Background below text, not on top.
             strip.SetSiblingIndex(feedback.GetSiblingIndex());
-            Place(feedback, 0, -339, 1020, 26);
+            Place(feedback, 0, -339, 1020, 25);
             SetText(feedback, null, 13);
         }
 
