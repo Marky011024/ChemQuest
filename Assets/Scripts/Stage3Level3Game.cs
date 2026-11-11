@@ -276,15 +276,17 @@ public class Stage3Level3Game : MonoBehaviour
         if(workbench==null)
         {
             var created=Image(root,"Stage3ReferenceWorkbench",
-                new Vector2(0,-66),new Vector2(1084,572),navy);
+                new Vector2(0,-84),new Vector2(1084,536),navy);
             created.raycastTarget=false;
             workbench=created.transform;
         }
         var wbRect=workbench.GetComponent<RectTransform>();
         if(wbRect!=null)
         {
-            wbRect.anchoredPosition=new Vector2(0,-66);
-            wbRect.sizeDelta=new Vector2(1084,572);
+            // Top edge Y=184 leaves clearance below the Stage 3 title banner.
+            // Bottom edge Y=-352 still encloses the button row at Y=-299.
+            wbRect.anchoredPosition=new Vector2(0,-84);
+            wbRect.sizeDelta=new Vector2(1084,536);
         }
         DecorateGraphic(workbench.gameObject,navy,cyan,3f,false);
         // The workbench is a DECORATIVE BACKDROP. Keep it immediately above
@@ -376,13 +378,30 @@ public class Stage3Level3Game : MonoBehaviour
             var image=footer.GetComponent<Image>();
             if(image!=null){image.color=navy;image.raycastTarget=false;}
         }
+        // Keep the current contextual instruction legible against the workbench.
+        // The separate, static Intro/Instruction label duplicates this line
+        // and can obscure the updated layout, so hide only that label.
+        var oldIntro=Find(root,"Instruction");
+        if(oldIntro!=null)oldIntro.gameObject.SetActive(false);
         var instruction=Find(root,"FeedbackText")?.GetComponent<TMP_Text>();
         if(instruction!=null)
         {
-            instruction.fontSize=15;
+            instruction.fontSize=18;
             instruction.fontStyle=FontStyles.Bold;
-            instruction.color=Gold;
+            instruction.color=new Color32(255,210,90,255);
+            instruction.alpha=1f;
             instruction.alignment=TextAlignmentOptions.Center;
+            instruction.textWrappingMode=TextWrappingModes.Normal;
+            var line=instruction.GetComponent<RectTransform>();
+            if(line!=null)
+            {
+                line.anchoredPosition=new Vector2(0,-249);
+                line.sizeDelta=new Vector2(1000,40);
+                // The feedback must render over the workbench and footer.
+                var firstModal=Find(root,"PauseMenuPanel");
+                if(firstModal!=null)line.SetSiblingIndex(firstModal.GetSiblingIndex());
+                else line.SetAsLastSibling();
+            }
         }
         foreach(var buttonName in new[]{"ResetButton","CheckButton"})
         {
