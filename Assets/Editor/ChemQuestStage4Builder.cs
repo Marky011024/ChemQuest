@@ -75,6 +75,41 @@ public static class ChemQuestStage4Builder
             "OK");
     }
 
+    [MenuItem("Tools/ChemQuest/Stage 4/Fix Level 1 Bottom UI")]
+    public static void FixLevel1BottomUI()
+    {
+        if(EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            EditorUtility.DisplayDialog("Stop Play Mode",
+                "Stop Play Mode before saving the Stage 4 Level 1 UI.", "OK");
+            return;
+        }
+        const string path="Assets/Scenes/Stage4Level1.unity";
+        var scene=SceneManager.GetActiveScene();
+        if(scene.path!=path)
+        {
+            EditorUtility.DisplayDialog("Open Stage 4 Level 1",
+                "Open Assets/Scenes/Stage4Level1.unity and run this command again.", "OK");
+            return;
+        }
+        var controller=GameObject.Find("Stage4Level1Controller");
+        var game=controller==null?null:controller.GetComponent<Stage4ElectronOceanGame>();
+        if(game==null)
+        {
+            EditorUtility.DisplayDialog("Missing Level 1 Controller",
+                "Stage4Level1Controller was not found; no changes were made.", "OK");
+            return;
+        }
+        game.Level=1;
+        game.PolishEditorScene();
+        EditorUtility.SetDirty(game);
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        Debug.Log("ChemQuest Stage 4 Level 1: footer and buttons saved in Hierarchy.");
+        EditorUtility.DisplayDialog("Stage 4 Level 1 UI Saved",
+            "The instructions and buttons now have a dedicated footer. Expand Stage4Level1Canvas in Hierarchy to inspect Level1ActionFooter.", "OK");
+    }
+
     [MenuItem("Tools/ChemQuest/Refresh Stage 4 Gameplay Layout")]
     public static void RefreshGameplay()
     {
