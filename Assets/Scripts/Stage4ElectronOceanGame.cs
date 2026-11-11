@@ -58,7 +58,11 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         if(IsLevel1)EnsureLevel1Decoys();
         Bind();
         if(IsLevel1)SynchronizeLevel1TokenBank();
-        if(Level==2)EnsureDriftPuzzle();
+        if(Level==2)
+        {
+            PolishLevel2BottomLayout(GameObject.Find("Stage4Level2Canvas")?.transform);
+            EnsureDriftPuzzle();
+        }
         if(Level==3)
         {
             EnsureMetalChallenges();
@@ -401,6 +405,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             PolishLevel1BottomLayout(root);
             SynchronizeLevel1TokenBank();
         }
+        if(Level==2)PolishLevel2BottomLayout(root);
     }
 
     // Stage 4 Level 1 footer: extends the workbench under both action buttons.
@@ -487,6 +492,90 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         {
             var element=Find(root,name);
             if(element!=null && element.parent==root)element.SetAsLastSibling();
+        }
+    }
+
+    // Level 2: preserve terminal/slab mechanics and give the instructions and
+    // RESET/CHECK controls a dedicated, editable footer inside the workbench.
+    private void PolishLevel2BottomLayout(Transform root)
+    {
+        if(root==null || Level!=2)return;
+        var board=Find(root,"ExperimentBoard");
+        var footer=Find(root,"Level2ActionFooter");
+        if(footer==null)
+        {
+            var image=Rect(root,"Level2ActionFooter",
+                new Vector2(0,-298),new Vector2(1110,132),
+                new Color32(19,43,70,255));
+            image.raycastTarget=false;
+            footer=image.transform;
+        }
+        var footerRect=footer.GetComponent<RectTransform>();
+        if(footerRect!=null)
+        {
+            footerRect.anchoredPosition=new Vector2(0,-298);
+            footerRect.sizeDelta=new Vector2(1110,132);
+        }
+        var footerImage=footer.GetComponent<Image>();
+        if(footerImage!=null)
+        {
+            footerImage.color=new Color32(19,43,70,255);
+            footerImage.raycastTarget=false;
+        }
+        if(board!=null && footer.parent==root)
+            footer.SetSiblingIndex(board.GetSiblingIndex()+1);
+
+        var instruction=Find(root,"Instructions")?.GetComponent<TMP_Text>();
+        if(instruction!=null)
+        {
+            instruction.gameObject.SetActive(true);
+            instruction.rectTransform.anchoredPosition=new Vector2(0,-244);
+            instruction.rectTransform.sizeDelta=new Vector2(1020,26);
+            instruction.enableAutoSizing=false;
+            instruction.fontSize=16;
+            instruction.alignment=TextAlignmentOptions.Center;
+            instruction.color=new Color32(218,237,249,255);
+        }
+        var status=Find(root,"FeedbackText")?.GetComponent<TMP_Text>();
+        if(status!=null)
+        {
+            status.rectTransform.anchoredPosition=new Vector2(0,-275);
+            status.rectTransform.sizeDelta=new Vector2(1040,27);
+            status.enableAutoSizing=false;
+            status.fontSize=16;
+            status.alignment=TextAlignmentOptions.Center;
+            status.color=Gold;
+            status.textWrappingMode=TextWrappingModes.Normal;
+        }
+        foreach(var name in new[]{"ResetButton","CheckButton"})
+        {
+            var button=Find(root,name)?.GetComponent<Button>();
+            if(button==null)continue;
+            var rect=button.GetComponent<RectTransform>();
+            if(rect!=null)
+            {
+                rect.anchoredPosition=new Vector2(
+                    name=="ResetButton"?-140:140,-323);
+                rect.sizeDelta=new Vector2(255,48);
+            }
+            var label=button.GetComponentInChildren<TMP_Text>(true);
+            if(label!=null)
+            {
+                label.enableAutoSizing=false;
+                label.fontSize=19;
+                label.alignment=TextAlignmentOptions.Center;
+            }
+        }
+        // Ensure overlays and the energy/pause HUD remain above the footer.
+        // This only moves existing siblings; all objects persist in Hierarchy.
+        foreach(var name in new[]{"Instructions","FeedbackText","ResetButton",
+            "CheckButton","Stage4PauseButton","EnergyTitle","EnergyCount",
+            "Energy1","Energy2","Energy3","Energy4","Energy5","ScoreText",
+            "PauseMenuPanel","FailedPanel","CompletePanel","OutOfEnergyPanel",
+            "DriftChallengeOverlay"})
+        {
+            var item=Find(root,name);
+            if(item!=null && item.parent==root)item.SetAsLastSibling();
         }
     }
 
