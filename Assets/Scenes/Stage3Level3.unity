@@ -7942,12 +7942,6 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1226787829}
-  - {fileID: 1628268976}
-  - {fileID: 22565598}
-  - {fileID: 1588506967}
-  - {fileID: 1699000962}
-  - {fileID: 1569175128}
-  - {fileID: 1954010093}
   - {fileID: 285445930}
   - {fileID: 1862218462}
   - {fileID: 1014647904}
@@ -7955,12 +7949,18 @@ RectTransform:
   - {fileID: 1131569448}
   - {fileID: 175922194}
   - {fileID: 1129649002}
-  - {fileID: 168963794}
-  - {fileID: 563941302}
-  - {fileID: 1919265168}
   - {fileID: 1947476079}
   - {fileID: 1153138644}
   - {fileID: 2128135381}
+  - {fileID: 563941302}
+  - {fileID: 1919265168}
+  - {fileID: 168963794}
+  - {fileID: 1628268976}
+  - {fileID: 22565598}
+  - {fileID: 1588506967}
+  - {fileID: 1699000962}
+  - {fileID: 1569175128}
+  - {fileID: 1954010093}
   - {fileID: 375076039}
   - {fileID: 1130688647}
   - {fileID: 15738875}
