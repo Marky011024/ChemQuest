@@ -477,8 +477,11 @@ public class Stage3Level3Game : MonoBehaviour
         if(puzzles[1]!=null)puzzles[1].SetActive(false);
         foreach(var modal in new[]{pausePanel,failedPanel,energyPanel,transitionPanel,completedPanel,bowPanel})
             if(modal!=null)modal.SetActive(false);
-        if(feedback!=null)feedback.text=
-            "O<sub>2</sub>: Place 2 shared bonding pairs and 4 lone pairs (2 around each O).";
+        if(feedback!=null)
+        {
+            feedback.gameObject.SetActive(true);
+            feedback.text="O<sub>2</sub>: Place 2 shared bonding pairs and 4 lone pairs (2 around each O).";
+        }
         if(scoreText!=null)scoreText.text="SCORE\n000000";
     }
 
@@ -543,13 +546,17 @@ public class Stage3Level3Game : MonoBehaviour
         if(transitionPanel!=null)transitionPanel.SetActive(false);
         if(puzzles[0]!=null)puzzles[0].SetActive(false);
         if(puzzles[1]!=null)puzzles[1].SetActive(true);
-        if(feedback!=null)feedback.text=
-            "CO<sub>2</sub>: Each C=O double bond needs 2 shared pairs; each O has 2 lone pairs.";
+        if(feedback!=null)
+        {
+            feedback.gameObject.SetActive(true);
+            feedback.text="CO<sub>2</sub>: Each C=O double bond needs 2 shared pairs; each O has 2 lone pairs.";
+        }
     }
 
     private void Complete()
     {
         if(bowQuestionIndex!=2)return;
+        if(feedback!=null)feedback.gameObject.SetActive(false);
         completed=true;
         int score=mistakes==0?100:75;
         PlayerPrefs.SetInt("Stage3Level3Completed",1);
@@ -594,6 +601,7 @@ public class Stage3Level3Game : MonoBehaviour
         SetBowChoice("BowChoiceB",bowQuestionIndex==0
             ?"One shared electron pair":"CO - carbon dioxide");
         if(bowHint!=null)bowHint.text="";
+        if(feedback!=null)feedback.gameObject.SetActive(false);
         bowPanel.SetActive(true);
         bowPanel.transform.SetAsLastSibling();
     }
@@ -616,7 +624,11 @@ public class Stage3Level3Game : MonoBehaviour
                 if(failedPanel!=null)failedPanel.transform.SetAsLastSibling();
             }
             else if(bowHint!=null)
+            {
+                // Keep assessment feedback inside the BOW panel, never underneath it.
+                if(feedback!=null)feedback.gameObject.SetActive(false);
                 bowHint.text="HINT: A double bond shares TWO pairs. Carbon dioxide has TWO oxygen atoms.";
+            }
             return;
         }
         bowQuestionIndex++;
