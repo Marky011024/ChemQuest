@@ -213,14 +213,40 @@ public class Stage3Level3Game : MonoBehaviour
             if(label!=null && label.text.Contains("₂"))
                 label.text=label.text.Replace("₂","<sub>2</sub>");
         }
-        // Keep the actions fully within the 720p game viewport.
+        // Extend the bottom of the dark workbench behind the action row.
+        // Keep this editable in Hierarchy, not a temporary Play-mode graphic.
+        var footer=Find(root.transform,"BottomActionFooter");
+        if(footer==null)
+        {
+            var footerImage=Image(root.transform,"BottomActionFooter",
+                new Vector2(0,-294),new Vector2(1050,114),Panel);
+            footerImage.raycastTarget=false;
+            footer=footerImage.transform;
+        }
+        var footerRect=footer.GetComponent<RectTransform>();
+        if(footerRect!=null)
+        {
+            footerRect.anchoredPosition=new Vector2(0,-294);
+            footerRect.sizeDelta=new Vector2(1050,114);
+        }
+        var footerGraphic=footer.GetComponent<Image>();
+        if(footerGraphic!=null)
+        {
+            footerGraphic.color=Panel;
+            footerGraphic.raycastTarget=false;
+        }
+        // Draw the footer after puzzle backgrounds but beneath text/buttons
+        // and all assessment/completion dialogs.
+        var instructionObject=Find(root.transform,"FeedbackText");
+        if(instructionObject!=null)
+            footer.SetSiblingIndex(instructionObject.GetSiblingIndex());
         foreach(var actionName in new[]{"CheckButton","ResetButton"})
         {
             var action=Find(root.transform,actionName)?.GetComponent<RectTransform>();
             if(action!=null)
-                action.anchoredPosition=new Vector2(action.anchoredPosition.x,-306);
+                action.anchoredPosition=new Vector2(action.anchoredPosition.x,-298);
         }
-        var instruction=Find(root.transform,"FeedbackText")?.GetComponent<RectTransform>();
+        var instruction=instructionObject?.GetComponent<RectTransform>();
         if(instruction!=null)
         {
             instruction.anchoredPosition=new Vector2(0,-245);
