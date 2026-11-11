@@ -1,0 +1,112 @@
+#if UNITY_EDITOR
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+using TMPro;
+
+/// <summary>One-time, non-gameplay UI repair for the editable Stage5Level2 scene.</summary>
+public static class Stage5Level2LayoutFix
+{
+    [MenuItem("Tools/ChemQuest/Stage 5/Fix Level 2 UI Layout")]
+    public static void Apply()
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            EditorUtility.DisplayDialog("Stop Play Mode", "Exit Play Mode before applying this layout fix.", "OK");
+            return;
+        }
+        if (SceneManager.GetActiveScene().name != "Stage5Level2")
+        {
+            EditorUtility.DisplayDialog("Open Stage 5 Level 2", "Open Stage5Level2 before applying the fix.", "OK");
+            return;
+        }
+        var canvas = GameObject.Find("Stage5Level2Canvas");
+        if (canvas == null || Find(canvas.transform, "LabBoard") == null)
+        {
+            EditorUtility.DisplayDialog("Editable UI missing", "Stage5Level2Canvas / LabBoard is missing. Save or generate the editable UI first.", "OK");
+            return;
+        }
+        if (!EditorUtility.DisplayDialog("Fix Stage 5 Level 2", "Reposition UI objects only. Back up or commit local scene changes before continuing.", "Apply", "Cancel")) return;
+
+        Undo.RegisterFullObjectHierarchyUndo(canvas, "Fix Stage 5 Level 2 layout");
+        var root = canvas.transform;
+        var board = Find(root, "LabBoard");
+        Place(board, 0, -12, 1080, 462);
+        Hide(root, "StageText");
+        Hide(root, "BoardTitle");
+        Place(root, "LevelTitle", 0, 180, 950, 44);
+        SetText(root, "LevelTitle", "HARDNESS & DUCTILITY ASSAY", 29);
+        Place(root, "Instructions", 0, 142, 980, 43);
+        SetText(root, "Instructions", "Drag a sample to the bench. Use STRIKE and PRESS to compare its behavior.", 17);
+        Place(board, "SampleBank", -340, -40, 260, 258);
+        Place(board, "TestStation", 35, -34, 430, 258);
+        Place(board, "EvidenceBoard", 385, -40, 230, 258);
+        Place(root, "MenuButton", -535, 294, 105, 40);
+        Place(root, "StrikeButton", -158, -269, 258, 47);
+        Place(root, "PressButton", 155, -269, 258, 47);
+        Place(root, "Progress", -210, -309, 330, 31);
+        Place(root, "SubmitButton", 408, -308, 246, 46);
+        SetText(root, "SubmitButton", "SUBMIT LAB RESULTS", 16);
+
+        var strip = Find(root, "Level2FeedbackStrip");
+        if (strip == null)
+        {
+            var go = new GameObject("Level2FeedbackStrip", typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(root, false);
+            strip = go.transform;
+            var img = go.GetComponent<Image>();
+            img.color = new Color32(8, 29, 51, 245);
+            img.raycastTarget = false;
+        }
+        Place(strip, 0, -342, 1010, 30);
+        var feedback = Find(root, "Feedback");
+        if (feedback != null)
+        {
+            strip.SetSiblingIndex(feedback.GetSiblingIndex());
+            Place(feedback, 0, -342, 985, 27);
+            SetText(root, "Feedback", null, 14);
+        }
+        EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
+        EditorSceneManager.SaveScene(SceneManager.GetActiveScene());
+        EditorUtility.DisplayDialog("Level 2 UI updated", "Scene layout saved. Enter Play Mode to verify the result.", "OK");
+    }
+
+    private static Transform Find(Transform root, string name)
+    {
+        if (root == null) return null;
+        foreach (var t in root.GetComponentsInChildren<Transform>(true))
+            if (t.name == name) return t;
+        return null;
+    }
+    private static void Hide(Transform root, string name)
+    {
+        var t = Find(root, name);
+        if (t != null) t.gameObject.SetActive(false);
+    }
+    private static void Place(Transform root, string name, float x, float y, float w, float h)
+        => Place(Find(root, name), x, y, w, h);
+    private static void Place(Transform target, float x, float y, float w, float h)
+    {
+        if (target == null) return;
+        var rt = target.GetComponent<RectTransform>();
+        if (rt == null) return;
+        rt.anchorMin = rt.anchorMax = new Vector2(.5f, .5f);
+        rt.pivot = new Vector2(.5f, .5f);
+        rt.anchoredPosition = new Vector2(x, y);
+        rt.sizeDelta = new Vector2(w, h);
+    }
+    private static void SetText(Transform root, string name, string content, float size)
+    {
+        var t = Find(root, name);
+        if (t == null) return;
+        var label = t.GetComponent<TMP_Text>() ?? t.GetComponentInChildren<TMP_Text>(true);
+        if (label == null) return;
+        if (content != null) label.text = content;
+        label.fontSize = size;
+        label.enableAutoSizing = false;
+        label.overflowMode = TextOverflowModes.Ellipsis;
+    }
+}
+#endif
