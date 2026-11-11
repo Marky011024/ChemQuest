@@ -205,10 +205,11 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         if(go==null)return;
         var root=go.transform;
         var bg=Find(root,"Background")?.GetComponent<Image>();
-        // The Stage 4 Level 1 Background already holds the illustrated lab
-        // sprite. A dark Image tint was hiding its colors. Restore the sprite's
-        // original brightness without changing the gameplay workbench panel.
-        if(bg!=null)bg.color=Level==1?Color.white:new Color32(8,19,39,255);
+        // Stage 4 scenes already have a full-color laboratory sprite on the
+        // Background image. Do not tint it navy during Edit Mode polish.
+        // The opaque ExperimentBoard supplies contrast behind gameplay.
+        if(bg!=null && bg.sprite!=null)bg.color=Color.white;
+        else if(bg!=null)bg.color=new Color32(8,19,39,255);
 
         var board=Find(root,"ExperimentBoard")?.GetComponent<Image>();
         if(board!=null)
