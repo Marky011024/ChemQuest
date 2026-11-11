@@ -6,6 +6,13 @@ using UnityEngine.SceneManagement;
 
 public static class ChemQuestStage3Level3Builder
 {
+    [MenuItem("Tools/ChemQuest/Stage 3/Apply Level 3 Reference Design")]
+    public static void ApplyLevel3ReferenceDesign()
+    {
+        // Uses the same idempotent, scene-saving operation as the layout fix.
+        FixLevel3Canvas();
+    }
+
     [MenuItem("Tools/ChemQuest/Stage 3/Fix Level 3 Canvas and Save Hierarchy")]
     public static void FixLevel3Canvas()
     {
