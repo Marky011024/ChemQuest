@@ -236,6 +236,15 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
             var component=zone.GetComponent<Stage3Level2ElectronDropZone>();
             if(component==null)component=zone.gameObject.AddComponent<Stage3Level2ElectronDropZone>();
             component.ZoneIndex=i; component.Game=this;
+            // Raise and shorten each drop target to make a clear lower gutter.
+            var zoneRect=zone.GetComponent<RectTransform>();
+            if(zoneRect!=null)
+            {
+                zoneRect.anchoredPosition=new Vector2(-378+i*252,-176);
+                zoneRect.sizeDelta=new Vector2(232,54);
+            }
+            var countRect=zone.Find("Count")?.GetComponent<RectTransform>();
+            if(countRect!=null)countRect.sizeDelta=new Vector2(220,51);
             var button=zone.GetComponent<Button>();
             if(button!=null)button.interactable=false; // UI Image remains a drop target.
             var text=zone.Find("Count")?.GetComponent<TMP_Text>();
@@ -272,7 +281,7 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         var bankRect=bank.GetComponent<RectTransform>();
         if(bankRect!=null)
         {
-            bankRect.anchoredPosition=new Vector2(0,-239);
+            bankRect.anchoredPosition=new Vector2(0,-231);
             bankRect.sizeDelta=new Vector2(810,42);
         }
         var feedback=FindUI(root,"Feedback")?.GetComponent<RectTransform>();
@@ -282,7 +291,7 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
             // away from the electron bank and bottom action buttons.
             // H-bottom glyph ends near Y=-120 and slot tops start at Y=-156.
             // Center the short hint at -138 so neither element is covered.
-            feedback.anchoredPosition=new Vector2(0,-138);
+            feedback.anchoredPosition=new Vector2(0,-124);
             feedback.sizeDelta=new Vector2(1000,22);
             var feedbackLabel=feedback.GetComponent<TMP_Text>();
             if(feedbackLabel!=null)
@@ -298,7 +307,7 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
             var rect=FindUI(root,buttonName)?.GetComponent<RectTransform>();
             if(rect!=null)
             {
-                rect.anchoredPosition=new Vector2(buttonName=="ResetButton"?-270:0,-330);
+                rect.anchoredPosition=new Vector2(buttonName=="ResetButton"?-270:0,-310);
                 rect.sizeDelta=new Vector2(buttonName=="ResetButton"?180:260,44);
             }
         }
