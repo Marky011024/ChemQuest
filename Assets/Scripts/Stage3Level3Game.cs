@@ -287,11 +287,17 @@ public class Stage3Level3Game : MonoBehaviour
             wbRect.sizeDelta=new Vector2(1084,572);
         }
         DecorateGraphic(workbench.gameObject,navy,cyan,3f,false);
-        // Background is below both molecule boards and all modal panels.
-        var oxygen=Find(root,"OxygenPuzzle");
-        var carbon=Find(root,"CarbonDioxidePuzzle");
-        if(oxygen!=null && carbon!=null)
-            workbench.SetSiblingIndex(Math.Min(oxygen.GetSiblingIndex(),carbon.GetSiblingIndex()));
+        // The workbench is a DECORATIVE BACKDROP. Keep it immediately above
+        // the root Background in draw order, before all gameplay UI.
+        // Placing it just before a puzzle can still cover the puzzle after
+        // later transforms are reordered during the scene repair.
+        var sceneBackground=Find(root,"Background");
+        if(sceneBackground!=null)
+        {
+            sceneBackground.SetAsFirstSibling();
+            workbench.SetSiblingIndex(1);
+        }
+        else workbench.SetAsFirstSibling();
         foreach(var puzzleName in new[]{"OxygenPuzzle","CarbonDioxidePuzzle"})
         {
             var board=Find(root,puzzleName);
