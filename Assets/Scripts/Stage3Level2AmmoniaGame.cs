@@ -27,6 +27,9 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
     private int[] hElectrons = new int[4];
     private readonly List<Stage3Level2ElectronDrag> dragElectrons = new List<Stage3Level2ElectronDrag>();
     private int wrongAttempts;
+    private int bowQuestionIndex=-1;
+    private GameObject bowPanel;
+    private TMP_Text bowQuestionText, bowHintText;
     private bool failed, completed, paused;
 
     private static readonly Color Background = new Color32(10, 22, 47, 255);
@@ -47,6 +50,8 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         else
             BuildUI(); // Compatibility with scenes made before this upgrade.
         EnsureDragAndDropUI();
+        PolishTopInstructions();
+        EnsureBowLearningCheck();
         RefreshEnergy();
         UpdateOutOfEnergyUI();
     }
@@ -148,7 +153,9 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         WireButton(root,"ContinueButton",Resume);
         WireButton(root,"ResumeButton",Resume);
         WireButton(root,"StageSelectionButton",()=>Navigate("StageSelection"));
-        WireButton(root,"StageSelectButton",()=>Navigate("StageSelection"));
+        // Saved scenes using the Stage 1 menu do not contain StageSelectButton.
+        if(FindUI(root,"StageSelectButton")!=null)
+            WireButton(root,"StageSelectButton",()=>Navigate("StageSelection"));
         WireButton(root,"BackToSelectionButton",()=>Navigate("Stage3LevelSelection"));
         EnsureDragAndDropUI();
 
@@ -157,6 +164,7 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         if(pausePanel!=null)pausePanel.SetActive(false);
         if(outOfEnergyPanel!=null)outOfEnergyPanel.SetActive(false);
         wrongAttempts=0; failed=false; completed=false; paused=false;
+        bowQuestionIndex=-1;
         for(int i=0;i<4;i++)
         {
             slots[i]=0;
@@ -539,6 +547,13 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
             if(slots[i]!=2 || (i==3 ? nElectrons[i]!=2 : nElectrons[i]!=1 || hElectrons[i]!=1))correct=false;
         if(correct)
         {
+            if(bowQuestionIndex<0)
+            {
+                bowQuestionIndex=0;
+                ShowBowQuestion();
+                return;
+            }
+            if(bowQuestionIndex<2)return;
             completed=true;
             int score=wrongAttempts==0?100:75;
             scoreText.text="SCORE\n"+score.ToString("D6");
@@ -551,6 +566,102 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
             return;
         }
         WrongAttempt();
+    }
+
+    // Keep the background Stage 3 banner visible while moving the teaching prompt
+    // into the gap above the Lewis model, not across the banner text.
+    private void PolishTopInstructions()
+    {
+        var canvas=GameObject.Find("Stage3Level2GeneratedCanvas");
+        if(canvas==null)return;
+        var root=canvas.transform;
+        foreach(var name in new[]{"Title","Subtitle"})
+        {
+            var title=FindUI(root,name);
+            if(title!=null)title.gameObject.SetActive(false);
+        }
+        var prompt=FindUI(root,"Instructions")?.GetComponent<TMP_Text>();
+        if(prompt!=null)
+        {
+            prompt.text="NH<sub>3</sub>: Make three N-H shared pairs and one N lone pair. Drag 5 N electrons and 3 H electrons.";
+            prompt.fontSize=15;
+            prompt.alignment=TextAlignmentOptions.Center;
+            prompt.textWrappingMode=TextWrappingModes.NoWrap;
+            var r=prompt.GetComponent<RectTransform>();
+            if(r!=null){r.anchoredPosition=new Vector2(0,206);r.sizeDelta=new Vector2(1010,30);}
+        }
+    }
+    private void EnsureBowLearningCheck()
+    {
+        var root=GameObject.Find("Stage3Level2GeneratedCanvas");
+        if(root==null)return;
+        var found=FindUI(root.transform,"Stage3Level2BowPanel");
+        if(found==null)
+        {
+            bowPanel=ModalPanel(root.transform,"Stage3Level2BowPanel",
+                "BOW LEARNING CHECK","Answer two covalent bonding questions to finish Level 2.");
+            var question=Label(bowPanel.transform,"BowQuestion","",23,
+                new Vector2(0,-23),new Vector2(650,70),Color.white);
+            bowQuestionText=question;
+            bowHintText=Label(bowPanel.transform,"BowHint","",16,
+                new Vector2(0,-77),new Vector2(660,35),Gold);
+            MakeButton(bowPanel.transform,"BowOptionA","OPTION A",new Vector2(-165,-142),
+                new Vector2(298,52),()=>AnswerBow(0),new Color32(20,133,146,255));
+            MakeButton(bowPanel.transform,"BowOptionB","OPTION B",new Vector2(165,-142),
+                new Vector2(298,52),()=>AnswerBow(1),new Color32(48,88,126,255));
+        }
+        else bowPanel=found.gameObject;
+        bowQuestionText=FindUI(bowPanel.transform,"BowQuestion")?.GetComponent<TMP_Text>();
+        bowHintText=FindUI(bowPanel.transform,"BowHint")?.GetComponent<TMP_Text>();
+        WireButton(bowPanel.transform,"BowOptionA",()=>AnswerBow(0));
+        WireButton(bowPanel.transform,"BowOptionB",()=>AnswerBow(1));
+        bowPanel.SetActive(false);
+    }
+    private void ShowBowQuestion()
+    {
+        if(bowPanel==null){bowQuestionIndex=2;CheckAnswer();return;}
+        if(bowQuestionIndex==0)
+        {
+            if(bowQuestionText!=null)bowQuestionText.text=
+                "What is the formula and common name of ammonia?";
+            SetBowOption("BowOptionA","NH<sub>3</sub> - ammonia");
+            SetBowOption("BowOptionB","NH<sub>2</sub> - ammonia");
+        }
+        else
+        {
+            if(bowQuestionText!=null)bowQuestionText.text=
+                "How are nitrogen's three N-H bonds formed in ammonia?";
+            SetBowOption("BowOptionA","By transferring electrons to H");
+            SetBowOption("BowOptionB","By sharing one electron pair per bond");
+        }
+        if(bowHintText!=null)bowHintText.text="";
+        bowPanel.SetActive(true);
+        bowPanel.transform.SetAsLastSibling();
+    }
+    private void SetBowOption(string name,string value)
+    {
+        var label=FindUI(bowPanel.transform,name)?.GetComponentInChildren<TMP_Text>(true);
+        if(label!=null)label.text=value;
+    }
+    private void AnswerBow(int option)
+    {
+        if(failed || completed || paused || bowQuestionIndex<0 || bowQuestionIndex>=2)return;
+        int correct=bowQuestionIndex==0?0:1;
+        if(option!=correct)
+        {
+            WrongAttempt();
+            if(failed)
+            {
+                bowPanel.SetActive(false);
+                if(failurePanel!=null)failurePanel.transform.SetAsLastSibling();
+            }
+            else if(bowHintText!=null)
+                bowHintText.text="HINT: NH3 has three hydrogen atoms; covalent N-H bonds SHARE electrons.";
+            return;
+        }
+        bowQuestionIndex++;
+        if(bowQuestionIndex<2)ShowBowQuestion();
+        else {bowPanel.SetActive(false);CheckAnswer();}
     }
 
     private void WrongAttempt()
