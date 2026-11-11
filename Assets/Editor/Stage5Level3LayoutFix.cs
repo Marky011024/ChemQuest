@@ -143,7 +143,8 @@ public static class Stage5Level3LayoutFix
         Place(root, "SubmitButton", 455, -293, 205, 43);
         SetText(Find(root, "SubmitButton"), "CHECK CLASSIFICATION", 12);
 
-        // Readable bottom feedback strip with non-interactive background.
+        // Keep feedback fully above the 720px canvas bottom.
+        // The prior text was low-contrast and nearly clipped at the edge.
         var strip = Find(root, "Level3FeedbackStrip");
         if (strip == null)
         {
@@ -151,18 +152,29 @@ public static class Stage5Level3LayoutFix
                 typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
             go.transform.SetParent(root, false);
             strip = go.transform;
-            var image = go.GetComponent<Image>();
-            image.color = new Color32(8, 29, 51, 245);
-            image.raycastTarget = false;
         }
-        Place(strip, 0, -339, 1060, 28);
+        var stripImage = strip.GetComponent<Image>();
+        if (stripImage == null) stripImage = strip.gameObject.AddComponent<Image>();
+        stripImage.color = new Color32(9, 32, 58, 255);
+        stripImage.raycastTarget = false;
+        Place(strip, 0, -333, 1050, 30);
         var feedback = Find(root, "Feedback");
         if (feedback != null)
         {
-            // Background below text, not on top.
-            strip.SetSiblingIndex(feedback.GetSiblingIndex());
-            Place(feedback, 0, -339, 1020, 25);
-            SetText(feedback, null, 13);
+            // Preserve modal ordering: insert the strip immediately before
+            // the feedback text, leaving success/fail panels above both.
+            int feedbackOrder = feedback.GetSiblingIndex();
+            strip.SetSiblingIndex(feedbackOrder);
+            Place(feedback, 0, -333, 1000, 28);
+            SetText(feedback, null, 14);
+            var feedbackText = feedback.GetComponent<TMP_Text>();
+            if (feedbackText != null)
+            {
+                feedbackText.color = new Color32(255, 221, 142, 255);
+                feedbackText.alignment = TextAlignmentOptions.Center;
+                feedbackText.textWrappingMode = TextWrappingModes.NoWrap;
+                feedbackText.overflowMode = TextOverflowModes.Ellipsis;
+            }
         }
 
         EditorSceneManager.MarkSceneDirty(scene);
