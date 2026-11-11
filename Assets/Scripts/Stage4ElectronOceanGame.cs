@@ -392,6 +392,94 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             SetPosition(root,"VoltageSwitch",new Vector2(0,-156));
             SetPosition(root,"DriftLabel",new Vector2(0,-127));
         }
+        if(Level==1)PolishLevel1BottomLayout(root);
+    }
+
+    // Stage 4 Level 1 footer: extends the workbench under both action buttons.
+    // Called in Edit Mode so everything persists in the saved Unity Hierarchy.
+    // Existing puzzle objects, positions and drag/drop handlers stay untouched.
+    private void PolishLevel1BottomLayout(Transform root)
+    {
+        var footer=Find(root,"Level1ActionFooter");
+        if(footer==null)
+        {
+            var image=Rect(root,"Level1ActionFooter",
+                new Vector2(0,-316),new Vector2(1110,96),
+                new Color32(19,43,70,255));
+            image.raycastTarget=false;
+            footer=image.transform;
+        }
+        var footerRect=footer.GetComponent<RectTransform>();
+        if(footerRect!=null)
+        {
+            // Main board ends at y=-295. Footer continues to y=-364.
+            footerRect.anchoredPosition=new Vector2(0,-316);
+            footerRect.sizeDelta=new Vector2(1110,96);
+        }
+        var footerImage=footer.GetComponent<Image>();
+        if(footerImage!=null)
+        {
+            footerImage.color=new Color32(19,43,70,255);
+            footerImage.raycastTarget=false;
+        }
+        // Keep the footer immediately behind the instruction/progress/buttons,
+        // not in front of the token bank or the popup panels.
+        var board=Find(root,"ExperimentBoard");
+        if(board!=null && footer.parent==root)
+            footer.SetSiblingIndex(board.GetSiblingIndex()+1);
+
+        var instructions=Find(root,"Instructions");
+        if(instructions!=null)instructions.gameObject.SetActive(false);
+        var progress=Find(root,"ProgressText")?.GetComponent<TMP_Text>();
+        if(progress!=null)
+        {
+            progress.rectTransform.anchoredPosition=new Vector2(0,-245);
+            progress.rectTransform.sizeDelta=new Vector2(980,24);
+            progress.fontSize=15;
+            progress.enableAutoSizing=false;
+            progress.alignment=TextAlignmentOptions.Center;
+            progress.color=new Color32(91,211,246,255);
+        }
+        var feedbackLabel=Find(root,"FeedbackText")?.GetComponent<TMP_Text>();
+        if(feedbackLabel!=null)
+        {
+            feedbackLabel.rectTransform.anchoredPosition=new Vector2(0,-273);
+            feedbackLabel.rectTransform.sizeDelta=new Vector2(1020,30);
+            feedbackLabel.enableAutoSizing=false;
+            feedbackLabel.fontSize=16;
+            feedbackLabel.alignment=TextAlignmentOptions.Center;
+            feedbackLabel.color=new Color32(255,207,89,255);
+            feedbackLabel.textWrappingMode=TextWrappingModes.Normal;
+        }
+        foreach(var buttonName in new[]{"ResetButton","CheckButton"})
+        {
+            var button=Find(root,buttonName)?.GetComponent<Button>();
+            if(button==null)continue;
+            var rect=button.GetComponent<RectTransform>();
+            if(rect!=null)
+            {
+                rect.anchoredPosition=new Vector2(
+                    buttonName=="ResetButton"?-140:140,-322);
+                rect.sizeDelta=new Vector2(255,52);
+            }
+            var label=button.GetComponentInChildren<TMP_Text>(true);
+            if(label!=null)
+            {
+                label.enableAutoSizing=false;
+                label.fontSize=19;
+                label.alignment=TextAlignmentOptions.Center;
+            }
+        }
+        // Bring UI controls over the decorative footer, retaining all overlays
+        // on top of gameplay.
+        foreach(var name in new[]{"ProgressText","FeedbackText","ResetButton",
+            "CheckButton","Stage4PauseButton","EnergyTitle","EnergyCount",
+            "Energy1","Energy2","Energy3","Energy4","Energy5","ScoreText",
+            "PauseMenuPanel","FailedPanel","CompletePanel","OutOfEnergyPanel"})
+        {
+            var element=Find(root,name);
+            if(element!=null && element.parent==root)element.SetAsLastSibling();
+        }
     }
 
     private void SetPosition(Transform root,string name,Vector2 position)
