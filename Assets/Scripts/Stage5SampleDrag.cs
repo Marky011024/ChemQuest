@@ -120,12 +120,29 @@ public class Stage5SampleDrag : MonoBehaviour, IBeginDragHandler, IDragHandler, 
     {
         if (preview == null || canvas == null) return;
 
-        // No preview inside the sample bank: this prevents the visible
-        // half-token protruding from the bank while dragging starts.
-        var insideBank = bank != null &&
-            RectTransformUtility.RectangleContainsScreenPoint(bank, e.position, e.pressEventCamera);
-        preview.gameObject.SetActive(!insideBank);
-        if (insideBank) return;
+        // Hide until the entire preview has CLEARED the source bank.
+        // Testing only the pointer center caused the preview to overlap
+        // the bank edge during Levels 1 and 2.
+        bool overlapsBank = false;
+        if (bank != null)
+        {
+            var corners = new Vector3[4];
+            bank.GetWorldCorners(corners);
+            var cam = canvas.renderMode == RenderMode.ScreenSpaceOverlay
+                ? null : canvas.worldCamera;
+            Vector2 lower = RectTransformUtility.WorldToScreenPoint(cam, corners[0]);
+            Vector2 upper = RectTransformUtility.WorldToScreenPoint(cam, corners[2]);
+            float halfW = preview.rect.width * canvas.scaleFactor * .5f;
+            float halfH = preview.rect.height * canvas.scaleFactor * .5f;
+            const float margin = 8f;
+            overlapsBank =
+                e.position.x + halfW + margin > lower.x &&
+                e.position.x - halfW - margin < upper.x &&
+                e.position.y + halfH + margin > lower.y &&
+                e.position.y - halfH - margin < upper.y;
+        }
+        preview.gameObject.SetActive(!overlapsBank);
+        if (overlapsBank) return;
 
         var canvasRect = canvas.transform as RectTransform;
         if (canvasRect == null) return;
