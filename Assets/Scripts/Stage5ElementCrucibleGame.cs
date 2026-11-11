@@ -213,7 +213,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
             "Workbench observations recorded successfully.");
         Txt(completePanel.transform,"FinalScore","FINAL SCORE 000000",27,
             new Vector2(0,-33),new Vector2(640,50),Gold);
-        Btn(completePanel.transform,"NextButton",Level==3?"VIEW CERTIFICATE":"NEXT LEVEL",
+        Btn(completePanel.transform,"NextButton",Level==3?"STAGE SELECTION":"NEXT LEVEL",
             new Vector2(160,-139),new Vector2(280,58),Teal);
         Btn(completePanel.transform,"CompleteLevelButton","LEVEL SELECTION",
             new Vector2(-160,-139),new Vector2(280,58),new Color32(45,83,123,255));
@@ -537,12 +537,12 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         Wire("FailLevelButton",()=>Go("Stage5LevelSelection"));
         Wire("CompleteLevelButton",()=>Go("Stage5LevelSelection"));
         Wire("EmptyLevelButton",()=>Go("Stage5LevelSelection"));
-        Wire("NextButton",()=>Go(Level==3?"ChemQuestCertificate":"Stage5Level"+(Level+1)));
+        Wire("NextButton",()=>Go(Level==3?"StageSelection":"Stage5Level"+(Level+1)));
         // Update older serialized UI scenes without needing to rebuild Stage 5.
         if(Level==3 && completePanel!=null)
         {
             var nextText=Find(completePanel.transform,"NextButton")?.GetComponentInChildren<TMP_Text>(true);
-            if(nextText!=null)nextText.text="VIEW CERTIFICATE";
+            if(nextText!=null)nextText.text="STAGE SELECTION";
         }
         // Certificate is only shown when all 15 levels are completed.
         if(Level==3 && completePanel!=null)
@@ -551,8 +551,20 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
             if(certificateButton==null)
             {
                 Btn(completePanel.transform,"CertificateButton","VIEW CERTIFICATE",
-                    new Vector2(0,-94),new Vector2(292,48),Teal);
+                    new Vector2(0,-77),new Vector2(292,48),Teal);
                 certificateButton=Find(completePanel.transform,"CertificateButton");
+            }
+            // The certificate is a single, separate optional action.
+            // Keep it above navigation, including for previously saved scenes.
+            if(certificateButton!=null)
+            {
+                var certRect=certificateButton.GetComponent<RectTransform>();
+                if(certRect!=null)
+                {
+                    certRect.anchorMin=certRect.anchorMax=new Vector2(.5f,.5f);
+                    certRect.anchoredPosition=new Vector2(0,-77);
+                    certRect.sizeDelta=new Vector2(292,48);
+                }
             }
             var button=certificateButton?.GetComponent<Button>();
             if(button!=null)
