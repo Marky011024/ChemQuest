@@ -151,7 +151,9 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
             }
         }
         WireButton(root,"ContinueButton",Resume);
-        WireButton(root,"ResumeButton",Resume);
+        // ResumeButton belongs to the fallback menu, not every saved pause prefab.
+        if(FindUI(root,"ResumeButton")!=null)
+            WireButton(root,"ResumeButton",Resume);
         WireButton(root,"StageSelectionButton",()=>Navigate("StageSelection"));
         // Saved scenes using the Stage 1 menu do not contain StageSelectButton.
         if(FindUI(root,"StageSelectButton")!=null)
