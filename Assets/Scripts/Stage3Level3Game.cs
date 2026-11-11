@@ -23,6 +23,9 @@ public class Stage3Level3Game : MonoBehaviour
     private GameObject pausePanel, failedPanel, energyPanel, transitionPanel, completedPanel;
     private TMP_Text feedback, scoreText, finalScoreText, timerText, energyCount;
     private Button retryButton;
+    private GameObject bowPanel;
+    private TMP_Text bowQuestion, bowHint;
+    private int bowQuestionIndex=-1;
     private int[] placed = new int[2];
     private int phase, mistakes;
     private bool paused, failed, completed, transitioning;
@@ -182,6 +185,7 @@ public class Stage3Level3Game : MonoBehaviour
     {
         var root=GameObject.Find("Stage3Level3Canvas");
         if(root==null)return;
+        EnsureBowPanel(root.transform); // saved in Edit Mode, not only created during Play
         var rect=root.GetComponent<RectTransform>();
         if(rect!=null)
         {
@@ -415,6 +419,9 @@ public class Stage3Level3Game : MonoBehaviour
         energyPanel=Find(root,"OutOfEnergyPanel")?.gameObject;
         transitionPanel=Find(root,"OxygenCompletePanel")?.gameObject;
         completedPanel=Find(root,"Stage3CompletePanel")?.gameObject;
+        bowPanel=Find(root,"Stage3BowLearningCheck")?.gameObject;
+        bowQuestion=Find(root,"BowQuestion")?.GetComponent<TMP_Text>();
+        bowHint=Find(root,"BowHint")?.GetComponent<TMP_Text>();
         feedback=Find(root,"FeedbackText")?.GetComponent<TMP_Text>();
         scoreText=Find(root,"ScoreText")?.GetComponent<TMP_Text>();
         finalScoreText=Find(root,"FinalScoreText")?.GetComponent<TMP_Text>();
@@ -444,6 +451,8 @@ public class Stage3Level3Game : MonoBehaviour
             placed[p]=0;
         }
         WireButton(root,"CheckButton",CheckMolecule);
+        WireButton(root,"BowChoiceA",()=>AnswerBow(0));
+        WireButton(root,"BowChoiceB",()=>AnswerBow(1));
         WireButton(root,"ResetButton",ResetPairs);
         WireButton(root,"Level3PauseButton",Pause);
         WireButton(root,"ContinueButton",Resume);
@@ -461,11 +470,12 @@ public class Stage3Level3Game : MonoBehaviour
                 var t=button.GetComponentInChildren<TMP_Text>(true);
                 if(t!=null)t.text="STAGE SELECTION";
             }
-        phase=0;mistakes=0;paused=failed=completed=transitioning=false;
+        phase=0;mistakes=0;bowQuestionIndex=-1;
+        paused=failed=completed=transitioning=false;
         Time.timeScale=1f;
         if(puzzles[0]!=null)puzzles[0].SetActive(true);
         if(puzzles[1]!=null)puzzles[1].SetActive(false);
-        foreach(var modal in new[]{pausePanel,failedPanel,energyPanel,transitionPanel,completedPanel})
+        foreach(var modal in new[]{pausePanel,failedPanel,energyPanel,transitionPanel,completedPanel,bowPanel})
             if(modal!=null)modal.SetActive(false);
         if(feedback!=null)feedback.text=
             "O<sub>2</sub>: Place 2 shared bonding pairs and 4 lone pairs (2 around each O).";
@@ -519,7 +529,12 @@ public class Stage3Level3Game : MonoBehaviour
                 transitionPanel.transform.SetAsLastSibling();
             }
         }
-        else Complete();
+        else
+        {
+            transitioning=false;
+            bowQuestionIndex=0;
+            ShowBowQuestion();
+        }
     }
 
     private void NextMolecule()
@@ -534,6 +549,7 @@ public class Stage3Level3Game : MonoBehaviour
 
     private void Complete()
     {
+        if(bowQuestionIndex!=2)return;
         completed=true;
         int score=mistakes==0?100:75;
         PlayerPrefs.SetInt("Stage3Level3Completed",1);
@@ -546,6 +562,69 @@ public class Stage3Level3Game : MonoBehaviour
         {
             completedPanel.SetActive(true);
             completedPanel.transform.SetAsLastSibling();
+        }
+    }
+
+    // Create the assessment once and retain it with other editable scene objects.
+    private void EnsureBowPanel(Transform root)
+    {
+        var existing=Find(root,"Stage3BowLearningCheck");
+        if(existing!=null)return;
+        var panel=MakeModal(root,"Stage3BowLearningCheck","BOW LEARNING CHECK",
+            "Answer two questions about double bonds and molecular formulas.");
+        Text(panel.transform,"BowQuestion","",22,new Vector2(0,-20),
+            new Vector2(660,65),Color.white);
+        Text(panel.transform,"BowHint","",15,new Vector2(0,-74),
+            new Vector2(660,31),Gold);
+        Button(panel.transform,"BowChoiceA","OPTION A",new Vector2(-165,-138),
+            new Vector2(302,54),new Color32(20,134,144,255));
+        Button(panel.transform,"BowChoiceB","OPTION B",new Vector2(165,-138),
+            new Vector2(302,54),new Color32(55,91,128,255));
+        panel.SetActive(false);
+    }
+    private void ShowBowQuestion()
+    {
+        if(bowPanel==null)return;
+        if(bowQuestion!=null)
+            bowQuestion.text=bowQuestionIndex==0
+                ?"How many electron pairs are shared in an O=O double bond?"
+                :"Which chemical formula represents carbon dioxide?";
+        SetBowChoice("BowChoiceA",bowQuestionIndex==0
+            ?"Two shared electron pairs":"CO<sub>2</sub> - carbon dioxide");
+        SetBowChoice("BowChoiceB",bowQuestionIndex==0
+            ?"One shared electron pair":"CO - carbon dioxide");
+        if(bowHint!=null)bowHint.text="";
+        bowPanel.SetActive(true);
+        bowPanel.transform.SetAsLastSibling();
+    }
+    private void SetBowChoice(string buttonName,string answer)
+    {
+        var button=Find(bowPanel.transform,buttonName);
+        var label=button==null?null:button.GetComponentInChildren<TMP_Text>(true);
+        if(label!=null)label.text=answer;
+    }
+    private void AnswerBow(int choice)
+    {
+        if(completed || failed || bowQuestionIndex<0 || bowQuestionIndex>=2
+            || EnergyManager.Instance==null || !EnergyManager.Instance.HasEnergy)return;
+        if(choice!=0)
+        {
+            WrongPlacement(); // same 100/75 and two-strike energy policy
+            if(failed)
+            {
+                bowPanel.SetActive(false);
+                if(failedPanel!=null)failedPanel.transform.SetAsLastSibling();
+            }
+            else if(bowHint!=null)
+                bowHint.text="HINT: A double bond shares TWO pairs. Carbon dioxide has TWO oxygen atoms.";
+            return;
+        }
+        bowQuestionIndex++;
+        if(bowQuestionIndex<2)ShowBowQuestion();
+        else
+        {
+            bowPanel.SetActive(false);
+            Complete();
         }
     }
 
