@@ -57,6 +57,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         if(GameObject.Find("Stage4Level"+Level+"Canvas")==null)BuildEditorScene();
         if(IsLevel1)EnsureLevel1Decoys();
         Bind();
+        if(IsLevel1)SynchronizeLevel1TokenBank();
         if(Level==2)EnsureDriftPuzzle();
         if(Level==3)
         {
@@ -342,7 +343,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
                     zone.anchoredPosition=new Vector2(-375+(i%3)*124,-(i/3)*79);
                     zone.sizeDelta=new Vector2(76,66);
                 }
-                SetPosition(root,"MetalCore"+i,new Vector2(-409+i*105,0));
+                // Token positions are synchronized once below.
             }
             for(int i=0;i<4;i++)
             {
@@ -352,7 +353,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
                     zone.anchoredPosition=new Vector2(150+(i%2)*165,-(i/2)*85);
                     zone.sizeDelta=new Vector2(94,69);
                 }
-                SetPosition(root,"FreeElectron"+i,new Vector2(244+i*76,0));
+                // Shared bank layout handles electrons and decoys together.
             }
             var tokenBank=Find(root,"MetalTokenBank")?.GetComponent<RectTransform>();
             if(tokenBank!=null)tokenBank.sizeDelta=new Vector2(1024,62);
@@ -395,7 +396,11 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             SetPosition(root,"VoltageSwitch",new Vector2(0,-156));
             SetPosition(root,"DriftLabel",new Vector2(0,-127));
         }
-        if(Level==1)PolishLevel1BottomLayout(root);
+        if(Level==1)
+        {
+            PolishLevel1BottomLayout(root);
+            SynchronizeLevel1TokenBank();
+        }
     }
 
     // Stage 4 Level 1 footer: extends the workbench under both action buttons.
@@ -563,23 +568,55 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             if(image!=null)image.color=new Color32(151,119,201,255);
         }
 
-        // All fourteen choices are centered and visible at the start of Play.
-        // The order intentionally mixes legitimate ions/electrons and decoys.
+        SynchronizeLevel1TokenBank();
+    }
+
+    // One authoritative layout for Edit Mode, Play Mode, and drag home points.
+    // Previous editor positioning and runtime decoy seeding disagreed, making
+    // ions/electrons pile up only after pressing Play.
+    private void SynchronizeLevel1TokenBank()
+    {
+        if(Level!=1)return;
+        var root=GameObject.Find("Stage4Level1Canvas");
+        if(root==null)return;
+        var bank=Find(root.transform,"MetalTokenBank");
+        if(bank==null)return;
+        var bankRect=bank.GetComponent<RectTransform>();
+        if(bankRect!=null)
+        {
+            bankRect.anchorMin=bankRect.anchorMax=new Vector2(.5f,.5f);
+            bankRect.pivot=new Vector2(.5f,.5f);
+            bankRect.anchoredPosition=new Vector2(0,-157);
+            bankRect.sizeDelta=new Vector2(1024,62);
+            bankRect.localScale=Vector3.one;
+        }
         string[] ordered={"MetalCore0","FreeElectron0","DecoyFe",
             "MetalCore1","FreeElectron1","MetalCore2","DecoyProton",
             "MetalCore3","FreeElectron2","MetalCore4","DecoyAl",
             "FreeElectron3","MetalCore5","DecoyNeutron"};
         for(int i=0;i<ordered.Length;i++)
         {
-            var rect=Find(bank,ordered[i])?.GetComponent<RectTransform>();
-            if(rect!=null)
+            var target=Find(bank,ordered[i]);
+            if(target==null)continue;
+            var rect=target.GetComponent<RectTransform>();
+            if(rect==null)continue;
+            rect.anchorMin=rect.anchorMax=new Vector2(.5f,.5f);
+            rect.pivot=new Vector2(.5f,.5f);
+            rect.localScale=Vector3.one;
+            rect.anchoredPosition=new Vector2(-455+i*70,0);
+            rect.sizeDelta=new Vector2(56,46);
+            // Play-mode drag origin must use the same saved position, not the
+            // old transform sampled during Awake before editor layout runs.
+            if(Application.isPlaying)
             {
-                rect.anchoredPosition=new Vector2(-455+i*70,0);
-                rect.sizeDelta=new Vector2(58,50);
+                var draggable=target.GetComponent<Stage4Draggable>();
+                if(draggable!=null)
+                {
+                    draggable.Bind(this);
+                    draggable.ResetToken();
+                }
             }
         }
-        var bankRect=bank.GetComponent<RectTransform>();
-        if(bankRect!=null)bankRect.sizeDelta=new Vector2(1024,62);
     }
 
     private void BuildLevel2(Transform board)
