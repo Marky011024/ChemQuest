@@ -397,10 +397,8 @@ public class Stage3Level3Game : MonoBehaviour
             {
                 line.anchoredPosition=new Vector2(0,-249);
                 line.sizeDelta=new Vector2(1000,40);
-                // The feedback must render over the workbench and footer.
-                var firstModal=Find(root,"PauseMenuPanel");
-                if(firstModal!=null)line.SetSiblingIndex(firstModal.GetSiblingIndex());
-                else line.SetAsLastSibling();
+                // Draw order is applied once after all components have been styled.
+                // Never insert the feedback among the inactive modal panels here.
             }
         }
         foreach(var buttonName in new[]{"ResetButton","CheckButton"})
@@ -425,6 +423,19 @@ public class Stage3Level3Game : MonoBehaviour
                 label.fontStyle=FontStyles.Bold;
                 label.color=Color.white;
             }
+        }
+        // Explicit, repeatable draw order. A newer full-size Image (footer or
+        // workbench) must never be allowed to cover electron tokens or buttons.
+        // Keep decorative images behind both puzzle canvases. Keep modals on top.
+        foreach(var name in new[]{"Background","Stage3ReferenceWorkbench",
+            "BottomActionFooter","OxygenPuzzle","CarbonDioxidePuzzle",
+            "StageTitle","LevelTitle","ScoreText","EnergyHeading","EnergyCount",
+            "FeedbackText","ResetButton","CheckButton",
+            "PauseMenuPanel","FailedPanel","OxygenCompletePanel",
+            "Stage3CompletePanel","OutOfEnergyPanel","Stage3BowLearningCheck"})
+        {
+            var item=Find(root,name);
+            if(item!=null && item.parent==root)item.SetAsLastSibling();
         }
     }
 
