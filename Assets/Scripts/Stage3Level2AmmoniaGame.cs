@@ -272,8 +272,10 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         var feedback=FindUI(root,"Feedback")?.GetComponent<RectTransform>();
         if(feedback!=null)
         {
-            feedback.anchoredPosition=new Vector2(0,-282);
-            feedback.sizeDelta=new Vector2(1000,24);
+            // Put the instruction between the H atom and the four drop zones,
+            // away from the electron bank and bottom action buttons.
+            feedback.anchoredPosition=new Vector2(0,-164);
+            feedback.sizeDelta=new Vector2(1000,26);
             var feedbackLabel=feedback.GetComponent<TMP_Text>();
             if(feedbackLabel!=null)
             {
