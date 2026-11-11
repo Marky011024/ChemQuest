@@ -74,7 +74,7 @@ public static class Stage5Level3LayoutFix
             var tmp = evidence.GetComponent<TMP_Text>();
             if (tmp != null)
             {
-                tmp.enableWordWrapping = true;
+                tmp.textWrappingMode = TextWrappingModes.Normal;
                 tmp.overflowMode = TextOverflowModes.Ellipsis;
                 tmp.alignment = TextAlignmentOptions.TopLeft;
             }
