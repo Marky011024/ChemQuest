@@ -213,7 +213,7 @@ public class ChemQuestCertificate : MonoBehaviour
         PositionText("Score",new Vector2(373,48),new Vector2(226,100),22,new Color32(247,213,118,255));
         PositionText("Stages",new Vector2(0,-29),new Vector2(960,33),20,Color.white);
         PositionText("Transcript",new Vector2(0,-167),new Vector2(984,134),17,new Color32(17,50,73,255));
-        PositionText("CertificateMetadata",new Vector2(0,-278),new Vector2(1000,24),13,new Color32(25,68,83,255));
+        PositionText("CertificateMetadata",new Vector2(0,-270),new Vector2(1000,18),12,new Color32(25,68,83,255));
         foreach(var key in new[]{"Brand","DocumentTitle","Achievement","RecipientLabel",
             "RecipientName","Identity","Score","Stages","Transcript","CertificateMetadata"})
         {
@@ -246,13 +246,17 @@ public class ChemQuestCertificate : MonoBehaviour
             if(strip!=null)strip.gameObject.SetActive(false);
         }
         var footer=Find("CongratulationsBanner")?.GetComponent<RectTransform>();
-        if(footer!=null){footer.anchoredPosition=new Vector2(0,-239);footer.sizeDelta=new Vector2(1024,39);}
+        if(footer!=null){footer.anchoredPosition=new Vector2(0,-233);footer.sizeDelta=new Vector2(1024,39);}
         var footerHeading=Find("CongratsLabel")?.GetComponent<RectTransform>();
-        if(footerHeading!=null){footerHeading.anchoredPosition=new Vector2(-195,4);footerHeading.sizeDelta=new Vector2(610,24);}
+        if(footerHeading!=null){footerHeading.anchoredPosition=new Vector2(-195,6);footerHeading.sizeDelta=new Vector2(610,23);}
         var footerCaption=Find("CongratsDetail")?.GetComponent<RectTransform>();
-        if(footerCaption!=null){footerCaption.anchoredPosition=new Vector2(-195,-12);footerCaption.sizeDelta=new Vector2(610,16);}
+        if(footerCaption!=null){footerCaption.anchoredPosition=new Vector2(-195,-12);footerCaption.sizeDelta=new Vector2(610,14);}
         var trophyMark=Find("AchievementTrophy")?.GetComponent<RectTransform>();
-        if(trophyMark!=null){trophyMark.anchoredPosition=new Vector2(401,0);trophyMark.sizeDelta=new Vector2(90,34);}
+        if(trophyMark!=null){trophyMark.anchoredPosition=new Vector2(401,0);trophyMark.sizeDelta=new Vector2(90,32);}
+        var footerText=Find("CongratsLabel")?.GetComponent<TMP_Text>();
+        if(footerText!=null){footerText.fontSize=19;footerText.enableAutoSizing=false;}
+        var footerNote=Find("CongratsDetail")?.GetComponent<TMP_Text>();
+        if(footerNote!=null){footerNote.fontSize=11;footerNote.enableAutoSizing=false;}
         // A locked certificate is not a fake award. Hide the victory footer at runtime.
     }
 
@@ -291,7 +295,7 @@ public class ChemQuestCertificate : MonoBehaviour
             float[] x={-180,-56,40,157};
             float[] w={116,100,91,141};
             for(int j=0;j<4;j++)
-                Txt(head.transform,"Heading"+j,headings[j],16,
+                Txt(head.transform,"Heading"+j,headings[j],17,
                     new Vector2(x[j],0),new Vector2(w[j],23),Color.white);
             for(int row=0;row<8;row++)
             {
@@ -299,21 +303,21 @@ public class ChemQuestCertificate : MonoBehaviour
                 if(index>=15)break;
                 int stage=index/3+1,level=index%3+1;
                 string id="S"+stage+"L"+level;
-                float y=45-row*17.5f;
+                float y=43-row*16.3f;
                 if(row%2==1)
                 {
                     var stripe=Image(panel.transform,"RowStripe"+row,
-                        new Vector2(0,y),new Vector2(487,17),new Color32(225,240,239,255));
+                        new Vector2(0,y),new Vector2(487,16),new Color32(225,240,239,255));
                     stripe.raycastTarget=false;
                 }
-                Txt(panel.transform,id+"Level",id,16,new Vector2(x[0],y),
-                    new Vector2(w[0],17),ink);
-                Txt(panel.transform,id+"Score","--",16,new Vector2(x[1],y),
-                    new Vector2(w[1],17),aqua);
-                Txt(panel.transform,id+"Retries","--",16,new Vector2(x[2],y),
-                    new Vector2(w[2],17),ink);
-                Txt(panel.transform,id+"Result","--",15,new Vector2(x[3],y),
-                    new Vector2(w[3],17),ink);
+                Txt(panel.transform,id+"Level",id,17,new Vector2(x[0],y),
+                    new Vector2(w[0],16),ink);
+                Txt(panel.transform,id+"Score","--",17,new Vector2(x[1],y),
+                    new Vector2(w[1],16),aqua);
+                Txt(panel.transform,id+"Retries","--",17,new Vector2(x[2],y),
+                    new Vector2(w[2],16),ink);
+                Txt(panel.transform,id+"Result","--",16,new Vector2(x[3],y),
+                    new Vector2(w[3],16),ink);
             }
         }
         table.transform.SetAsLastSibling();
@@ -340,8 +344,8 @@ public class ChemQuestCertificate : MonoBehaviour
                 Set(id+"Score",score+"/100");
                 Set(id+"Retries",known?retries.ToString():"--");
                 Set(id+"Result",!known?
-                    (score==100?"Score: 100":score==75?"Score: 75":"Completed"):
-                    (retries>0?"Retry recorded":score==75?"After hint":"No retry"));
+                    (score==100?"Perfect":score==75?"After hint":"Completed"):
+                    (retries>0?"Retried":score==75?"After hint":"No retry"));
             }
         }
     }
