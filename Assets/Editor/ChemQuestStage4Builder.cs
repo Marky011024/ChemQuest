@@ -145,6 +145,40 @@ public static class ChemQuestStage4Builder
             "Expand Stage4Level2Canvas in Hierarchy to see Level2ActionFooter. Ready to test in Play Mode.", "OK");
     }
 
+    [MenuItem("Tools/ChemQuest/Stage 4/Save Level 3 BOW and UI")]
+    public static void SaveLevel3BowAndUI()
+    {
+        if(EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            EditorUtility.DisplayDialog("Stop Play Mode",
+                "Stop Play Mode before saving Level 3 BOW UI.", "OK");
+            return;
+        }
+        var scene=SceneManager.GetActiveScene();
+        if(scene.path!="Assets/Scenes/Stage4Level3.unity")
+        {
+            EditorUtility.DisplayDialog("Open Stage 4 Level 3",
+                "Open Assets/Scenes/Stage4Level3.unity first.", "OK");
+            return;
+        }
+        var controller=GameObject.Find("Stage4Level3Controller");
+        var game=controller==null?null:controller.GetComponent<Stage4ElectronOceanGame>();
+        if(game==null)
+        {
+            EditorUtility.DisplayDialog("Missing Controller",
+                "Stage4Level3Controller not found; no changes were made.", "OK");
+            return;
+        }
+        game.Level=3;
+        game.PolishLevel3Presentation();
+        EditorUtility.SetDirty(game);
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        Debug.Log("CHEMQUEST Stage 4 Level 3: BOW Learning Check saved in Hierarchy.");
+        EditorUtility.DisplayDialog("Stage 4 Level 3 Saved",
+            "Stage4Level3BowCheck now exists under Stage4Level3Canvas. It stays inactive until the malleability and ductility puzzles are complete.", "OK");
+    }
+
     [MenuItem("Tools/ChemQuest/Refresh Stage 4 Gameplay Layout")]
     public static void RefreshGameplay()
     {
