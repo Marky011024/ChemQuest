@@ -51,21 +51,23 @@ public static class Stage5Level3LayoutFix
         // Main lab ends ABOVE the control dock. Previously its bottom edge
         // crossed the first control row, making buttons look overlapped.
         // Keep the lab's top edge and its internal content visually stable.
-        Place(board, 0, 28, 1080, 390);
+        // Join the workbench to its footer: preserve the upper edge at
+        // y=223, and overlap the footer by 4 units so no seam appears.
+        Place(board, 0, 18.5f, 1080, 409);
         Hide(root, "StageText");
         Hide(root, "BoardTitle");
 
         // Put heading *inside* the board and above the content so the board
         // cannot occlude it (the original screenshot shows title overlap).
-        MoveInsideBoard(root, board, "LevelTitle", 0, 157, 1000, 44,
+        MoveInsideBoard(root, board, "LevelTitle", 0, 166.5f, 1000, 44,
             "SOLUTION & PHASE CONDUCTIVITY", 28);
-        MoveInsideBoard(root, board, "Instructions", 0, 119, 1000, 38,
+        MoveInsideBoard(root, board, "Instructions", 0, 128.5f, 1000, 38,
             "Test each sample in SOLID and MOLTEN states. Test AQUEOUS when applicable, then classify.", 16);
 
         // Reserve more space for notebook text without squeezing the sample bank.
-        Place(board, "SampleBank", -402, -67, 215, 260);
-        Place(board, "TestStation", -91, -66, 380, 262);
-        Place(board, "EvidenceBoard", 323, -59, 359, 300);
+        Place(board, "SampleBank", -402, -57.5f, 215, 260);
+        Place(board, "TestStation", -91, -56.5f, 380, 262);
+        Place(board, "EvidenceBoard", 323, -49.5f, 359, 300);
         Place(root, "MenuButton", -535, 295, 112, 42);
 
         var evidencePanel = Find(root, "EvidenceBoard");
@@ -110,7 +112,11 @@ public static class Stage5Level3LayoutFix
             dock = go.transform;
         }
         var dockImage = dock.GetComponent<Image>();
-        dockImage.color = new Color32(12, 34, 63, 255);
+        // Match the original lab panel background exactly so the two
+        // rectangles read as one continuous workbench surface.
+        var boardImage = board.GetComponent<Image>();
+        dockImage.color = boardImage != null ? boardImage.color :
+            new Color32(25, 49, 77, 255);
         dockImage.raycastTarget = false;
         Place(dock, 0, -271, 1080, 178);
         dock.gameObject.SetActive(true);
