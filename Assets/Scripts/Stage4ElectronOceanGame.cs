@@ -32,6 +32,9 @@ public class Stage4ElectronOceanGame : MonoBehaviour
     private Stage4DriftTile[][] metalChallengeTiles;
     private TMP_Text[] metalChallengeMessages;
     private int metalChallengeStep;
+    private GameObject level3BowPanel;
+    private TMP_Text level3BowQuestion,level3BowHint;
+    private int level3BowStep=-1;
     private int mistakes,metalPlaced,electronsPlaced,terminalsPlaced;
     private bool failed,completed,paused,powerOn,observedDrift,forceApplied;
     private float nextTick,driftClock;
@@ -67,6 +70,8 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         if(Level==3)
         {
             EnsureMetalChallenges();
+            EnsureLevel3BowPanel();
+            SetLevel3UnderlyingFeedbackVisible(true);
             PolishLevel3Presentation();
             PolishLevel3GameUILayout();
         }
@@ -1284,6 +1289,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         metalChallengeStep=phase+1;
         foreach(var panel in metalChallengePanels)
             if(panel!=null)panel.SetActive(false);
+        SetLevel3UnderlyingFeedbackVisible(false);
         if(metalChallengePanels[phase]!=null)
         {
             metalChallengePanels[phase].SetActive(true);
@@ -1329,9 +1335,119 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         }
         metalChallengePanels[phase].SetActive(false);
         if(phase==0)ShowMetalChallenge(1);
-        else Complete();
+        else
+        {
+            level3BowStep=0;
+            ShowLevel3BowQuestion();
+        }
     }
 
+
+    // BOW-aligned two-question check, persisted in the saved scene Hierarchy.
+    // It assesses the bonding explanation after both malleability/ductility
+    // construction tasks, without replacing either drag-and-drop activity.
+    public void EnsureLevel3BowPanel()
+    {
+        if(Level!=3)return;
+        var root=GameObject.Find("Stage4Level3Canvas");
+        if(root==null)return;
+        var existing=Find(root.transform,"Stage4Level3BowCheck");
+        if(existing==null)
+        {
+            var shade=Rect(root.transform,"Stage4Level3BowCheck",Vector2.zero,
+                new Vector2(1280,720),new Color32(5,13,30,222));
+            shade.raycastTarget=true;
+            var card=Rect(shade.transform,"BowCard",Vector2.zero,
+                new Vector2(770,420),Panel);
+            card.raycastTarget=true;
+            Label(card.transform,"BowTitle","BOW LEARNING CHECK",31,
+                new Vector2(0,145),new Vector2(715,55),Gold);
+            Label(card.transform,"BowDescription",
+                "Answer two questions about metallic bonding and properties.",17,
+                new Vector2(0,94),new Vector2(720,38),Dim);
+            Label(card.transform,"BowQuestion","",21,
+                new Vector2(0,15),new Vector2(708,75),Color.white);
+            Label(card.transform,"BowHint","",15,
+                new Vector2(0,-70),new Vector2(710,30),Gold);
+            Button(card.transform,"BowAnswerA","CHOICE A",
+                new Vector2(-175,-138),new Vector2(332,57),
+                new Color32(16,140,151,255));
+            Button(card.transform,"BowAnswerB","CHOICE B",
+                new Vector2(175,-138),new Vector2(332,57),
+                new Color32(64,93,134,255));
+            existing=shade.transform;
+        }
+        level3BowPanel=existing.gameObject;
+        level3BowQuestion=Find(existing,"BowQuestion")?.GetComponent<TMP_Text>();
+        level3BowHint=Find(existing,"BowHint")?.GetComponent<TMP_Text>();
+        if(Application.isPlaying)
+        {
+            Wire(existing,"BowAnswerA",()=>AnswerLevel3Bow(0));
+            Wire(existing,"BowAnswerB",()=>AnswerLevel3Bow(1));
+        }
+        level3BowPanel.SetActive(false);
+    }
+    private void SetLevel3BowAnswer(string buttonName,string text)
+    {
+        var button=level3BowPanel==null?null:Find(level3BowPanel.transform,buttonName);
+        var label=button==null?null:button.GetComponentInChildren<TMP_Text>(true);
+        if(label!=null)label.text=text;
+    }
+    private void ShowLevel3BowQuestion()
+    {
+        if(Level!=3)return;
+        if(level3BowPanel==null)EnsureLevel3BowPanel();
+        if(level3BowPanel==null)return;
+        SetLevel3UnderlyingFeedbackVisible(false);
+        if(level3BowQuestion!=null)level3BowQuestion.text=level3BowStep==0?
+            "Why can metal layers slide without the structure breaking?":
+            "Which property lets a metal be drawn into a wire?";
+        SetLevel3BowAnswer("BowAnswerA",level3BowStep==0?
+            "Delocalized electrons maintain attraction":"Ductility");
+        SetLevel3BowAnswer("BowAnswerB",level3BowStep==0?
+            "Metallic bonds disappear when layers move":"Brittleness");
+        if(level3BowHint!=null)level3BowHint.text="";
+        level3BowPanel.SetActive(true);
+        level3BowPanel.transform.SetAsLastSibling();
+    }
+    private void AnswerLevel3Bow(int choice)
+    {
+        if(Level!=3 || !CanInteract || level3BowPanel==null ||
+            !level3BowPanel.activeSelf || level3BowStep<0 ||
+            level3BowStep>=2)return;
+        if(choice!=0)
+        {
+            RegisterMistake();
+            if(failed)
+            {
+                level3BowPanel.SetActive(false);
+                if(failedPanel!=null)failedPanel.transform.SetAsLastSibling();
+            }
+            else if(level3BowHint!=null)
+                level3BowHint.text=level3BowStep==0?
+                    "HINT: Mobile electrons keep attracting positive metal ions.":
+                    "HINT: Drawing metal into wire is called ductility.";
+            return;
+        }
+        level3BowStep++;
+        if(level3BowStep<2)ShowLevel3BowQuestion();
+        else
+        {
+            level3BowPanel.SetActive(false);
+            Complete();
+        }
+    }
+    private void SetLevel3UnderlyingFeedbackVisible(bool visible)
+    {
+        if(Level!=3)return;
+        var root=GameObject.Find("Stage4Level3Canvas");
+        if(root==null)return;
+        foreach(var name in new[]{"FeedbackText","Level3FeedbackStrip"})
+        {
+            var item=Find(root.transform,name);
+            if(item!=null)item.gameObject.SetActive(visible);
+        }
+    }
 
     // Repair both newly built and already serialized Level 3 slider objects.
     // Unity's Slider component controls fill/handle anchors at runtime, so
@@ -1496,6 +1612,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         if(score!=null)score.text="SCORE\n"+scoreValue.ToString("D6");
         if(finalScore!=null)finalScore.text="FINAL SCORE: "+scoreValue.ToString("D6");
         if(Level==2)SetLevel2BackgroundInstructionsVisible(false);
+        if(Level==3)SetLevel3UnderlyingFeedbackVisible(false);
         if(winPanel!=null)
         {
             winPanel.SetActive(true);
@@ -1520,6 +1637,9 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         }
         if(Level==3)
         {
+            SetLevel3UnderlyingFeedbackVisible(true);
+            level3BowStep=-1;
+            if(level3BowPanel!=null)level3BowPanel.SetActive(false);
             forceApplied=false;
             metalChallengeStep=0;
             if(forceSlider!=null)forceSlider.value=0;
@@ -1700,6 +1820,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
     public void PolishLevel3Presentation()
     {
         if(Level!=3)return;
+        EnsureLevel3BowPanel();
         var root=GameObject.Find("Stage4Level3Canvas");
         if(root==null)return;
         foreach(var name in new[]{"StageTitle","LevelTitle","Instructions"})
