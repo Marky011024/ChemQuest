@@ -42,6 +42,8 @@ public class Level1ScoreManager : MonoBehaviour
         if (bow == null) bow = gameObject.AddComponent<Stage1BowLearningCheck>();
         bow.Begin(1, finalScoreText != null ? finalScoreText.font :
             scoreText != null ? scoreText.font : null,
+            finalScoreText != null ? finalScoreText.GetComponentInParent<Canvas>() :
+            scoreText != null ? scoreText.GetComponentInParent<Canvas>() : null,
             FinishAfterBow);
     }
 
