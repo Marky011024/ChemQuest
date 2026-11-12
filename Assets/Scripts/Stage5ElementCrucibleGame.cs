@@ -32,7 +32,9 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
     private int stateIndex;
     private TMP_Text feedback,progress,scoreText,finalScore,energyText,timer,selectedLabel,evidenceText,resultLabel;
     private GameObject failPanel,completePanel,pausePanel,emptyPanel;
-    private GameObject level1BowPanel;
+    private GameObject level1BowPanel,level2BowPanel;
+    private TMP_Text level2BowQuestion,level2BowHint;
+    private int level2BowStep=-1;
     private TMP_Text level1BowQuestion,level1BowHint;
     private int level1BowStep=-1;
     private Slider heat;
@@ -57,6 +59,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         if(Level==1)PolishStage5Level1Layout();
         Bind();
         if(Level==1)EnsureLevel1BowPanel();
+        if(Level==2)EnsureLevel2BowPanel();
         RefreshEnergy();
     }
 
@@ -230,6 +233,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
             new Vector2(0,-152),new Vector2(300,55),Teal);
         emptyPanel.SetActive(false);
         if(Level==1)EnsureLevel1BowPanel();
+        if(Level==2)EnsureLevel2BowPanel();
     }
 
 
@@ -588,10 +592,12 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         Wire("ProbeButton",Probe);
         Wire("SubmitButton",Submit);
         if(Level==1)EnsureLevel1BowPanel();
+        if(Level==2)EnsureLevel2BowPanel();
         foreach(var panel in new[]{pausePanel,failPanel,completePanel,emptyPanel})
             if(panel!=null)panel.SetActive(false);
         selected=-1;wrong=0;completedCount=0;failed=completed=paused=false;
         level1BowStep=-1;
+        level2BowStep=-1;
         for(int i=0;i<3;i++){examined[i]=classified[i]=false;selectedBin[i]=-1;
             for(int j=0;j<3;j++)probed[i,j]=false;}
         UpdateEvidence();
@@ -707,7 +713,11 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
                 level1BowStep=0;
                 ShowLevel1BowQuestion();
             }
-            else CompleteLevel();
+            else
+            {
+                level2BowStep=0;
+                ShowLevel2BowQuestion();
+            }
             return;
         }
         for(int i=0;i<3;i++)
@@ -834,6 +844,114 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         }
     }
 
+    // Grade 9 BOW check: interpret mechanical observations after all
+    // three unknown samples have been tested by STRIKE and PRESS.
+    // Save this UI in the scene with the Stage 5 editor menu command.
+    public void EnsureLevel2BowPanel()
+    {
+        if(Level!=2)return;
+        var parent=GameObject.Find("Stage5Level2Canvas")?.transform;
+        if(parent==null)return;
+        var obj=Find(parent,"Stage5Level2BowCheck");
+        if(obj==null)
+        {
+            var shade=Image(parent,"Stage5Level2BowCheck",Vector2.zero,
+                new Vector2(1280,720),new Color32(5,13,29,228));
+            shade.raycastTarget=true;
+            var sr=shade.rectTransform;
+            sr.anchorMin=Vector2.zero;sr.anchorMax=Vector2.one;
+            sr.offsetMin=Vector2.zero;sr.offsetMax=Vector2.zero;
+            var card=Image(shade.transform,"BowCard",Vector2.zero,
+                new Vector2(770,430),Panel);
+            card.raycastTarget=true;
+            Txt(card.transform,"BowTitle","BOW LEARNING CHECK",31,
+                new Vector2(0,149),new Vector2(720,51),Gold);
+            Txt(card.transform,"BowDescription",
+                "Answer two questions about mechanical properties and metallic bonding.",17,
+                new Vector2(0,97),new Vector2(735,44),Color.white);
+            Txt(card.transform,"BowQuestion","",21,
+                new Vector2(0,16),new Vector2(710,79),Color.white);
+            Txt(card.transform,"BowHint","",15,
+                new Vector2(0,-70),new Vector2(712,33),Gold);
+            Btn(card.transform,"BowAnswerA","CHOICE A",
+                new Vector2(-175,-143),new Vector2(335,58),Teal);
+            Btn(card.transform,"BowAnswerB","CHOICE B",
+                new Vector2(175,-143),new Vector2(335,58),
+                new Color32(63,91,132,255));
+            obj=shade.transform;
+        }
+        level2BowPanel=obj.gameObject;
+        level2BowQuestion=Find(obj,"BowQuestion")?.GetComponent<TMP_Text>();
+        level2BowHint=Find(obj,"BowHint")?.GetComponent<TMP_Text>();
+        if(Application.isPlaying)
+        {
+            Wire("BowAnswerA",()=>AnswerLevel2Bow(0));
+            Wire("BowAnswerB",()=>AnswerLevel2Bow(1));
+        }
+        level2BowPanel.SetActive(false);
+    }
+    private void SetLevel2BowAnswer(string name,string value)
+    {
+        if(level2BowPanel==null)return;
+        var obj=Find(level2BowPanel.transform,name);
+        var caption=obj==null?null:obj.GetComponentInChildren<TMP_Text>(true);
+        if(caption!=null)caption.text=value;
+    }
+    private void ShowLevel2BowQuestion()
+    {
+        if(Level!=2)return;
+        if(level2BowPanel==null)EnsureLevel2BowPanel();
+        if(level2BowPanel==null)return;
+        SetLevel2BackgroundFeedbackVisible(false);
+        if(level2BowQuestion!=null)level2BowQuestion.text=level2BowStep==0?
+            "Which observation is evidence that a sample is malleable?":
+            "Why can metallic substances change shape without shattering?";
+        SetLevel2BowAnswer("BowAnswerA",level2BowStep==0?
+            "It bends or flattens when pressed":
+            "Delocalized electrons maintain bonding as layers slide");
+        SetLevel2BowAnswer("BowAnswerB",level2BowStep==0?
+            "It breaks into fragments when struck":
+            "All metallic bonds disappear when layers move");
+        if(level2BowHint!=null)level2BowHint.text="";
+        level2BowPanel.SetActive(true);
+        level2BowPanel.transform.SetAsLastSibling();
+    }
+    private void AnswerLevel2Bow(int choice)
+    {
+        if(Level!=2 || !CanInteract || level2BowPanel==null ||
+            !level2BowPanel.activeSelf || level2BowStep<0 || level2BowStep>=2)return;
+        if(choice!=0)
+        {
+            WrongAttempt("Compare deformation and brittle fracture, then consider the mobile electrons.");
+            if(failed)
+            {
+                level2BowPanel.SetActive(false);
+                if(failPanel!=null)failPanel.transform.SetAsLastSibling();
+            }
+            else if(level2BowHint!=null)
+                level2BowHint.text=level2BowStep==0?
+                    "HINT: Malleable materials deform instead of shattering.":
+                    "HINT: Mobile electrons hold the positive metal ions together.";
+            return;
+        }
+        level2BowStep++;
+        if(level2BowStep<2)ShowLevel2BowQuestion();
+        else
+        {
+            level2BowPanel.SetActive(false);
+            CompleteLevel();
+        }
+    }
+    private void SetLevel2BackgroundFeedbackVisible(bool value)
+    {
+        if(Level!=2 || root==null)return;
+        foreach(var name in new[]{"Feedback","Progress"})
+        {
+            var obj=Find(root,name);
+            if(obj!=null)obj.gameObject.SetActive(value);
+        }
+    }
+
     private void WrongAttempt(string message)
     {
         wrong++;
@@ -863,6 +981,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
                 certificateButton.SetActive(ChemQuestCertificate.AllLevelsComplete());
         }
         if(Level==1)SetLevel1BackgroundFeedbackVisible(false);
+        if(Level==2)SetLevel2BackgroundFeedbackVisible(false);
         if(scoreText!=null)scoreText.text="SCORE\n"+points.ToString("D6");
         if(finalScore!=null)finalScore.text="FINAL SCORE "+points.ToString("D6");
         if(completePanel!=null){completePanel.SetActive(true);completePanel.transform.SetAsLastSibling();}
