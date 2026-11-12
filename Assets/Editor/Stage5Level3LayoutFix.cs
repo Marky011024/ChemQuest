@@ -93,7 +93,9 @@ public static class Stage5Level3LayoutFix
             evidenceRect.anchorMax = new Vector2(1, 1);
             evidenceRect.pivot = new Vector2(.5f, 1);
             evidenceRect.anchoredPosition = Vector2.zero;
-            evidenceRect.sizeDelta = new Vector2(0, 0);
+            evidenceRect.sizeDelta = new Vector2(-12, 0);
+            evidenceRect.offsetMin = new Vector2(6, evidenceRect.offsetMin.y);
+            evidenceRect.offsetMax = new Vector2(-6, evidenceRect.offsetMax.y);
             var fitter = evidence.GetComponent<ContentSizeFitter>();
             if (fitter == null) fitter = evidence.gameObject.AddComponent<ContentSizeFitter>();
             fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
@@ -113,8 +115,19 @@ public static class Stage5Level3LayoutFix
             scroll.horizontal = false;
             scroll.vertical = true;
             scroll.movementType = ScrollRect.MovementType.Clamped;
-            scroll.scrollSensitivity = 25f;
+            scroll.scrollSensitivity = 34f;
+            scroll.inertia = false;
             scroll.verticalNormalizedPosition = 1f;
+            // TMP measurement is ready immediately in edit mode: size the
+            // content explicitly so a ScrollRect can actually move it.
+            if (tmp != null)
+            {
+                tmp.ForceMeshUpdate();
+                var width = Mathf.Max(10f, viewRect.rect.width - 16f);
+                var requiredHeight = tmp.GetPreferredValues(tmp.text, width, 0f).y;
+                evidenceRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,
+                    Mathf.Max(viewRect.rect.height + 1f, requiredHeight + 16f));
+            }
         }
         Place(root, "EvidenceTitle", 0, 119, 338, 32);
         SetText(Find(root, "EvidenceTitle"), "LAB NOTEBOOK", 17);
@@ -125,8 +138,16 @@ public static class Stage5Level3LayoutFix
         Place(root, "AqueousButton", -12, -247, 158, 41);
         Place(root, "ProbeButton", 221, -247, 241, 41);
 
-        Place(root, "Progress", 0, -215, 760, 28);
-        SetText(Find(root, "Progress"), null, 16);
+        // Give progress a dedicated strip above the test controls.
+        Place(root, "Progress", 0, -207, 760, 29);
+        SetText(Find(root, "Progress"), null, 18);
+        var progressText = Find(root, "Progress")?.GetComponent<TMP_Text>();
+        if (progressText != null)
+        {
+            progressText.color = new Color32(80, 225, 255, 255);
+            progressText.alignment = TextAlignmentOptions.Center;
+            progressText.alpha = 1f;
+        }
         Place(root, "Bin0", -366, -287, 250, 43);
         Place(root, "Bin1", -78, -287, 250, 43);
         Place(root, "Bin2", 210, -287, 250, 43);
@@ -158,6 +179,7 @@ public static class Stage5Level3LayoutFix
         stripImage.color = new Color32(9, 32, 58, 255);
         stripImage.raycastTarget = false;
         Place(strip, 0, -328, 1050, 32);
+        strip.gameObject.SetActive(true);
         var feedback = Find(root, "Feedback");
         if (feedback != null)
         {
@@ -174,7 +196,37 @@ public static class Stage5Level3LayoutFix
                 feedbackText.alignment = TextAlignmentOptions.Center;
                 feedbackText.textWrappingMode = TextWrappingModes.NoWrap;
                 feedbackText.overflowMode = TextOverflowModes.Ellipsis;
+                feedbackText.alpha = 1f;
+                feedbackText.raycastTarget = false;
             }
+            feedback.gameObject.SetActive(true);
+        }
+
+        // Fix draw order: LabBoard must be underneath the footer controls,
+        // otherwise progress and feedback can disappear behind the board.
+        // Keep the BOW, pause, fail and completion overlays above all controls.
+        var controlOrder = new[] {
+            "Progress", "SolidButton", "MoltenButton", "AqueousButton",
+            "ProbeButton", "Bin0", "Bin1", "Bin2", "SubmitButton"
+        };
+        strip.SetAsLastSibling();
+        foreach (var name in controlOrder)
+        {
+            var control = Find(root, name);
+            if (control != null)
+            {
+                control.gameObject.SetActive(true);
+                control.SetAsLastSibling();
+            }
+        }
+        if (feedback != null) feedback.SetAsLastSibling();
+        foreach (var name in new[] {
+            "PausePanel", "PauseMenuPanel", "FailedPanel", "CompletePanel",
+            "OutOfEnergyPanel", "Stage5Level3BowCheck"
+        })
+        {
+            var modal = Find(root, name);
+            if (modal != null) modal.SetAsLastSibling();
         }
 
         EditorSceneManager.MarkSceneDirty(scene);
