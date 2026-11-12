@@ -24,6 +24,9 @@ public class Stage4ElectronOceanGame : MonoBehaviour
     private Slider forceSlider;
     private RectTransform upperLayer, lowerLayer;
     private GameObject driftPuzzlePanel;
+    private GameObject level2BowPanel;
+    private TMP_Text level2BowQuestion,level2BowHint;
+    private int level2BowStep=-1;
     private TMP_Text driftPuzzleFeedback;
     private Stage4DriftSlot[] driftPuzzleSlots;
     private Stage4DriftTile[] driftPuzzleTiles;
@@ -65,6 +68,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         {
             PolishLevel2BottomLayout(GameObject.Find("Stage4Level2Canvas")?.transform);
             EnsureDriftPuzzle();
+            EnsureLevel2BowPanel();
             SetLevel2BackgroundInstructionsVisible(true);
         }
         if(Level==3)
@@ -412,7 +416,11 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             PolishLevel1BottomLayout(root);
             SynchronizeLevel1TokenBank();
         }
-        if(Level==2)PolishLevel2BottomLayout(root);
+        if(Level==2)
+        {
+            PolishLevel2BottomLayout(root);
+            EnsureLevel2BowPanel();
+        }
     }
 
     // Stage 4 Level 1 footer: extends the workbench under both action buttons.
@@ -1117,6 +1125,103 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         }
     }
 
+    // Assess electron drift and conductivity after the directional model is
+    // correct, following the same BOW check pattern used in Stage 4 Level 3.
+    // The UI can be built in Edit Mode and stored in the Unity Hierarchy.
+    public void EnsureLevel2BowPanel()
+    {
+        if(Level!=2)return;
+        var root=GameObject.Find("Stage4Level2Canvas");
+        if(root==null)return;
+        var existing=Find(root.transform,"Stage4Level2BowCheck");
+        if(existing==null)
+        {
+            var shade=Rect(root.transform,"Stage4Level2BowCheck",Vector2.zero,
+                new Vector2(1280,720),new Color32(5,13,30,222));
+            shade.raycastTarget=true;
+            var card=Rect(shade.transform,"BowCard",Vector2.zero,
+                new Vector2(770,420),Panel);
+            card.raycastTarget=true;
+            Label(card.transform,"BowTitle","BOW LEARNING CHECK",31,
+                new Vector2(0,145),new Vector2(715,55),Gold);
+            Label(card.transform,"BowDescription",
+                "Answer two questions about electron drift and metallic conductivity.",17,
+                new Vector2(0,94),new Vector2(725,38),Dim);
+            Label(card.transform,"BowQuestion","",21,
+                new Vector2(0,15),new Vector2(708,75),Color.white);
+            Label(card.transform,"BowHint","",15,
+                new Vector2(0,-70),new Vector2(710,30),Gold);
+            Button(card.transform,"BowAnswerA","CHOICE A",
+                new Vector2(-175,-138),new Vector2(332,57),
+                new Color32(16,140,151,255));
+            Button(card.transform,"BowAnswerB","CHOICE B",
+                new Vector2(175,-138),new Vector2(332,57),
+                new Color32(64,93,134,255));
+            existing=shade.transform;
+        }
+        level2BowPanel=existing.gameObject;
+        level2BowQuestion=Find(existing,"BowQuestion")?.GetComponent<TMP_Text>();
+        level2BowHint=Find(existing,"BowHint")?.GetComponent<TMP_Text>();
+        if(Application.isPlaying)
+        {
+            Wire(existing,"BowAnswerA",()=>AnswerLevel2Bow(0));
+            Wire(existing,"BowAnswerB",()=>AnswerLevel2Bow(1));
+        }
+        level2BowPanel.SetActive(false);
+    }
+    private void SetLevel2BowAnswer(string buttonName,string answer)
+    {
+        var button=level2BowPanel==null?null:Find(level2BowPanel.transform,buttonName);
+        var label=button==null?null:button.GetComponentInChildren<TMP_Text>(true);
+        if(label!=null)label.text=answer;
+    }
+    private void ShowLevel2BowQuestion()
+    {
+        if(Level!=2)return;
+        if(level2BowPanel==null)EnsureLevel2BowPanel();
+        if(level2BowPanel==null)return;
+        SetLevel2BackgroundInstructionsVisible(false);
+        if(level2BowQuestion!=null)level2BowQuestion.text=level2BowStep==0?
+            "With the negative terminal on the left, which way do electrons drift?":
+            "Why can metals conduct electricity?";
+        SetLevel2BowAnswer("BowAnswerA",level2BowStep==0?
+            "Toward the positive terminal (right)":
+            "Delocalized electrons can move through the metal");
+        SetLevel2BowAnswer("BowAnswerB",level2BowStep==0?
+            "Toward the negative terminal (left)":
+            "Metal cations move freely through the lattice");
+        if(level2BowHint!=null)level2BowHint.text="";
+        level2BowPanel.SetActive(true);
+        level2BowPanel.transform.SetAsLastSibling();
+    }
+    private void AnswerLevel2Bow(int choice)
+    {
+        if(Level!=2 || !CanInteract || level2BowPanel==null ||
+            !level2BowPanel.activeSelf || level2BowStep<0 ||
+            level2BowStep>=2)return;
+        if(choice!=0)
+        {
+            RegisterMistake();
+            if(failed)
+            {
+                level2BowPanel.SetActive(false);
+                if(failedPanel!=null)failedPanel.transform.SetAsLastSibling();
+            }
+            else if(level2BowHint!=null)
+                level2BowHint.text=level2BowStep==0?
+                    "HINT: Negative charges move toward the positive terminal.":
+                    "HINT: The mobile electrons carry charge through the metal.";
+            return;
+        }
+        level2BowStep++;
+        if(level2BowStep<2)ShowLevel2BowQuestion();
+        else
+        {
+            level2BowPanel.SetActive(false);
+            Complete();
+        }
+    }
+
     private void ResetDriftTiles()
     {
         if(driftPuzzleSlots!=null)
@@ -1153,7 +1258,8 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             return;
         }
         driftPuzzlePanel.SetActive(false);
-        Complete();
+        level2BowStep=0;
+        ShowLevel2BowQuestion();
     }
 
     private void ToggleVoltage()
@@ -1629,6 +1735,8 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         if(Level==2)
         {
             SetLevel2BackgroundInstructionsVisible(true);
+            level2BowStep=-1;
+            if(level2BowPanel!=null)level2BowPanel.SetActive(false);
             if(driftPuzzlePanel!=null)driftPuzzlePanel.SetActive(false);
             ResetDriftTiles();
             powerOn=observedDrift=false;driftClock=0f;
