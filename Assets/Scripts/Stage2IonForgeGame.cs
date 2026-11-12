@@ -22,7 +22,7 @@ public class Stage2IonForgeGame : MonoBehaviour
     private Button retryButton;
     private int accepted,mistakes;
     private int variant=-1;
-    // BOW checks run only after the two original ionic-transfer puzzles are finished.
+    // BOW checks run after the level's original ionic puzzle objectives are finished.
     private int bowCheckIndex=-1;
     private GameObject bowCheckPanel;
     private TMP_Text bowCheckQuestion;
@@ -475,11 +475,8 @@ public class Stage2IonForgeGame : MonoBehaviour
         if(scoreText!=null)scoreText.text="SCORE\\n000000";
         if(progressText!=null)progressText.text="PROGRESS  0 / "+Needed;
         if(feedback!=null)feedback.text=Level<3?"SELECT THE ATOMS, THEN DRAG FROM THE DONOR OUTER SHELL INTO THE ACCEPTOR OUTER SHELL.":"Fill the 12 slots, then press FORM BOND to check your answer.";
-        if(Level<3)
-        {
-            RefreshVariant();
-            PrepareBowCheck(t);
-        }
+        if(Level<3) RefreshVariant();
+        PrepareBowCheck(t);
     }
     // Editor-safe: upgrade existing saved scenes without deleting their UI or progress.
     public void UpgradeChallengeUI()
@@ -838,7 +835,7 @@ public class Stage2IonForgeGame : MonoBehaviour
                 return;
             }
         }
-        if(Level<3 && bowCheckIndex<0)
+        if(bowCheckIndex<0)
         {
             BeginBowCheck();
             return;
@@ -918,7 +915,19 @@ public class Stage2IonForgeGame : MonoBehaviour
         string question;
         string answerA;
         string answerB;
-        if(Level==1 && bowCheckIndex==0)
+        if(Level==3 && bowCheckIndex==0)
+        {
+            question="What holds sodium and chloride ions together in an ionic crystal?";
+            answerA="Electrostatic attraction between opposite charges";
+            answerB="A shared sea of metallic electrons";
+        }
+        else if(Level==3)
+        {
+            question="Why do ionic compounds form an ordered crystal lattice?";
+            answerA="Ions arrange randomly without attraction";
+            answerB="Oppositely charged ions arrange in a repeating pattern";
+        }
+        else if(Level==1 && bowCheckIndex==0)
         {
             question="From its periodic-table group, how many valence electrons does sodium (Na) have?";
             answerA="1 valence electron";answerB="7 valence electrons";
@@ -947,7 +956,7 @@ public class Stage2IonForgeGame : MonoBehaviour
     private void SubmitBowAnswer(int chosen)
     {
         if(!CanInteract || bowCheckIndex<0 || bowCheckIndex>=2)return;
-        int correct=(Level==2 && bowCheckIndex==1)?1:0;
+        int correct=((Level==2 || Level==3) && bowCheckIndex==1)?1:0;
         if(chosen!=correct)
         {
             WrongAttempt(); // Reuse the original two-strike and energy policy.
@@ -958,7 +967,9 @@ public class Stage2IonForgeGame : MonoBehaviour
             }
             else if(bowCheckQuestion!=null)
             {
-                bowCheckQuestion.text="HINT: Use the element's group and balance the ion charges. Try again!";
+                bowCheckQuestion.text=Level==3?
+                    "HINT: Opposite charges attract and form a repeating ionic lattice. Try again!":
+                    "HINT: Use the element's group and balance the ion charges. Try again!";
             }
             return;
         }
