@@ -21,6 +21,7 @@ public class Level3ScoreManager : MonoBehaviour
     private bool levelCompleted = false;
     private bool bowStarted = false;
     private int pendingWrongAttempts = 0;
+    private bool puzzleCleared = false;
 
     private void Start()
     {
@@ -38,6 +39,7 @@ public class Level3ScoreManager : MonoBehaviour
         // Store provisional result only. The actual completion and unlock
         // are committed AFTER the BOW Learning Check is completed.
         pendingWrongAttempts = wrongAttempts;
+        puzzleCleared = true;
         score = wrongAttempts == 0 ? 100 : 75;
         UpdateScoreDisplay();
         Debug.Log("Stage 1 Level 3 puzzle completed; waiting for Continue and BOW.");
@@ -45,7 +47,7 @@ public class Level3ScoreManager : MonoBehaviour
 
     public void ShowCompletionPanel()
     {
-        if (levelCompleted || bowStarted) return;
+        if (!puzzleCleared || levelCompleted || bowStarted) return;
         bowStarted = true;
         var bow = gameObject.GetComponent<Stage1BowLearningCheck>();
         if (bow == null) bow = gameObject.AddComponent<Stage1BowLearningCheck>();
