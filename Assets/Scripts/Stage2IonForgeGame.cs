@@ -899,9 +899,7 @@ public class Stage2IonForgeGame : MonoBehaviour
     {
         if(bowCheckPanel==null)
         {
-            // Fail open for older or modified scenes rather than blocking progress.
-            bowCheckIndex=2;
-            CheckAnswer();
+            Debug.LogError("Stage 2 BOW panel missing. Completion is blocked until the learning check is available.");
             return;
         }
         bowCheckIndex=0;
