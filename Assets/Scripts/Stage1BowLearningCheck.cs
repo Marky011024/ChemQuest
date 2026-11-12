@@ -20,6 +20,7 @@ public sealed class Stage1BowLearningCheck : MonoBehaviour
     private int stageLevel, questionIndex, mistakes;
     private bool activeCheck;
     private TMP_FontAsset fallbackFont;
+    private Canvas displayCanvas;
 
     private struct Question
     {
@@ -58,11 +59,12 @@ public sealed class Stage1BowLearningCheck : MonoBehaviour
             "The blue copper(II) hydroxide precipitate is evidence of a chemical reaction.")
     };
 
-    public void Begin(int level, TMP_FontAsset font, Action<bool> finished)
+    public void Begin(int level, TMP_FontAsset font, Canvas canvas, Action<bool> finished)
     {
         if(activeCheck)return;
         stageLevel=level==1?1:2;
         fallbackFont=font!=null?font:TMP_Settings.defaultFontAsset;
+        displayCanvas=canvas;
         onFinished=finished;
         questionIndex=0;
         mistakes=0;
@@ -81,7 +83,7 @@ public sealed class Stage1BowLearningCheck : MonoBehaviour
     private void EnsureUI()
     {
         if(overlay!=null)return;
-        var canvas=GetComponentInParent<Canvas>();
+        var canvas=displayCanvas!=null?displayCanvas:GetComponentInParent<Canvas>();
         if(canvas==null) canvas=FindFirstObjectByType<Canvas>();
         if(canvas==null)return;
         overlay=MakeImage("Stage1BowLearningCheck",canvas.transform,
