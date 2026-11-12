@@ -9,6 +9,40 @@ using TMPro;
 public static class ChemQuestStage5Builder
 {
     private const string Folder="Assets/Scenes/";
+    [MenuItem("Tools/ChemQuest/Stage 5/Save Level 2 BOW and UI")]
+    public static void SaveLevel2BowAndUI()
+    {
+        if(EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            EditorUtility.DisplayDialog("Stop Play Mode",
+                "Stop Play Mode before saving Stage 5 Level 2 BOW UI.", "OK");
+            return;
+        }
+        var scene=SceneManager.GetActiveScene();
+        if(scene.path!="Assets/Scenes/Stage5Level2.unity")
+        {
+            EditorUtility.DisplayDialog("Open Stage 5 Level 2",
+                "Open Assets/Scenes/Stage5Level2.unity first.", "OK");
+            return;
+        }
+        var controller=GameObject.Find("Stage5Level2Controller");
+        var game=controller==null?null:controller.GetComponent<Stage5ElementCrucibleGame>();
+        if(game==null)
+        {
+            EditorUtility.DisplayDialog("Missing Controller",
+                "Stage5Level2Controller not found; no changes made.", "OK");
+            return;
+        }
+        game.Level=2;
+        game.EnsureLevel2BowPanel();
+        EditorUtility.SetDirty(game);
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        Debug.Log("CHEMQUEST Stage 5 Level 2 BOW panel saved in Hierarchy.");
+        EditorUtility.DisplayDialog("Stage 5 Level 2 Saved",
+            "Stage5Level2BowCheck has been saved under Stage5Level2Canvas. It will appear after the three mechanical samples are tested.", "OK");
+    }
+
     [MenuItem("Tools/ChemQuest/Stage 5/Save Level 1 BOW and UI")]
     public static void SaveLevel1BowAndUI()
     {
