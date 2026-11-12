@@ -19,6 +19,8 @@ public class Level3ScoreManager : MonoBehaviour
 
     private int score = 0;
     private bool levelCompleted = false;
+    private bool bowStarted = false;
+    private int pendingWrongAttempts = 0;
 
     private void Start()
     {
@@ -33,12 +35,33 @@ public class Level3ScoreManager : MonoBehaviour
         if (levelCompleted)
             return;
 
-        levelCompleted = true;
-
+        // Store provisional result only. The actual completion and unlock
+        // are committed AFTER the BOW Learning Check is completed.
+        pendingWrongAttempts = wrongAttempts;
         score = wrongAttempts == 0 ? 100 : 75;
-
         UpdateScoreDisplay();
+        Debug.Log("Stage 1 Level 3 puzzle completed; waiting for Continue and BOW.");
+    }
 
+    public void ShowCompletionPanel()
+    {
+        if (levelCompleted || bowStarted) return;
+        bowStarted = true;
+        var bow = gameObject.GetComponent<Stage1BowLearningCheck>();
+        if (bow == null) bow = gameObject.AddComponent<Stage1BowLearningCheck>();
+        bow.Begin(3, finalScoreText != null ? finalScoreText.font :
+            scoreText != null ? scoreText.font : null,
+            finalScoreText != null ? finalScoreText.GetComponentInParent<Canvas>() :
+            scoreText != null ? scoreText.GetComponentInParent<Canvas>() : null,
+            FinishAfterBow);
+    }
+
+    private void FinishAfterBow(bool bowHadMistake)
+    {
+        if (levelCompleted) return;
+        levelCompleted = true;
+        score = pendingWrongAttempts == 0 && !bowHadMistake ? 100 : 75;
+        UpdateScoreDisplay();
         PlayerPrefs.SetInt("Stage1Level3Completed", 1);
         PlayerPrefs.SetInt("Stage1Level3Score", score);
         PlayerPrefs.SetInt("Stage2Level1Unlocked", 1);
@@ -46,17 +69,6 @@ public class Level3ScoreManager : MonoBehaviour
 
         if (finalScoreText != null)
             finalScoreText.text = score.ToString("D6");
-
-        // Do not display completion panel yet.
-        // Wait for the player to click CONTINUE.
-
-        Debug.Log("Stage 1 Level 3 completed! Score: " + score);
-    }
-
-    public void ShowCompletionPanel()
-    {
-        if (!levelCompleted)
-            return;
 
         if (caCO3FormationEffectPanel != null)
             caCO3FormationEffectPanel.SetActive(false);
