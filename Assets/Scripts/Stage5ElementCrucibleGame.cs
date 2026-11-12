@@ -1107,19 +1107,41 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         string text="";
         for(int i=0;i<3;i++)
         {
-            string value=Level==1?(examined[i]?thermal[i]:"NOT TESTED"):
-                Level==2?(examined[i]?mechanical[i]:"NEEDS STRIKE + PRESS"):
-                ("Thermal: "+thermal[i]+"\\nMechanical: "+mechanical[i]+"\\nProbe: "+
-                 (probed[i,0]?"Solid tested":"Solid ?")+" / "+
-                 (probed[i,1]?"Molten tested":"Molten ?")+
-                 (i==1?(probed[i,2]?" / Aqueous tested":" / Aqueous ?"):""));
-            text+=samples[i]+": "+value+"\n\n";
+            if(Level==3)
+            {
+                // Three concise evidence cards fit in the static notebook;
+                // S/M/Aq mean solid, molten and aqueous respectively.
+                string thermalNote=i==0?"Softens at low heat":"Solid in heat trial";
+                string mechanicalNote=i==0?"Soft; low shape retention":
+                    i==1?"Brittle on impact":"Malleable under pressure";
+                string solid=probed[i,0]?(i==2?"ON":"OFF"):"?";
+                string molten=probed[i,1]?(i==0?"OFF":"ON"):"?";
+                string aqueous=i==1?(probed[i,2]?" | Aq: ON":" | Aq: ?"):"";
+                text+=samples[i]+": "+thermalNote+"\n"+
+                    mechanicalNote+"\n"+
+                    "Probe S: "+solid+"  M: "+molten+aqueous+"\n\n";
+            }
+            else
+            {
+                string value=Level==1?(examined[i]?thermal[i]:"NOT TESTED"):
+                    (examined[i]?mechanical[i]:"NEEDS STRIKE + PRESS");
+                text+=samples[i]+": "+value+"\n\n";
+            }
         }
         evidenceText.text=text;
         int count=0;
         for(int i=0;i<3;i++)if(examined[i])count++;
-        if(progress!=null)progress.text=Level==3?"EXAMINE STATES & CLASSIFY SAMPLES":
-            "SAMPLES TESTED  "+count+" / 3";
+        if(progress!=null)
+        {
+            if(Level==3)
+            {
+                int ready=0;
+                for(int i=0;i<3;i++)
+                    if(probed[i,0]&&probed[i,1]&&(i!=1||probed[i,2]))ready++;
+                progress.text="CONDUCTIVITY TESTED  "+ready+" / 3";
+            }
+            else progress.text="SAMPLES TESTED  "+count+" / 3";
+        }
     }
     private void SetIndicator(Color color)
     {
