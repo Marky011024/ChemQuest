@@ -3,7 +3,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-// Shared formative BOW learning check for Stage 1 Levels 1 and 2.
+// Shared formative BOW learning check for all three Stage 1 levels.
 // The level is only recorded as completed after both questions are answered.
 public sealed class Stage1BowLearningCheck : MonoBehaviour
 {
@@ -59,10 +59,25 @@ public sealed class Stage1BowLearningCheck : MonoBehaviour
             "The blue copper(II) hydroxide precipitate is evidence of a chemical reaction.")
     };
 
+    private static readonly Question[] level3Questions =
+    {
+        new Question(
+            "What causes limewater to turn milky when carbon dioxide is bubbled through it?",
+            "A calcium carbonate precipitate forms",
+            "The carbon dioxide disappears without reacting", 0,
+            "HINT: A new insoluble solid appears in the liquid.",
+            "Carbon dioxide reacts with limewater to form insoluble calcium carbonate."),
+        new Question(
+            "What do you observe when calcium carbonate forms in the limewater test?",
+            "The water becomes clearer", "A cloudy white solid appears", 1,
+            "HINT: The newly formed solid makes the liquid look cloudy.",
+            "The white precipitate makes limewater appear milky.")
+    };
+
     public void Begin(int level, TMP_FontAsset font, Canvas canvas, Action<bool> finished)
     {
         if(activeCheck)return;
-        stageLevel=level==1?1:2;
+        stageLevel=Mathf.Clamp(level,1,3);
         fallbackFont=font!=null?font:TMP_Settings.defaultFontAsset;
         displayCanvas=canvas;
         onFinished=finished;
@@ -156,7 +171,7 @@ public sealed class Stage1BowLearningCheck : MonoBehaviour
             Vector2.zero,new Vector2(336,59));
     }
 
-    private Question Current => (stageLevel==1?level1Questions:level2Questions)[questionIndex];
+    private Question Current => (stageLevel==1?level1Questions:stageLevel==2?level2Questions:level3Questions)[questionIndex];
 
     private void ShowQuestion()
     {
@@ -178,7 +193,7 @@ public sealed class Stage1BowLearningCheck : MonoBehaviour
             return;
         }
         questionIndex++;
-        if(questionIndex<(stageLevel==1?level1Questions.Length:level2Questions.Length))
+        if(questionIndex<2)
         {
             ShowQuestion();
             return;
