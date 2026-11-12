@@ -125,6 +125,38 @@ public static class Stage5Level2LayoutFix
             feedback.gameObject.SetActive(true);
             feedback.SetAsLastSibling();
         }
+
+        // A Unity Image added later in the sibling order can paint over an
+        // earlier Button, making STRIKE appear missing/disabled. Reorder the
+        // footer deterministically every time this action is applied.
+        dock.SetAsLastSibling();
+        strip.SetAsLastSibling();
+        foreach (var name in new[] { "StrikeButton", "PressButton", "SubmitButton" })
+        {
+            var control = Find(root, name);
+            if (control == null) continue;
+            control.gameObject.SetActive(true);
+            control.SetAsLastSibling();
+            var button = control.GetComponent<Button>();
+            if (button != null)
+            {
+                button.interactable = true;
+                if (button.targetGraphic != null)
+                    button.targetGraphic.raycastTarget = true;
+            }
+        }
+        var progress = Find(root, "Progress");
+        if (progress != null) progress.SetAsLastSibling();
+        if (feedback != null) feedback.SetAsLastSibling();
+
+        // Modal windows must remain above the footer when they are opened.
+        foreach (var name in new[] { "PausePanel", "FailedPanel",
+                                     "CompletePanel", "OutOfEnergyPanel",
+                                     "Stage5Level2BowCheck" })
+        {
+            var panel = Find(root, name);
+            if (panel != null) panel.SetAsLastSibling();
+        }
         EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
         EditorSceneManager.SaveScene(SceneManager.GetActiveScene());
         EditorUtility.DisplayDialog("Level 2 UI updated", "Scene layout saved. Enter Play Mode to verify the result.", "OK");
