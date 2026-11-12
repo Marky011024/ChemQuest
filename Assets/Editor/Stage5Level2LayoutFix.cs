@@ -108,8 +108,22 @@ public static class Stage5Level2LayoutFix
         if (feedback != null)
         {
             strip.SetSiblingIndex(feedback.GetSiblingIndex());
-            Place(feedback, 0, -336, 970, 25);
-            SetText(root, "Feedback", null, 14);
+            Place(feedback, 0, -336, 970, 26);
+            SetText(root, "Feedback", null, 17);
+            // Feedback is a dynamic TMP label. Preserve its text while
+            // making every subsequent gameplay message readable.
+            var label = feedback.GetComponent<TMP_Text>() ??
+                        feedback.GetComponentInChildren<TMP_Text>(true);
+            if (label != null)
+            {
+                label.color = new Color32(245, 250, 255, 255);
+                label.alpha = 1f;
+                label.alignment = TextAlignmentOptions.Center;
+                label.textWrappingMode = TextWrappingModes.NoWrap;
+                label.raycastTarget = false;
+            }
+            feedback.gameObject.SetActive(true);
+            feedback.SetAsLastSibling();
         }
         EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
         EditorSceneManager.SaveScene(SceneManager.GetActiveScene());
