@@ -149,8 +149,11 @@ public static class Stage5Level3LayoutFix
                 SetText(label, null, 13);
             }
         }
-        Place(root, "SubmitButton", 455, -296, 205, 42);
-        SetText(Find(root, "SubmitButton"), "CHECK CLASSIFICATION", 12);
+        // The board extends to x=540; the prior button's right edge was
+        // x=557.5, making it visibly protrude. Keep a 10-unit right margin
+        // and a clear 15-unit gap after the metallic classification bin.
+        Place(root, "SubmitButton", 440, -296, 180, 42);
+        SetText(Find(root, "SubmitButton"), "CHECK CLASSIFICATION", 11);
 
         // Keep feedback fully above the 720px canvas bottom.
         // The prior text was low-contrast and nearly clipped at the edge.
