@@ -32,7 +32,9 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
     private int stateIndex;
     private TMP_Text feedback,progress,scoreText,finalScore,energyText,timer,selectedLabel,evidenceText,resultLabel;
     private GameObject failPanel,completePanel,pausePanel,emptyPanel;
-    private GameObject level1BowPanel,level2BowPanel;
+    private GameObject level1BowPanel,level2BowPanel,level3BowPanel;
+    private TMP_Text level3BowQuestion,level3BowHint;
+    private int level3BowStep=-1;
     private TMP_Text level2BowQuestion,level2BowHint;
     private int level2BowStep=-1;
     private TMP_Text level1BowQuestion,level1BowHint;
@@ -60,6 +62,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         Bind();
         if(Level==1)EnsureLevel1BowPanel();
         if(Level==2)EnsureLevel2BowPanel();
+        if(Level==3)EnsureLevel3BowPanel();
         RefreshEnergy();
     }
 
@@ -234,6 +237,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         emptyPanel.SetActive(false);
         if(Level==1)EnsureLevel1BowPanel();
         if(Level==2)EnsureLevel2BowPanel();
+        if(Level==3)EnsureLevel3BowPanel();
     }
 
 
@@ -593,11 +597,13 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         Wire("SubmitButton",Submit);
         if(Level==1)EnsureLevel1BowPanel();
         if(Level==2)EnsureLevel2BowPanel();
+        if(Level==3)EnsureLevel3BowPanel();
         foreach(var panel in new[]{pausePanel,failPanel,completePanel,emptyPanel})
             if(panel!=null)panel.SetActive(false);
         selected=-1;wrong=0;completedCount=0;failed=completed=paused=false;
         level1BowStep=-1;
         level2BowStep=-1;
+        level3BowStep=-1;
         for(int i=0;i<3;i++){examined[i]=classified[i]=false;selectedBin[i]=-1;
             for(int j=0;j<3;j++)probed[i,j]=false;}
         UpdateEvidence();
@@ -735,7 +741,8 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
             if(selectedBin[i]!=correct)
             {WrongAttempt("Use the thermal, mechanical, and conductivity evidence together.");return;}
         }
-        CompleteLevel();
+        level3BowStep=0;
+        ShowLevel3BowQuestion();
     }
     // A separate BOW learning check is shown after all three thermal tests.
     // These materials are fictional teaching samples; thermal results alone
@@ -952,6 +959,113 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         }
     }
 
+    // Final Stage 5 BOW: check reasoning about phase-dependent conductivity
+    // before awarding Stage 5 completion/certificate eligibility.
+    public void EnsureLevel3BowPanel()
+    {
+        if(Level!=3)return;
+        var parent=GameObject.Find("Stage5Level3Canvas")?.transform;
+        if(parent==null)return;
+        var obj=Find(parent,"Stage5Level3BowCheck");
+        if(obj==null)
+        {
+            var shade=Image(parent,"Stage5Level3BowCheck",Vector2.zero,
+                new Vector2(1280,720),new Color32(5,13,29,228));
+            shade.raycastTarget=true;
+            var sr=shade.rectTransform;
+            sr.anchorMin=Vector2.zero;sr.anchorMax=Vector2.one;
+            sr.offsetMin=Vector2.zero;sr.offsetMax=Vector2.zero;
+            var card=Image(shade.transform,"BowCard",Vector2.zero,
+                new Vector2(790,435),Panel);
+            card.raycastTarget=true;
+            Txt(card.transform,"BowTitle","BOW LEARNING CHECK",31,
+                new Vector2(0,150),new Vector2(740,54),Gold);
+            Txt(card.transform,"BowDescription",
+                "Answer two questions about the conductivity of bonding types.",17,
+                new Vector2(0,98),new Vector2(755,42),Color.white);
+            Txt(card.transform,"BowQuestion","",21,
+                new Vector2(0,14),new Vector2(728,87),Color.white);
+            Txt(card.transform,"BowHint","",15,
+                new Vector2(0,-71),new Vector2(736,32),Gold);
+            Btn(card.transform,"BowAnswerA","CHOICE A",
+                new Vector2(-180,-145),new Vector2(343,62),Teal);
+            Btn(card.transform,"BowAnswerB","CHOICE B",
+                new Vector2(180,-145),new Vector2(343,62),
+                new Color32(63,91,132,255));
+            obj=shade.transform;
+        }
+        level3BowPanel=obj.gameObject;
+        level3BowQuestion=Find(obj,"BowQuestion")?.GetComponent<TMP_Text>();
+        level3BowHint=Find(obj,"BowHint")?.GetComponent<TMP_Text>();
+        if(Application.isPlaying)
+        {
+            Wire("BowAnswerA",()=>AnswerLevel3Bow(0));
+            Wire("BowAnswerB",()=>AnswerLevel3Bow(1));
+        }
+        level3BowPanel.SetActive(false);
+    }
+    private void SetLevel3BowAnswer(string name,string value)
+    {
+        if(level3BowPanel==null)return;
+        var obj=Find(level3BowPanel.transform,name);
+        var caption=obj==null?null:obj.GetComponentInChildren<TMP_Text>(true);
+        if(caption!=null)caption.text=value;
+    }
+    private void ShowLevel3BowQuestion()
+    {
+        if(Level!=3)return;
+        if(level3BowPanel==null)EnsureLevel3BowPanel();
+        if(level3BowPanel==null)return;
+        SetLevel3BackgroundFeedbackVisible(false);
+        if(level3BowQuestion!=null)level3BowQuestion.text=level3BowStep==0?
+            "Why does an ionic compound usually conduct when molten, but not when solid?":
+            "Why do metallic solids conduct electricity?";
+        SetLevel3BowAnswer("BowAnswerA",level3BowStep==0?
+            "Ions can move when molten, but are fixed in a solid":
+            "Delocalized electrons move through the metal");
+        SetLevel3BowAnswer("BowAnswerB",level3BowStep==0?
+            "Its electrons disappear when the compound melts":
+            "Metal cations move freely through the solid lattice");
+        if(level3BowHint!=null)level3BowHint.text="";
+        level3BowPanel.SetActive(true);
+        level3BowPanel.transform.SetAsLastSibling();
+    }
+    private void AnswerLevel3Bow(int choice)
+    {
+        if(Level!=3 || !CanInteract || level3BowPanel==null ||
+            !level3BowPanel.activeSelf || level3BowStep<0 || level3BowStep>=2)return;
+        if(choice!=0)
+        {
+            WrongAttempt("Think about mobile charged particles in ionic and metallic materials.");
+            if(failed)
+            {
+                level3BowPanel.SetActive(false);
+                if(failPanel!=null)failPanel.transform.SetAsLastSibling();
+            }
+            else if(level3BowHint!=null)
+                level3BowHint.text=level3BowStep==0?
+                    "HINT: In molten ionic compounds, ions are mobile.":
+                    "HINT: Metals contain mobile delocalized electrons.";
+            return;
+        }
+        level3BowStep++;
+        if(level3BowStep<2)ShowLevel3BowQuestion();
+        else
+        {
+            level3BowPanel.SetActive(false);
+            CompleteLevel();
+        }
+    }
+    private void SetLevel3BackgroundFeedbackVisible(bool value)
+    {
+        if(Level!=3 || root==null)return;
+        foreach(var name in new[]{"Feedback","Progress"})
+        {
+            var obj=Find(root,name);
+            if(obj!=null)obj.gameObject.SetActive(value);
+        }
+    }
+
     private void WrongAttempt(string message)
     {
         wrong++;
@@ -982,6 +1096,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         }
         if(Level==1)SetLevel1BackgroundFeedbackVisible(false);
         if(Level==2)SetLevel2BackgroundFeedbackVisible(false);
+        if(Level==3)SetLevel3BackgroundFeedbackVisible(false);
         if(scoreText!=null)scoreText.text="SCORE\n"+points.ToString("D6");
         if(finalScore!=null)finalScore.text="FINAL SCORE "+points.ToString("D6");
         if(completePanel!=null){completePanel.SetActive(true);completePanel.transform.SetAsLastSibling();}
