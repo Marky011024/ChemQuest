@@ -24,6 +24,9 @@ public class Stage4ElectronOceanGame : MonoBehaviour
     private Slider forceSlider;
     private RectTransform upperLayer, lowerLayer;
     private GameObject driftPuzzlePanel;
+    private GameObject level1BowPanel;
+    private TMP_Text level1BowQuestion,level1BowHint;
+    private int level1BowStep=-1;
     private GameObject level2BowPanel;
     private TMP_Text level2BowQuestion,level2BowHint;
     private int level2BowStep=-1;
@@ -63,7 +66,12 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         if(GameObject.Find("Stage4Level"+Level+"Canvas")==null)BuildEditorScene();
         if(IsLevel1)EnsureLevel1Decoys();
         Bind();
-        if(IsLevel1)SynchronizeLevel1TokenBank();
+        if(IsLevel1)
+        {
+            SynchronizeLevel1TokenBank();
+            EnsureLevel1BowPanel();
+            SetLevel1BackgroundInstructionsVisible(true);
+        }
         if(Level==2)
         {
             PolishLevel2BottomLayout(GameObject.Find("Stage4Level2Canvas")?.transform);
@@ -415,6 +423,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         {
             PolishLevel1BottomLayout(root);
             SynchronizeLevel1TokenBank();
+            EnsureLevel1BowPanel();
         }
         if(Level==2)
         {
@@ -1125,6 +1134,112 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         }
     }
 
+    // Stage 4 Level 1 BOW check: asks students to explain the metal-ion
+    // lattice and sea of delocalized electrons they just constructed.
+    // Objects are serialized in the scene by the Stage 4 editor command.
+    public void EnsureLevel1BowPanel()
+    {
+        if(Level!=1)return;
+        var root=GameObject.Find("Stage4Level1Canvas");
+        if(root==null)return;
+        var existing=Find(root.transform,"Stage4Level1BowCheck");
+        if(existing==null)
+        {
+            var shade=Rect(root.transform,"Stage4Level1BowCheck",Vector2.zero,
+                new Vector2(1280,720),new Color32(5,13,30,222));
+            shade.raycastTarget=true;
+            var card=Rect(shade.transform,"BowCard",Vector2.zero,
+                new Vector2(770,420),Panel);
+            card.raycastTarget=true;
+            Label(card.transform,"BowTitle","BOW LEARNING CHECK",31,
+                new Vector2(0,145),new Vector2(715,55),Gold);
+            Label(card.transform,"BowDescription",
+                "Answer two questions about metallic bonding and electrons.",17,
+                new Vector2(0,94),new Vector2(725,38),Dim);
+            Label(card.transform,"BowQuestion","",21,
+                new Vector2(0,15),new Vector2(708,75),Color.white);
+            Label(card.transform,"BowHint","",15,
+                new Vector2(0,-70),new Vector2(710,30),Gold);
+            Button(card.transform,"BowAnswerA","CHOICE A",
+                new Vector2(-175,-138),new Vector2(332,57),
+                new Color32(16,140,151,255));
+            Button(card.transform,"BowAnswerB","CHOICE B",
+                new Vector2(175,-138),new Vector2(332,57),
+                new Color32(64,93,134,255));
+            existing=shade.transform;
+        }
+        level1BowPanel=existing.gameObject;
+        level1BowQuestion=Find(existing,"BowQuestion")?.GetComponent<TMP_Text>();
+        level1BowHint=Find(existing,"BowHint")?.GetComponent<TMP_Text>();
+        if(Application.isPlaying)
+        {
+            Wire(existing,"BowAnswerA",()=>AnswerLevel1Bow(0));
+            Wire(existing,"BowAnswerB",()=>AnswerLevel1Bow(1));
+        }
+        level1BowPanel.SetActive(false);
+    }
+    private void SetLevel1BowAnswer(string buttonName,string answer)
+    {
+        var button=level1BowPanel==null?null:Find(level1BowPanel.transform,buttonName);
+        var label=button==null?null:button.GetComponentInChildren<TMP_Text>(true);
+        if(label!=null)label.text=answer;
+    }
+    private void ShowLevel1BowQuestion()
+    {
+        if(Level!=1)return;
+        if(level1BowPanel==null)EnsureLevel1BowPanel();
+        if(level1BowPanel==null)return;
+        SetLevel1BackgroundInstructionsVisible(false);
+        if(level1BowQuestion!=null)level1BowQuestion.text=level1BowStep==0?
+            "What forms the positive lattice in a metallic solid?":
+            "What holds positive metal ions together in metallic bonding?";
+        SetLevel1BowAnswer("BowAnswerA",level1BowStep==0?
+            "Positive metal ions":"Attraction to delocalized electrons");
+        SetLevel1BowAnswer("BowAnswerB",level1BowStep==0?
+            "Neutral atoms moving freely":"Electrons fixed to only one metal ion");
+        if(level1BowHint!=null)level1BowHint.text="";
+        level1BowPanel.SetActive(true);
+        level1BowPanel.transform.SetAsLastSibling();
+    }
+    private void AnswerLevel1Bow(int choice)
+    {
+        if(Level!=1 || !CanInteract || level1BowPanel==null ||
+            !level1BowPanel.activeSelf || level1BowStep<0 ||
+            level1BowStep>=2)return;
+        if(choice!=0)
+        {
+            RegisterMistake();
+            if(failed)
+            {
+                level1BowPanel.SetActive(false);
+                if(failedPanel!=null)failedPanel.transform.SetAsLastSibling();
+            }
+            else if(level1BowHint!=null)
+                level1BowHint.text=level1BowStep==0?
+                    "HINT: The lattice consists of positive metal ions.":
+                    "HINT: A sea of mobile electrons attracts the metal ions.";
+            return;
+        }
+        level1BowStep++;
+        if(level1BowStep<2)ShowLevel1BowQuestion();
+        else
+        {
+            level1BowPanel.SetActive(false);
+            Complete();
+        }
+    }
+    private void SetLevel1BackgroundInstructionsVisible(bool visible)
+    {
+        if(Level!=1)return;
+        var root=GameObject.Find("Stage4Level1Canvas");
+        if(root==null)return;
+        foreach(var name in new[]{"Instructions","FeedbackText","ProgressText"})
+        {
+            var label=Find(root.transform,name);
+            if(label!=null)label.gameObject.SetActive(visible);
+        }
+    }
+
     // Assess electron drift and conductivity after the directional model is
     // correct, following the same BOW check pattern used in Stage 4 Level 3.
     // The UI can be built in Edit Mode and stored in the Unity Hierarchy.
@@ -1680,6 +1795,12 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             RegisterMistake();
             return;
         }
+        if(Level==1)
+        {
+            level1BowStep=0;
+            ShowLevel1BowQuestion();
+            return;
+        }
         Complete();
     }
     public void RegisterMistake()
@@ -1717,6 +1838,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         PlayerPrefs.Save();
         if(score!=null)score.text="SCORE\n"+scoreValue.ToString("D6");
         if(finalScore!=null)finalScore.text="FINAL SCORE: "+scoreValue.ToString("D6");
+        if(Level==1)SetLevel1BackgroundInstructionsVisible(false);
         if(Level==2)SetLevel2BackgroundInstructionsVisible(false);
         if(Level==3)SetLevel3UnderlyingFeedbackVisible(false);
         if(winPanel!=null)
@@ -1732,6 +1854,12 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         foreach(var z in zones)z.ResetZone();
         metalPlaced=electronsPlaced=terminalsPlaced=0;
         UpdateLevel1Progress();
+        if(Level==1)
+        {
+            SetLevel1BackgroundInstructionsVisible(true);
+            level1BowStep=-1;
+            if(level1BowPanel!=null)level1BowPanel.SetActive(false);
+        }
         if(Level==2)
         {
             SetLevel2BackgroundInstructionsVisible(true);
