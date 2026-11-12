@@ -62,6 +62,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         {
             PolishLevel2BottomLayout(GameObject.Find("Stage4Level2Canvas")?.transform);
             EnsureDriftPuzzle();
+            SetLevel2BackgroundInstructionsVisible(true);
         }
         if(Level==3)
         {
@@ -1097,6 +1098,20 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         driftPuzzlePanel.SetActive(false);
     }
 
+    // Keep the Level 2 experiment labels out of the semi-transparent
+    // challenge/completion overlays. The puzzle's own feedback remains visible.
+    private void SetLevel2BackgroundInstructionsVisible(bool visible)
+    {
+        if(Level!=2)return;
+        var canvasRoot=GameObject.Find("Stage4Level2Canvas");
+        if(canvasRoot==null)return;
+        foreach(var labelName in new[]{"Instructions","FeedbackText"})
+        {
+            var label=Find(canvasRoot.transform,labelName);
+            if(label!=null)label.gameObject.SetActive(visible);
+        }
+    }
+
     private void ResetDriftTiles()
     {
         if(driftPuzzleSlots!=null)
@@ -1427,6 +1442,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             if(driftPuzzlePanel==null)EnsureDriftPuzzle();
             if(driftPuzzlePanel!=null)
             {
+                SetLevel2BackgroundInstructionsVisible(false);
                 driftPuzzlePanel.SetActive(true);
                 driftPuzzlePanel.transform.SetAsLastSibling();
                 return;
@@ -1479,6 +1495,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         PlayerPrefs.Save();
         if(score!=null)score.text="SCORE\n"+scoreValue.ToString("D6");
         if(finalScore!=null)finalScore.text="FINAL SCORE: "+scoreValue.ToString("D6");
+        if(Level==2)SetLevel2BackgroundInstructionsVisible(false);
         if(winPanel!=null)
         {
             winPanel.SetActive(true);
@@ -1494,6 +1511,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         UpdateLevel1Progress();
         if(Level==2)
         {
+            SetLevel2BackgroundInstructionsVisible(true);
             if(driftPuzzlePanel!=null)driftPuzzlePanel.SetActive(false);
             ResetDriftTiles();
             powerOn=observedDrift=false;driftClock=0f;
