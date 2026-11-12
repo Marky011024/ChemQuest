@@ -38,6 +38,8 @@ public class Level2ScoreManager : MonoBehaviour
         if (bow == null) bow = gameObject.AddComponent<Stage1BowLearningCheck>();
         bow.Begin(2, finalScoreText != null ? finalScoreText.font :
             scoreText != null ? scoreText.font : null,
+            finalScoreText != null ? finalScoreText.GetComponentInParent<Canvas>() :
+            scoreText != null ? scoreText.GetComponentInParent<Canvas>() : null,
             bowHadMistake => FinishAfterBow(wrongAttempts, bowHadMistake));
     }
 
