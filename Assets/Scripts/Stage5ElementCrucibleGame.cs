@@ -32,6 +32,9 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
     private int stateIndex;
     private TMP_Text feedback,progress,scoreText,finalScore,energyText,timer,selectedLabel,evidenceText,resultLabel;
     private GameObject failPanel,completePanel,pausePanel,emptyPanel;
+    private GameObject level1BowPanel;
+    private TMP_Text level1BowQuestion,level1BowHint;
+    private int level1BowStep=-1;
     private Slider heat;
     private Transform root;
     private float nextEnergyUpdate;
@@ -53,6 +56,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         root=GameObject.Find("Stage5Level"+Level+"Canvas").transform;
         if(Level==1)PolishStage5Level1Layout();
         Bind();
+        if(Level==1)EnsureLevel1BowPanel();
         RefreshEnergy();
     }
 
@@ -225,6 +229,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         Btn(emptyPanel.transform,"EmptyLevelButton","LEVEL SELECTION",
             new Vector2(0,-152),new Vector2(300,55),Teal);
         emptyPanel.SetActive(false);
+        if(Level==1)EnsureLevel1BowPanel();
     }
 
 
@@ -582,9 +587,11 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         Wire("AqueousButton",()=>SelectState(2));
         Wire("ProbeButton",Probe);
         Wire("SubmitButton",Submit);
+        if(Level==1)EnsureLevel1BowPanel();
         foreach(var panel in new[]{pausePanel,failPanel,completePanel,emptyPanel})
             if(panel!=null)panel.SetActive(false);
         selected=-1;wrong=0;completedCount=0;failed=completed=paused=false;
+        level1BowStep=-1;
         for(int i=0;i<3;i++){examined[i]=classified[i]=false;selectedBin[i]=-1;
             for(int j=0;j<3;j++)probed[i,j]=false;}
         UpdateEvidence();
@@ -695,7 +702,12 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         {
             for(int i=0;i<3;i++)
                 if(!examined[i]){WrongAttempt("Not all samples have complete observations.");return;}
-            CompleteLevel();
+            if(Level==1)
+            {
+                level1BowStep=0;
+                ShowLevel1BowQuestion();
+            }
+            else CompleteLevel();
             return;
         }
         for(int i=0;i<3;i++)
@@ -715,6 +727,113 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         }
         CompleteLevel();
     }
+    // A separate BOW learning check is shown after all three thermal tests.
+    // These materials are fictional teaching samples; thermal results alone
+    // do not establish a unique ionic/covalent/metallic classification.
+    public void EnsureLevel1BowPanel()
+    {
+        if(Level!=1)return;
+        var parent=GameObject.Find("Stage5Level1Canvas")?.transform;
+        if(parent==null)return;
+        var obj=Find(parent,"Stage5Level1BowCheck");
+        if(obj==null)
+        {
+            var shade=Image(parent,"Stage5Level1BowCheck",Vector2.zero,
+                new Vector2(1280,720),new Color32(5,13,29,228));
+            shade.raycastTarget=true;
+            var sr=shade.rectTransform;
+            sr.anchorMin=Vector2.zero;sr.anchorMax=Vector2.one;
+            sr.offsetMin=Vector2.zero;sr.offsetMax=Vector2.zero;
+            var card=Image(shade.transform,"BowCard",Vector2.zero,
+                new Vector2(770,430),Panel);
+            card.raycastTarget=true;
+            Txt(card.transform,"BowTitle","BOW LEARNING CHECK",31,
+                new Vector2(0,149),new Vector2(720,51),Gold);
+            Txt(card.transform,"BowDescription",
+                "Answer two questions about thermal evidence and material properties.",17,
+                new Vector2(0,97),new Vector2(735,44),Color.white);
+            Txt(card.transform,"BowQuestion","",21,
+                new Vector2(0,16),new Vector2(710,79),Color.white);
+            Txt(card.transform,"BowHint","",15,
+                new Vector2(0,-70),new Vector2(712,33),Gold);
+            Btn(card.transform,"BowAnswerA","CHOICE A",
+                new Vector2(-175,-143),new Vector2(335,58),Teal);
+            Btn(card.transform,"BowAnswerB","CHOICE B",
+                new Vector2(175,-143),new Vector2(335,58),new Color32(63,91,132,255));
+            obj=shade.transform;
+        }
+        level1BowPanel=obj.gameObject;
+        level1BowQuestion=Find(obj,"BowQuestion")?.GetComponent<TMP_Text>();
+        level1BowHint=Find(obj,"BowHint")?.GetComponent<TMP_Text>();
+        if(Application.isPlaying)
+        {
+            Wire("BowAnswerA",()=>AnswerLevel1Bow(0));
+            Wire("BowAnswerB",()=>AnswerLevel1Bow(1));
+        }
+        level1BowPanel.SetActive(false);
+    }
+    private void SetBowAnswer(string name,string value)
+    {
+        if(level1BowPanel==null)return;
+        var obj=Find(level1BowPanel.transform,name);
+        var caption=obj==null?null:obj.GetComponentInChildren<TMP_Text>(true);
+        if(caption!=null)caption.text=value;
+    }
+    private void ShowLevel1BowQuestion()
+    {
+        if(Level!=1)return;
+        if(level1BowPanel==null)EnsureLevel1BowPanel();
+        if(level1BowPanel==null)return;
+        SetLevel1BackgroundFeedbackVisible(false);
+        if(level1BowQuestion!=null)level1BowQuestion.text=level1BowStep==0?
+            "Which conclusion is supported by comparing the heating tests?":
+            "What should a scientist do before identifying a material's bonding type?";
+        SetBowAnswer("BowAnswerA",level1BowStep==0?
+            "The samples respond differently to heating":
+            "Combine thermal evidence with other property tests");
+        SetBowAnswer("BowAnswerB",level1BowStep==0?
+            "All three samples must have the same bonding type":
+            "Identify its bond type using only the heating result");
+        if(level1BowHint!=null)level1BowHint.text="";
+        level1BowPanel.SetActive(true);
+        level1BowPanel.transform.SetAsLastSibling();
+    }
+    private void AnswerLevel1Bow(int choice)
+    {
+        if(Level!=1 || !CanInteract || level1BowPanel==null ||
+            !level1BowPanel.activeSelf || level1BowStep<0 || level1BowStep>=2)return;
+        if(choice!=0)
+        {
+            WrongAttempt("Heating alone cannot conclusively identify bonding type.");
+            if(failed)
+            {
+                level1BowPanel.SetActive(false);
+                if(failPanel!=null)failPanel.transform.SetAsLastSibling();
+            }
+            else if(level1BowHint!=null)
+                level1BowHint.text=level1BowStep==0?
+                    "HINT: Compare what happened to samples A, B, and C.":
+                    "HINT: Use conductivity and mechanical properties too.";
+            return;
+        }
+        level1BowStep++;
+        if(level1BowStep<2)ShowLevel1BowQuestion();
+        else
+        {
+            level1BowPanel.SetActive(false);
+            CompleteLevel();
+        }
+    }
+    private void SetLevel1BackgroundFeedbackVisible(bool value)
+    {
+        if(Level!=1 || root==null)return;
+        foreach(var name in new[]{"Feedback","Progress"})
+        {
+            var obj=Find(root,name);
+            if(obj!=null)obj.gameObject.SetActive(value);
+        }
+    }
+
     private void WrongAttempt(string message)
     {
         wrong++;
@@ -743,6 +862,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
             if(certificateButton!=null)
                 certificateButton.SetActive(ChemQuestCertificate.AllLevelsComplete());
         }
+        if(Level==1)SetLevel1BackgroundFeedbackVisible(false);
         if(scoreText!=null)scoreText.text="SCORE\n"+points.ToString("D6");
         if(finalScore!=null)finalScore.text="FINAL SCORE "+points.ToString("D6");
         if(completePanel!=null){completePanel.SetActive(true);completePanel.transform.SetAsLastSibling();}
