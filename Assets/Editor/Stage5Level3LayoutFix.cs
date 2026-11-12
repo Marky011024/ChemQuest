@@ -62,7 +62,7 @@ public static class Stage5Level3LayoutFix
         // Reserve more space for notebook text without squeezing the sample bank.
         Place(board, "SampleBank", -402, -34, 215, 260);
         Place(board, "TestStation", -91, -33, 380, 262);
-        Place(board, "EvidenceBoard", 326, -26, 352, 300);
+        Place(board, "EvidenceBoard", 323, -26, 359, 300);
         Place(root, "MenuButton", -535, 295, 112, 42);
 
         var evidencePanel = Find(root, "EvidenceBoard");
@@ -83,7 +83,7 @@ public static class Stage5Level3LayoutFix
                 image.color = new Color(0f, 0f, 0f, 0f);
                 image.raycastTarget = true;
             }
-            Place(viewport, 0, -23, 326, 238);
+            Place(viewport, 0, -23, 338, 238);
             var viewRect = viewport.GetComponent<RectTransform>();
             var scroll = viewport.GetComponent<ScrollRect>();
             if (evidence.parent != viewport) evidence.SetParent(viewport, false);
@@ -101,7 +101,7 @@ public static class Stage5Level3LayoutFix
             var tmp = evidence.GetComponent<TMP_Text>();
             if (tmp != null)
             {
-                tmp.fontSize = 14;
+                tmp.fontSize = 17;
                 tmp.enableAutoSizing = false;
                 tmp.textWrappingMode = TextWrappingModes.Normal;
                 tmp.overflowMode = TextOverflowModes.Overflow;
@@ -116,7 +116,7 @@ public static class Stage5Level3LayoutFix
             scroll.scrollSensitivity = 25f;
             scroll.verticalNormalizedPosition = 1f;
         }
-        Place(root, "EvidenceTitle", 0, 119, 326, 32);
+        Place(root, "EvidenceTitle", 0, 119, 338, 32);
         SetText(Find(root, "EvidenceTitle"), "LAB NOTEBOOK", 17);
 
         // Each row has its own space: tests, classification and feedback.
@@ -125,11 +125,11 @@ public static class Stage5Level3LayoutFix
         Place(root, "AqueousButton", -12, -247, 158, 41);
         Place(root, "ProbeButton", 221, -247, 241, 41);
 
-        Place(root, "Progress", 0, -209, 760, 28);
+        Place(root, "Progress", 0, -215, 760, 28);
         SetText(Find(root, "Progress"), null, 16);
-        Place(root, "Bin0", -366, -293, 250, 43);
-        Place(root, "Bin1", -78, -293, 250, 43);
-        Place(root, "Bin2", 210, -293, 250, 43);
+        Place(root, "Bin0", -366, -287, 250, 43);
+        Place(root, "Bin1", -78, -287, 250, 43);
+        Place(root, "Bin2", 210, -287, 250, 43);
         foreach (var name in new[] { "Bin0", "Bin1", "Bin2" })
         {
             var bin = Find(root, name);
@@ -140,7 +140,7 @@ public static class Stage5Level3LayoutFix
                 SetText(label, null, 13);
             }
         }
-        Place(root, "SubmitButton", 455, -293, 205, 43);
+        Place(root, "SubmitButton", 455, -287, 205, 43);
         SetText(Find(root, "SubmitButton"), "CHECK CLASSIFICATION", 12);
 
         // Keep feedback fully above the 720px canvas bottom.
@@ -157,7 +157,7 @@ public static class Stage5Level3LayoutFix
         if (stripImage == null) stripImage = strip.gameObject.AddComponent<Image>();
         stripImage.color = new Color32(9, 32, 58, 255);
         stripImage.raycastTarget = false;
-        Place(strip, 0, -333, 1050, 30);
+        Place(strip, 0, -328, 1050, 32);
         var feedback = Find(root, "Feedback");
         if (feedback != null)
         {
@@ -165,8 +165,8 @@ public static class Stage5Level3LayoutFix
             // the feedback text, leaving success/fail panels above both.
             int feedbackOrder = feedback.GetSiblingIndex();
             strip.SetSiblingIndex(feedbackOrder);
-            Place(feedback, 0, -333, 1000, 28);
-            SetText(feedback, null, 14);
+            Place(feedback, 0, -328, 1000, 28);
+            SetText(feedback, null, 16);
             var feedbackText = feedback.GetComponent<TMP_Text>();
             if (feedbackText != null)
             {
