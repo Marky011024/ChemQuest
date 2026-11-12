@@ -60,11 +60,35 @@ public static class Stage5Level2LayoutFix
         Place(board, "TestStation", 35, -34, 430, 258);
         Place(board, "EvidenceBoard", 385, -40, 230, 258);
         Place(root, "MenuButton", -535, 294, 105, 40);
-        Place(root, "StrikeButton", -158, -255, 258, 46);
-        Place(root, "PressButton", 155, -255, 258, 46);
-        Place(root, "Progress", -210, -299, 330, 31);
-        Place(root, "SubmitButton", 408, -298, 246, 44);
+
+        // Dedicated lower control dock: all three action buttons share one
+        // row; progress and feedback have their own rows, inside the canvas.
+        // The dock sits behind the buttons but in front of the background.
+        var dock = Find(root, "Level2ControlDock");
+        if (dock == null)
+        {
+            var go = new GameObject("Level2ControlDock", typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(root, false);
+            dock = go.transform;
+            var image = go.GetComponent<Image>();
+            image.color = new Color32(10, 32, 58, 252);
+            image.raycastTarget = false;
+        }
+        dock.gameObject.SetActive(true);
+        Place(dock, 0, -269, 1030, 176);
+        // Put it after the lab board but before interactive controls so it
+        // never blocks the bench or the drag targets.
+        var strike = Find(root, "StrikeButton");
+        if (strike != null) dock.SetSiblingIndex(strike.GetSiblingIndex());
+
+        Place(root, "StrikeButton", -312, -248, 278, 46);
+        Place(root, "PressButton", 0, -248, 278, 46);
+        Place(root, "SubmitButton", 312, -248, 278, 46);
+        SetText(root, "StrikeButton", "STRIKE SAMPLE", 17);
+        SetText(root, "PressButton", "PRESS SAMPLE", 17);
         SetText(root, "SubmitButton", "SUBMIT LAB RESULTS", 16);
+        Place(root, "Progress", 0, -300, 520, 29);
+        SetText(root, "Progress", null, 18);
 
         var strip = Find(root, "Level2FeedbackStrip");
         if (strip == null)
@@ -76,12 +100,15 @@ public static class Stage5Level2LayoutFix
             img.color = new Color32(8, 29, 51, 245);
             img.raycastTarget = false;
         }
-        Place(strip, 0, -335, 1010, 29);
+        Place(strip, 0, -336, 1000, 28);
+        strip.gameObject.SetActive(true);
+        var stripImage = strip.GetComponent<Image>();
+        if (stripImage != null) { stripImage.color = new Color32(6, 23, 43, 250); stripImage.raycastTarget = false; }
         var feedback = Find(root, "Feedback");
         if (feedback != null)
         {
             strip.SetSiblingIndex(feedback.GetSiblingIndex());
-            Place(feedback, 0, -335, 985, 27);
+            Place(feedback, 0, -336, 970, 25);
             SetText(root, "Feedback", null, 14);
         }
         EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
