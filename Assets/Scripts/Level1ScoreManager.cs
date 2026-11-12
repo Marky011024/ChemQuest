@@ -30,19 +30,31 @@ public class Level1ScoreManager : MonoBehaviour
         UpdateScoreDisplay();
     }
 
+    private bool bowStarted;
+
     public void CompleteLevel()
     {
-        // Prevent duplicate completion
-        if (levelCompleted)
+        if (levelCompleted || bowStarted)
             return;
 
+        bowStarted = true;
+        var bow = gameObject.GetComponent<Stage1BowLearningCheck>();
+        if (bow == null) bow = gameObject.AddComponent<Stage1BowLearningCheck>();
+        bow.Begin(1, finalScoreText != null ? finalScoreText.font :
+            scoreText != null ? scoreText.font : null,
+            FinishAfterBow);
+    }
+
+    private void FinishAfterBow(bool bowHadMistake)
+    {
+        if (levelCompleted) return;
         levelCompleted = true;
 
         // Calculate final score
         // No mistakes = 100
         // With mistake = 75
         score = attemptManager != null &&
-                attemptManager.HasMadeMistake ? 75 : 100;
+                (attemptManager.HasMadeMistake || bowHadMistake) ? 75 : 100;
 
         UpdateScoreDisplay();
 
