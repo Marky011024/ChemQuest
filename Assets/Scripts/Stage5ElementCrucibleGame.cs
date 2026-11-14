@@ -931,6 +931,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
             !level2BowPanel.activeSelf || level2BowStep<0 || level2BowStep>=2)return;
         if(choice!=0)
         {
+            ChemQuestSoundtrack.Wrong();
             WrongAttempt("Compare deformation and brittle fracture, then consider the mobile electrons.");
             if(failed)
             {
