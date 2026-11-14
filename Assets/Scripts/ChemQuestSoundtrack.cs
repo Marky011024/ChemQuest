@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
 // Audio assets are loaded from Assets/Resources/ChemQuestAudio.
 // This controller starts automatically in editor Play Mode and Android builds.
@@ -96,8 +97,12 @@ public sealed class ChemQuestSoundtrack : MonoBehaviour
             {
                 if(button==null || !button.gameObject.scene.IsValid())continue;
                 if(!wiredButtons.Add(button))continue;
-                string sound=ClassifyButton(button.gameObject.name);
-                button.onClick.AddListener(()=>Play(sound));
+                // Attach a pointer-down component instead of an onClick listener.
+                // Some game menus call Button.onClick.RemoveAllListeners() during
+                // Start(), which previously erased the audio listener permanently.
+                var click=button.GetComponent<ChemQuestButtonSound>();
+                if(click==null)click=button.gameObject.AddComponent<ChemQuestButtonSound>();
+                click.soundKey=ClassifyButton(button.gameObject.name);
             }
             yield return new WaitForSecondsRealtime(1.5f);
         }
@@ -160,4 +165,17 @@ public sealed class ChemQuestSoundtrack : MonoBehaviour
     public static void Crystal()=>Play("crystal");
     public static void Electric()=>Play("electric");
     public static void Certificate()=>Play("certificate");
+}
+
+// Works independently of the button's onClick UnityEvent, even when the
+// scene rebuilds its navigation listeners. PointerDown occurs before navigation.
+public sealed class ChemQuestButtonSound : MonoBehaviour, IPointerDownHandler
+{
+    public string soundKey="click";
+    public void OnPointerDown(PointerEventData eventData)
+    {
+        var button=GetComponent<Button>();
+        if(button==null || !button.IsActive() || !button.IsInteractable())return;
+        ChemQuestSoundtrack.Play(soundKey);
+    }
 }
