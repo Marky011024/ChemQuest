@@ -718,9 +718,9 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         else {bowPanel.SetActive(false);CheckAnswer();}
     }
 
-    // Full-screen opaque modals prevent the completed electron slots,
-    // bottom feedback and buttons from showing through the BOW / success card.
-    // This also fixes older serialized scenes without requiring a rebuild.
+    // Keep the Stage 3 Level 2 puzzle/background visible behind GAME PAUSED,
+    // matching the translucent pause treatment in Stage 3 Level 1.
+    // Other modal states (failure, BOW, energy, success) remain opaque.
     private void PolishModalLayering()
     {
         foreach(var panel in new[]{bowPanel,completionPanel,failurePanel,pausePanel,outOfEnergyPanel})
@@ -737,10 +737,14 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
             var background=panel.GetComponent<Image>();
             if(background!=null)
             {
-                background.color=new Color32(8,20,42,255);
+                // Pause uses a translucent dimmer; the chemistry lab remains
+                // visible while gameplay input is blocked by the overlay.
+                background.color=panel==pausePanel
+                    ? new Color32(8,20,42,175)
+                    : new Color32(8,20,42,255);
                 background.raycastTarget=true;
             }
-            // Keep only the inner dialog card visible above an opaque mask.
+            // Keep the dialog/card readable above the dimmed background.
             var card=FindUI(panel.transform,"Panel");
             if(card!=null)
             {
