@@ -46,7 +46,8 @@ public sealed class Stage1CompletionPopup : MonoBehaviour
     {
         overlay=new GameObject("Stage1UnifiedLevelComplete",
             typeof(RectTransform),typeof(Canvas),typeof(CanvasScaler),typeof(GraphicRaycaster));
-        overlay.transform.SetParent(transform,false);
+        // A Screen Space Overlay canvas must be a root GameObject.
+        // Creating it in the active scene ensures it is removed on scene load.
         var canvas=overlay.GetComponent<Canvas>();
         canvas.renderMode=RenderMode.ScreenSpaceOverlay;
         canvas.overrideSorting=true;
@@ -98,10 +99,15 @@ public sealed class Stage1CompletionPopup : MonoBehaviour
     private static TextMeshProUGUI Label(Transform parent,string name,string words,
         int fontSize,Color color,Vector2 pos,Vector2 size,TMP_FontAsset font)
     {
-        var rect=Image(parent,name,new Color(0,0,0,0),pos,size).rectTransform;
-        var image=rect.GetComponent<Image>();
-        if(image!=null)Destroy(image);
-        var text=rect.gameObject.AddComponent<TextMeshProUGUI>();
+        var go=new GameObject(name,typeof(RectTransform),typeof(CanvasRenderer),
+            typeof(TextMeshProUGUI));
+        go.transform.SetParent(parent,false);
+        var rect=go.GetComponent<RectTransform>();
+        rect.anchorMin=rect.anchorMax=new Vector2(.5f,.5f);
+        rect.pivot=new Vector2(.5f,.5f);
+        rect.anchoredPosition=pos;
+        rect.sizeDelta=size;
+        var text=go.GetComponent<TextMeshProUGUI>();
         text.font=font!=null?font:TMP_Settings.defaultFontAsset;
         text.text=words;
         text.color=color;
