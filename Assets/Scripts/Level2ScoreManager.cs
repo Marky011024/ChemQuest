@@ -70,23 +70,22 @@ public class Level2ScoreManager : MonoBehaviour
         if (experimentPanel != null)
             experimentPanel.SetActive(false);
 
-        // Show completion panel above all other gameplay UI.
-        if (levelCompletePanel != null)
-        {
-            levelCompletePanel.SetActive(true);
-            levelCompletePanel.transform.SetAsLastSibling();
-        }
-        else
-        {
-            Debug.LogWarning(
-                "Level2CompletePanel is not assigned!"
-            );
-        }
+        // Display one consistent Stage 2-style victory popup.
+        if(levelCompletePanel!=null)levelCompletePanel.SetActive(false);
+        ShowUnifiedCompletion();
 
         Debug.Log(
             "Stage 1 Level 2 completed! Score: " +
             score + ". Level 3 unlocked."
         );
+    }
+
+    private void ShowUnifiedCompletion()
+    {
+        var popup=GetComponent<Stage1CompletionPopup>();
+        if(popup==null)popup=gameObject.AddComponent<Stage1CompletionPopup>();
+        popup.Show(2,score,finalScoreText!=null?finalScoreText.font:
+            scoreText!=null?scoreText.font:null);
     }
 
     private void UpdateScoreDisplay()
