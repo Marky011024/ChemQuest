@@ -24,9 +24,23 @@ public class Stage4ElectronOceanGame : MonoBehaviour
     private Slider forceSlider;
     private RectTransform upperLayer, lowerLayer;
     private GameObject driftPuzzlePanel;
+    private GameObject level1BowPanel;
+    private TMP_Text level1BowQuestion,level1BowHint;
+    private int level1BowStep=-1;
+    private GameObject level2BowPanel;
+    private TMP_Text level2BowQuestion,level2BowHint;
+    private int level2BowStep=-1;
     private TMP_Text driftPuzzleFeedback;
     private Stage4DriftSlot[] driftPuzzleSlots;
     private Stage4DriftTile[] driftPuzzleTiles;
+    private GameObject[] metalChallengePanels;
+    private Stage4DriftSlot[][] metalChallengeSlots;
+    private Stage4DriftTile[][] metalChallengeTiles;
+    private TMP_Text[] metalChallengeMessages;
+    private int metalChallengeStep;
+    private GameObject level3BowPanel;
+    private TMP_Text level3BowQuestion,level3BowHint;
+    private int level3BowStep=-1;
     private int mistakes,metalPlaced,electronsPlaced,terminalsPlaced;
     private bool failed,completed,paused,powerOn,observedDrift,forceApplied;
     private float nextTick,driftClock;
@@ -52,7 +66,27 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         if(GameObject.Find("Stage4Level"+Level+"Canvas")==null)BuildEditorScene();
         if(IsLevel1)EnsureLevel1Decoys();
         Bind();
-        if(Level==2)EnsureDriftPuzzle();
+        if(IsLevel1)
+        {
+            SynchronizeLevel1TokenBank();
+            EnsureLevel1BowPanel();
+            SetLevel1BackgroundInstructionsVisible(true);
+        }
+        if(Level==2)
+        {
+            PolishLevel2BottomLayout(GameObject.Find("Stage4Level2Canvas")?.transform);
+            EnsureDriftPuzzle();
+            EnsureLevel2BowPanel();
+            SetLevel2BackgroundInstructionsVisible(true);
+        }
+        if(Level==3)
+        {
+            EnsureMetalChallenges();
+            EnsureLevel3BowPanel();
+            SetLevel3UnderlyingFeedbackVisible(true);
+            PolishLevel3Presentation();
+            PolishLevel3GameUILayout();
+        }
         UpdateEnergy();
     }
 
@@ -97,9 +131,9 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         }
         Label(root.transform,"EnergyCount","5/5",15,new Vector2(-304,334),new Vector2(85,25),Color.white);
         var board=Rect(root.transform,"ExperimentBoard",
-            Level==1||Level==2?new Vector2(0,-35):new Vector2(0,-3),
+            Level==1||Level==2?new Vector2(0,-35):new Vector2(0,-26),
             Level==1?new Vector2(1110,520):
-                Level==2?new Vector2(1110,530):new Vector2(1110,398),Panel);
+                Level==2?new Vector2(1110,530):new Vector2(1110,444),Panel);
         board.raycastTarget=false;
 
         if(Level==1)BuildLevel1(board.transform);
@@ -112,7 +146,8 @@ public class Stage4ElectronOceanGame : MonoBehaviour
                 15,new Vector2(0,-261),new Vector2(900,20),Blue);
         feedback=Label(root.transform,"FeedbackText",Level==1
                 ?"Decoys can be placed. CHECK evaluates the final model."
-                :"Follow the instructions to complete the metallic bonding model.",
+                :Level==3?"Drag the slider to apply force, then press CHECK.":
+                    "Follow the instructions to complete the metallic bonding model.",
             16,Level==1?new Vector2(0,-283):
                 Level==2?new Vector2(0,-275):new Vector2(0,-266),
             Level==1?new Vector2(1020,20):
@@ -160,7 +195,8 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         failedPanel.SetActive(false);
 
         winPanel=Modal(root.transform,"CompletePanel","LEVEL COMPLETE!",
-            "Metallic bonding model successfully completed.");
+            Level==3?"Malleability and ductility challenges successfully completed!":
+                "Metallic bonding model successfully completed.");
         finalScore=Label(winPanel.transform,"FinalScoreText","FINAL SCORE: 000000",27,
             new Vector2(0,-36),new Vector2(610,56),Gold);
         Button(winPanel.transform,"NextButton",Level==3?"STAGE SELECTION":"NEXT LEVEL",
@@ -187,7 +223,11 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         if(go==null)return;
         var root=go.transform;
         var bg=Find(root,"Background")?.GetComponent<Image>();
-        if(bg!=null)bg.color=new Color32(8,19,39,255);
+        // Stage 4 scenes already have a full-color laboratory sprite on the
+        // Background image. Do not tint it navy during Edit Mode polish.
+        // The opaque ExperimentBoard supplies contrast behind gameplay.
+        if(bg!=null && bg.sprite!=null)bg.color=Color.white;
+        else if(bg!=null)bg.color=new Color32(8,19,39,255);
 
         var board=Find(root,"ExperimentBoard")?.GetComponent<Image>();
         if(board!=null)
@@ -326,7 +366,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
                     zone.anchoredPosition=new Vector2(-375+(i%3)*124,-(i/3)*79);
                     zone.sizeDelta=new Vector2(76,66);
                 }
-                SetPosition(root,"MetalCore"+i,new Vector2(-409+i*105,0));
+                // Token positions are synchronized once below.
             }
             for(int i=0;i<4;i++)
             {
@@ -336,7 +376,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
                     zone.anchoredPosition=new Vector2(150+(i%2)*165,-(i/2)*85);
                     zone.sizeDelta=new Vector2(94,69);
                 }
-                SetPosition(root,"FreeElectron"+i,new Vector2(244+i*76,0));
+                // Shared bank layout handles electrons and decoys together.
             }
             var tokenBank=Find(root,"MetalTokenBank")?.GetComponent<RectTransform>();
             if(tokenBank!=null)tokenBank.sizeDelta=new Vector2(1024,62);
@@ -378,6 +418,188 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             SetPosition(root,"TerminalBank",new Vector2(0,-91));
             SetPosition(root,"VoltageSwitch",new Vector2(0,-156));
             SetPosition(root,"DriftLabel",new Vector2(0,-127));
+        }
+        if(Level==1)
+        {
+            PolishLevel1BottomLayout(root);
+            SynchronizeLevel1TokenBank();
+            EnsureLevel1BowPanel();
+        }
+        if(Level==2)
+        {
+            PolishLevel2BottomLayout(root);
+            EnsureLevel2BowPanel();
+        }
+    }
+
+    // Stage 4 Level 1 footer: extends the workbench under both action buttons.
+    // Called in Edit Mode so everything persists in the saved Unity Hierarchy.
+    // Existing puzzle objects, positions and drag/drop handlers stay untouched.
+    private void PolishLevel1BottomLayout(Transform root)
+    {
+        var footer=Find(root,"Level1ActionFooter");
+        if(footer==null)
+        {
+            var image=Rect(root,"Level1ActionFooter",
+                new Vector2(0,-316),new Vector2(1110,96),
+                new Color32(19,43,70,255));
+            image.raycastTarget=false;
+            footer=image.transform;
+        }
+        var footerRect=footer.GetComponent<RectTransform>();
+        if(footerRect!=null)
+        {
+            // Main board ends at y=-295. Footer continues to y=-364.
+            footerRect.anchoredPosition=new Vector2(0,-316);
+            footerRect.sizeDelta=new Vector2(1110,96);
+        }
+        var footerImage=footer.GetComponent<Image>();
+        if(footerImage!=null)
+        {
+            footerImage.color=new Color32(19,43,70,255);
+            footerImage.raycastTarget=false;
+        }
+        // Keep the footer immediately behind the instruction/progress/buttons,
+        // not in front of the token bank or the popup panels.
+        var board=Find(root,"ExperimentBoard");
+        if(board!=null && footer.parent==root)
+            footer.SetSiblingIndex(board.GetSiblingIndex()+1);
+
+        var instructions=Find(root,"Instructions");
+        if(instructions!=null)instructions.gameObject.SetActive(false);
+        var progress=Find(root,"ProgressText")?.GetComponent<TMP_Text>();
+        if(progress!=null)
+        {
+            progress.rectTransform.anchoredPosition=new Vector2(0,-245);
+            progress.rectTransform.sizeDelta=new Vector2(980,24);
+            progress.fontSize=15;
+            progress.enableAutoSizing=false;
+            progress.alignment=TextAlignmentOptions.Center;
+            progress.color=new Color32(91,211,246,255);
+        }
+        var feedbackLabel=Find(root,"FeedbackText")?.GetComponent<TMP_Text>();
+        if(feedbackLabel!=null)
+        {
+            feedbackLabel.rectTransform.anchoredPosition=new Vector2(0,-273);
+            feedbackLabel.rectTransform.sizeDelta=new Vector2(1020,30);
+            feedbackLabel.enableAutoSizing=false;
+            feedbackLabel.fontSize=16;
+            feedbackLabel.alignment=TextAlignmentOptions.Center;
+            feedbackLabel.color=new Color32(255,207,89,255);
+            feedbackLabel.textWrappingMode=TextWrappingModes.Normal;
+        }
+        foreach(var buttonName in new[]{"ResetButton","CheckButton"})
+        {
+            var button=Find(root,buttonName)?.GetComponent<Button>();
+            if(button==null)continue;
+            var rect=button.GetComponent<RectTransform>();
+            if(rect!=null)
+            {
+                rect.anchoredPosition=new Vector2(
+                    buttonName=="ResetButton"?-140:140,-322);
+                rect.sizeDelta=new Vector2(255,52);
+            }
+            var label=button.GetComponentInChildren<TMP_Text>(true);
+            if(label!=null)
+            {
+                label.enableAutoSizing=false;
+                label.fontSize=19;
+                label.alignment=TextAlignmentOptions.Center;
+            }
+        }
+        // Bring UI controls over the decorative footer, retaining all overlays
+        // on top of gameplay.
+        foreach(var name in new[]{"ProgressText","FeedbackText","ResetButton",
+            "CheckButton","Stage4PauseButton","EnergyTitle","EnergyCount",
+            "Energy1","Energy2","Energy3","Energy4","Energy5","ScoreText",
+            "PauseMenuPanel","FailedPanel","CompletePanel","OutOfEnergyPanel"})
+        {
+            var element=Find(root,name);
+            if(element!=null && element.parent==root)element.SetAsLastSibling();
+        }
+    }
+
+    // Level 2: preserve terminal/slab mechanics and give the instructions and
+    // RESET/CHECK controls a dedicated, editable footer inside the workbench.
+    private void PolishLevel2BottomLayout(Transform root)
+    {
+        if(root==null || Level!=2)return;
+        var board=Find(root,"ExperimentBoard");
+        var footer=Find(root,"Level2ActionFooter");
+        if(footer==null)
+        {
+            var image=Rect(root,"Level2ActionFooter",
+                new Vector2(0,-298),new Vector2(1110,132),
+                new Color32(19,43,70,255));
+            image.raycastTarget=false;
+            footer=image.transform;
+        }
+        var footerRect=footer.GetComponent<RectTransform>();
+        if(footerRect!=null)
+        {
+            footerRect.anchoredPosition=new Vector2(0,-298);
+            footerRect.sizeDelta=new Vector2(1110,132);
+        }
+        var footerImage=footer.GetComponent<Image>();
+        if(footerImage!=null)
+        {
+            footerImage.color=new Color32(19,43,70,255);
+            footerImage.raycastTarget=false;
+        }
+        if(board!=null && footer.parent==root)
+            footer.SetSiblingIndex(board.GetSiblingIndex()+1);
+
+        var instruction=Find(root,"Instructions")?.GetComponent<TMP_Text>();
+        if(instruction!=null)
+        {
+            instruction.gameObject.SetActive(true);
+            instruction.rectTransform.anchoredPosition=new Vector2(0,-244);
+            instruction.rectTransform.sizeDelta=new Vector2(1020,26);
+            instruction.enableAutoSizing=false;
+            instruction.fontSize=16;
+            instruction.alignment=TextAlignmentOptions.Center;
+            instruction.color=new Color32(218,237,249,255);
+        }
+        var status=Find(root,"FeedbackText")?.GetComponent<TMP_Text>();
+        if(status!=null)
+        {
+            status.rectTransform.anchoredPosition=new Vector2(0,-275);
+            status.rectTransform.sizeDelta=new Vector2(1040,27);
+            status.enableAutoSizing=false;
+            status.fontSize=16;
+            status.alignment=TextAlignmentOptions.Center;
+            status.color=Gold;
+            status.textWrappingMode=TextWrappingModes.Normal;
+        }
+        foreach(var name in new[]{"ResetButton","CheckButton"})
+        {
+            var button=Find(root,name)?.GetComponent<Button>();
+            if(button==null)continue;
+            var rect=button.GetComponent<RectTransform>();
+            if(rect!=null)
+            {
+                rect.anchoredPosition=new Vector2(
+                    name=="ResetButton"?-140:140,-323);
+                rect.sizeDelta=new Vector2(255,48);
+            }
+            var label=button.GetComponentInChildren<TMP_Text>(true);
+            if(label!=null)
+            {
+                label.enableAutoSizing=false;
+                label.fontSize=19;
+                label.alignment=TextAlignmentOptions.Center;
+            }
+        }
+        // Ensure overlays and the energy/pause HUD remain above the footer.
+        // This only moves existing siblings; all objects persist in Hierarchy.
+        foreach(var name in new[]{"Instructions","FeedbackText","ResetButton",
+            "CheckButton","Stage4PauseButton","EnergyTitle","EnergyCount",
+            "Energy1","Energy2","Energy3","Energy4","Energy5","ScoreText",
+            "PauseMenuPanel","FailedPanel","CompletePanel","OutOfEnergyPanel",
+            "DriftChallengeOverlay"})
+        {
+            var item=Find(root,name);
+            if(item!=null && item.parent==root)item.SetAsLastSibling();
         }
     }
 
@@ -459,23 +681,55 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             if(image!=null)image.color=new Color32(151,119,201,255);
         }
 
-        // All fourteen choices are centered and visible at the start of Play.
-        // The order intentionally mixes legitimate ions/electrons and decoys.
+        SynchronizeLevel1TokenBank();
+    }
+
+    // One authoritative layout for Edit Mode, Play Mode, and drag home points.
+    // Previous editor positioning and runtime decoy seeding disagreed, making
+    // ions/electrons pile up only after pressing Play.
+    private void SynchronizeLevel1TokenBank()
+    {
+        if(Level!=1)return;
+        var root=GameObject.Find("Stage4Level1Canvas");
+        if(root==null)return;
+        var bank=Find(root.transform,"MetalTokenBank");
+        if(bank==null)return;
+        var bankRect=bank.GetComponent<RectTransform>();
+        if(bankRect!=null)
+        {
+            bankRect.anchorMin=bankRect.anchorMax=new Vector2(.5f,.5f);
+            bankRect.pivot=new Vector2(.5f,.5f);
+            bankRect.anchoredPosition=new Vector2(0,-157);
+            bankRect.sizeDelta=new Vector2(1024,62);
+            bankRect.localScale=Vector3.one;
+        }
         string[] ordered={"MetalCore0","FreeElectron0","DecoyFe",
             "MetalCore1","FreeElectron1","MetalCore2","DecoyProton",
             "MetalCore3","FreeElectron2","MetalCore4","DecoyAl",
             "FreeElectron3","MetalCore5","DecoyNeutron"};
         for(int i=0;i<ordered.Length;i++)
         {
-            var rect=Find(bank,ordered[i])?.GetComponent<RectTransform>();
-            if(rect!=null)
+            var target=Find(bank,ordered[i]);
+            if(target==null)continue;
+            var rect=target.GetComponent<RectTransform>();
+            if(rect==null)continue;
+            rect.anchorMin=rect.anchorMax=new Vector2(.5f,.5f);
+            rect.pivot=new Vector2(.5f,.5f);
+            rect.localScale=Vector3.one;
+            rect.anchoredPosition=new Vector2(-455+i*70,0);
+            rect.sizeDelta=new Vector2(56,46);
+            // Play-mode drag origin must use the same saved position, not the
+            // old transform sampled during Awake before editor layout runs.
+            if(Application.isPlaying)
             {
-                rect.anchoredPosition=new Vector2(-455+i*70,0);
-                rect.sizeDelta=new Vector2(58,50);
+                var draggable=target.GetComponent<Stage4Draggable>();
+                if(draggable!=null)
+                {
+                    draggable.Bind(this);
+                    draggable.ResetToken();
+                }
             }
         }
-        var bankRect=bank.GetComponent<RectTransform>();
-        if(bankRect!=null)bankRect.sizeDelta=new Vector2(1024,62);
     }
 
     private void BuildLevel2(Transform board)
@@ -519,7 +773,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         for(int layer=0;layer<2;layer++)
         {
             var layerGO=Rect(board,layer==0?"UpperMetalLayer":"LowerMetalLayer",
-                new Vector2(0,layer==0?54:-21),new Vector2(730,68),
+                new Vector2(0,layer==0?56:-33),new Vector2(730,58),
                 new Color32(35,77,107,255));
             layerGO.raycastTarget=false;
             for(int i=0;i<6;i++)
@@ -527,26 +781,29 @@ public class Stage4ElectronOceanGame : MonoBehaviour
                     new Vector2(-308+i*123,0),new Vector2(77,50),Blue);
         }
         for(int i=0;i<7;i++)
-            Label(board,"ElectronCloud"+i,"e-",22,
-                new Vector2(-343+i*111,16),new Vector2(56,34),Gold);
+            Label(board,"ElectronCloud"+i,"e-",19,
+                new Vector2(-336+i*112,12),new Vector2(47,22),Gold);
         var sliderGO=new GameObject("ForceSlider",typeof(RectTransform),typeof(Slider));
         sliderGO.transform.SetParent(board,false);
-        var rect=sliderGO.GetComponent<RectTransform>();rect.anchoredPosition=new Vector2(0,-107);
-        rect.sizeDelta=new Vector2(590,33);
+        var rect=sliderGO.GetComponent<RectTransform>();
+        rect.anchorMin=rect.anchorMax=new Vector2(.5f,.5f);
+        rect.pivot=new Vector2(.5f,.5f);
+        rect.anchoredPosition=new Vector2(0,-86);
+        rect.sizeDelta=new Vector2(650,42);
         var bg=Rect(sliderGO.transform,"Background",Vector2.zero,
-            new Vector2(590,16),new Color32(55,87,113,255));
-        var fill=Rect(sliderGO.transform,"Fill",new Vector2(-294,0),
-            new Vector2(590,16),new Color32(18,157,143,255));
-        var handle=Rect(sliderGO.transform,"Handle",new Vector2(-294,0),
-            new Vector2(34,39),Gold);
+            new Vector2(650,16),new Color32(55,87,113,255));
+        var fill=Rect(sliderGO.transform,"Fill",Vector2.zero,
+            new Vector2(650,16),new Color32(18,157,143,255));
+        var handle=Rect(sliderGO.transform,"Handle",Vector2.zero,
+            new Vector2(30,34),Gold);
         var slide=sliderGO.GetComponent<Slider>();slide.direction=Slider.Direction.LeftToRight;
         slide.minValue=0;slide.maxValue=1;slide.value=0;
         slide.fillRect=fill.rectTransform;slide.handleRect=handle.rectTransform;
         slide.targetGraphic=handle;
         Label(board,"ForceValue","FORCE: 0%  |  LAYERS ALIGNED",17,
-            new Vector2(0,-149),new Vector2(690,32),Gold);
+            new Vector2(0,-126),new Vector2(690,28),Gold);
         Label(board,"BindingNote","Delocalized electrons continue to attract metal cores as layers move.",
-            14,new Vector2(0,-181),new Vector2(780,27),Dim);
+            14,new Vector2(0,-155),new Vector2(880,22),Dim);
     }
 
     private void AddZone(Transform parent,string name,int kind,Vector2 p,Vector2 size)
@@ -722,6 +979,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             }
         if(forceSlider!=null)
         {
+            FixLevel3ForceSliderLayout();
             forceSlider.onValueChanged.RemoveAllListeners();
             forceSlider.onValueChanged.AddListener(OnForceChanged);
             forceSlider.value=0f;
@@ -862,6 +1120,227 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         driftPuzzlePanel.SetActive(false);
     }
 
+    // Keep the Level 2 experiment labels out of the semi-transparent
+    // challenge/completion overlays. The puzzle's own feedback remains visible.
+    private void SetLevel2BackgroundInstructionsVisible(bool visible)
+    {
+        if(Level!=2)return;
+        var canvasRoot=GameObject.Find("Stage4Level2Canvas");
+        if(canvasRoot==null)return;
+        foreach(var labelName in new[]{"Instructions","FeedbackText"})
+        {
+            var label=Find(canvasRoot.transform,labelName);
+            if(label!=null)label.gameObject.SetActive(visible);
+        }
+    }
+
+    // Stage 4 Level 1 BOW check: asks students to explain the metal-ion
+    // lattice and sea of delocalized electrons they just constructed.
+    // Objects are serialized in the scene by the Stage 4 editor command.
+    public void EnsureLevel1BowPanel()
+    {
+        if(Level!=1)return;
+        var root=GameObject.Find("Stage4Level1Canvas");
+        if(root==null)return;
+        var existing=Find(root.transform,"Stage4Level1BowCheck");
+        if(existing==null)
+        {
+            var shade=Rect(root.transform,"Stage4Level1BowCheck",Vector2.zero,
+                new Vector2(1280,720),new Color32(5,13,30,222));
+            shade.raycastTarget=true;
+            var card=Rect(shade.transform,"BowCard",Vector2.zero,
+                new Vector2(770,420),Panel);
+            card.raycastTarget=true;
+            Label(card.transform,"BowTitle","BOW LEARNING CHECK",31,
+                new Vector2(0,145),new Vector2(715,55),Gold);
+            Label(card.transform,"BowDescription",
+                "Answer two questions about metallic bonding and electrons.",17,
+                new Vector2(0,94),new Vector2(725,38),Dim);
+            Label(card.transform,"BowQuestion","",21,
+                new Vector2(0,15),new Vector2(708,75),Color.white);
+            Label(card.transform,"BowHint","",15,
+                new Vector2(0,-70),new Vector2(710,30),Gold);
+            Button(card.transform,"BowAnswerA","CHOICE A",
+                new Vector2(-175,-138),new Vector2(332,57),
+                new Color32(16,140,151,255));
+            Button(card.transform,"BowAnswerB","CHOICE B",
+                new Vector2(175,-138),new Vector2(332,57),
+                new Color32(64,93,134,255));
+            existing=shade.transform;
+        }
+        level1BowPanel=existing.gameObject;
+        level1BowQuestion=Find(existing,"BowQuestion")?.GetComponent<TMP_Text>();
+        level1BowHint=Find(existing,"BowHint")?.GetComponent<TMP_Text>();
+        if(Application.isPlaying)
+        {
+            Wire(existing,"BowAnswerA",()=>AnswerLevel1Bow(0));
+            Wire(existing,"BowAnswerB",()=>AnswerLevel1Bow(1));
+        }
+        level1BowPanel.SetActive(false);
+    }
+    private void SetLevel1BowAnswer(string buttonName,string answer)
+    {
+        var button=level1BowPanel==null?null:Find(level1BowPanel.transform,buttonName);
+        var label=button==null?null:button.GetComponentInChildren<TMP_Text>(true);
+        if(label!=null)label.text=answer;
+    }
+    private void ShowLevel1BowQuestion()
+    {
+        if(Level!=1)return;
+        if(level1BowPanel==null)EnsureLevel1BowPanel();
+        if(level1BowPanel==null)return;
+        SetLevel1BackgroundInstructionsVisible(false);
+        if(level1BowQuestion!=null)level1BowQuestion.text=level1BowStep==0?
+            "What forms the positive lattice in a metallic solid?":
+            "What holds positive metal ions together in metallic bonding?";
+        SetLevel1BowAnswer("BowAnswerA",level1BowStep==0?
+            "Positive metal ions":"Attraction to delocalized electrons");
+        SetLevel1BowAnswer("BowAnswerB",level1BowStep==0?
+            "Neutral atoms moving freely":"Electrons fixed to only one metal ion");
+        if(level1BowHint!=null)level1BowHint.text="";
+        level1BowPanel.SetActive(true);
+        level1BowPanel.transform.SetAsLastSibling();
+    }
+    private void AnswerLevel1Bow(int choice)
+    {
+        if(Level!=1 || !CanInteract || level1BowPanel==null ||
+            !level1BowPanel.activeSelf || level1BowStep<0 ||
+            level1BowStep>=2)return;
+        if(choice!=0)
+        {
+            ChemQuestSoundtrack.Wrong();
+            RegisterMistake();
+            if(failed)
+            {
+                level1BowPanel.SetActive(false);
+                if(failedPanel!=null)failedPanel.transform.SetAsLastSibling();
+            }
+            else if(level1BowHint!=null)
+                level1BowHint.text=level1BowStep==0?
+                    "HINT: The lattice consists of positive metal ions.":
+                    "HINT: A sea of mobile electrons attracts the metal ions.";
+            return;
+        }
+        ChemQuestSoundtrack.Correct();
+        level1BowStep++;
+        if(level1BowStep<2)ShowLevel1BowQuestion();
+        else
+        {
+            level1BowPanel.SetActive(false);
+            Complete();
+        }
+    }
+    private void SetLevel1BackgroundInstructionsVisible(bool visible)
+    {
+        if(Level!=1)return;
+        var root=GameObject.Find("Stage4Level1Canvas");
+        if(root==null)return;
+        foreach(var name in new[]{"Instructions","FeedbackText","ProgressText"})
+        {
+            var label=Find(root.transform,name);
+            if(label!=null)label.gameObject.SetActive(visible);
+        }
+    }
+
+    // Assess electron drift and conductivity after the directional model is
+    // correct, following the same BOW check pattern used in Stage 4 Level 3.
+    // The UI can be built in Edit Mode and stored in the Unity Hierarchy.
+    public void EnsureLevel2BowPanel()
+    {
+        if(Level!=2)return;
+        var root=GameObject.Find("Stage4Level2Canvas");
+        if(root==null)return;
+        var existing=Find(root.transform,"Stage4Level2BowCheck");
+        if(existing==null)
+        {
+            var shade=Rect(root.transform,"Stage4Level2BowCheck",Vector2.zero,
+                new Vector2(1280,720),new Color32(5,13,30,222));
+            shade.raycastTarget=true;
+            var card=Rect(shade.transform,"BowCard",Vector2.zero,
+                new Vector2(770,420),Panel);
+            card.raycastTarget=true;
+            Label(card.transform,"BowTitle","BOW LEARNING CHECK",31,
+                new Vector2(0,145),new Vector2(715,55),Gold);
+            Label(card.transform,"BowDescription",
+                "Answer two questions about electron drift and metallic conductivity.",17,
+                new Vector2(0,94),new Vector2(725,38),Dim);
+            Label(card.transform,"BowQuestion","",21,
+                new Vector2(0,15),new Vector2(708,75),Color.white);
+            Label(card.transform,"BowHint","",15,
+                new Vector2(0,-70),new Vector2(710,30),Gold);
+            Button(card.transform,"BowAnswerA","CHOICE A",
+                new Vector2(-175,-138),new Vector2(332,57),
+                new Color32(16,140,151,255));
+            Button(card.transform,"BowAnswerB","CHOICE B",
+                new Vector2(175,-138),new Vector2(332,57),
+                new Color32(64,93,134,255));
+            existing=shade.transform;
+        }
+        level2BowPanel=existing.gameObject;
+        level2BowQuestion=Find(existing,"BowQuestion")?.GetComponent<TMP_Text>();
+        level2BowHint=Find(existing,"BowHint")?.GetComponent<TMP_Text>();
+        if(Application.isPlaying)
+        {
+            Wire(existing,"BowAnswerA",()=>AnswerLevel2Bow(0));
+            Wire(existing,"BowAnswerB",()=>AnswerLevel2Bow(1));
+        }
+        level2BowPanel.SetActive(false);
+    }
+    private void SetLevel2BowAnswer(string buttonName,string answer)
+    {
+        var button=level2BowPanel==null?null:Find(level2BowPanel.transform,buttonName);
+        var label=button==null?null:button.GetComponentInChildren<TMP_Text>(true);
+        if(label!=null)label.text=answer;
+    }
+    private void ShowLevel2BowQuestion()
+    {
+        if(Level!=2)return;
+        if(level2BowPanel==null)EnsureLevel2BowPanel();
+        if(level2BowPanel==null)return;
+        SetLevel2BackgroundInstructionsVisible(false);
+        if(level2BowQuestion!=null)level2BowQuestion.text=level2BowStep==0?
+            "With the negative terminal on the left, which way do electrons drift?":
+            "Why can metals conduct electricity?";
+        SetLevel2BowAnswer("BowAnswerA",level2BowStep==0?
+            "Toward the positive terminal (right)":
+            "Delocalized electrons can move through the metal");
+        SetLevel2BowAnswer("BowAnswerB",level2BowStep==0?
+            "Toward the negative terminal (left)":
+            "Metal cations move freely through the lattice");
+        if(level2BowHint!=null)level2BowHint.text="";
+        level2BowPanel.SetActive(true);
+        level2BowPanel.transform.SetAsLastSibling();
+    }
+    private void AnswerLevel2Bow(int choice)
+    {
+        if(Level!=2 || !CanInteract || level2BowPanel==null ||
+            !level2BowPanel.activeSelf || level2BowStep<0 ||
+            level2BowStep>=2)return;
+        if(choice!=0)
+        {
+            ChemQuestSoundtrack.Wrong();
+            RegisterMistake();
+            if(failed)
+            {
+                level2BowPanel.SetActive(false);
+                if(failedPanel!=null)failedPanel.transform.SetAsLastSibling();
+            }
+            else if(level2BowHint!=null)
+                level2BowHint.text=level2BowStep==0?
+                    "HINT: Negative charges move toward the positive terminal.":
+                    "HINT: The mobile electrons carry charge through the metal.";
+            return;
+        }
+        ChemQuestSoundtrack.Correct();
+        level2BowStep++;
+        if(level2BowStep<2)ShowLevel2BowQuestion();
+        else
+        {
+            level2BowPanel.SetActive(false);
+            Complete();
+        }
+    }
+
     private void ResetDriftTiles()
     {
         if(driftPuzzleSlots!=null)
@@ -898,7 +1377,8 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             return;
         }
         driftPuzzlePanel.SetActive(false);
-        Complete();
+        level2BowStep=0;
+        ShowLevel2BowQuestion();
     }
 
     private void ToggleVoltage()
@@ -918,12 +1398,348 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             if(feedback!=null)feedback.text="Electron drift is toward the POSITIVE terminal (right).";
         }
     }
+
+    // Stage 4 Level 3: one observed stress demonstration, then two
+    // drag-and-drop checks. Only a fully filled incorrect CHECK MODEL
+    // consumes a wrong attempt; placement, RESET and incomplete checks do not.
+    public void EnsureMetalChallenges()
+    {
+        if(Level!=3)return;
+        var root=GameObject.Find("Stage4Level3Canvas");
+        if(root==null)return;
+        var canvas=root.GetComponent<Canvas>();
+        if(canvas==null)return;
+        metalChallengePanels=new GameObject[2];
+        metalChallengeSlots=new Stage4DriftSlot[2][];
+        metalChallengeTiles=new Stage4DriftTile[2][];
+        metalChallengeMessages=new TMP_Text[2];
+        for(int phase=0;phase<2;phase++)
+        {
+            string overlayName="MetalChallengeOverlay"+(phase+1);
+            var overlay=Find(root.transform,overlayName);
+            if(overlay==null)
+                overlay=BuildMetalChallenge(root.transform,phase);
+            metalChallengePanels[phase]=overlay.gameObject;
+            metalChallengeSlots[phase]=overlay.GetComponentsInChildren<Stage4DriftSlot>(true);
+            metalChallengeTiles[phase]=overlay.GetComponentsInChildren<Stage4DriftTile>(true);
+            var tray=Find(overlay,"MetalChallengeTray") as RectTransform;
+            var card=Find(overlay,"MetalChallengeCard");
+            foreach(var tile in metalChallengeTiles[phase])
+                tile.Configure(tile.AnswerId,tray,card,canvas);
+            metalChallengeMessages[phase]=Find(overlay,"MetalChallengeFeedback")?.GetComponent<TMP_Text>();
+            int captured=phase;
+            Wire(overlay,"MetalChallengeReset",()=>ResetMetalTiles(captured));
+            Wire(overlay,"MetalChallengeCheck",()=>CheckMetalChallenge(captured));
+            ResetMetalTiles(phase);
+            overlay.gameObject.SetActive(false);
+        }
+        metalChallengeStep=0;
+    }
+
+    private Transform BuildMetalChallenge(Transform root,int phase)
+    {
+        bool sheet=phase==0;
+        var overlay=Rect(root,"MetalChallengeOverlay"+(phase+1),Vector2.zero,
+            new Vector2(1280,720),new Color32(5,13,30,235));
+        overlay.raycastTarget=true;
+        var card=Rect(overlay.transform,"MetalChallengeCard",new Vector2(0,-10),
+            new Vector2(1060,540),new Color32(23,44,76,255));
+        card.raycastTarget=true;
+        Label(card.transform,"MetalChallengeHeading",
+            sheet?"PART 2 | MALLEABILITY: FORM A SHEET":
+                  "PART 3 | DUCTILITY: FORM A WIRE",
+            26,new Vector2(0,228),new Vector2(990,42),Blue);
+        Label(card.transform,"MetalChallengeInstruction",
+            sheet?"Slide the metallic layers into a sheet without breaking the metallic bond.":
+                  "Stretch the metallic structure into a wire without losing metallic bonding.",
+            16,new Vector2(0,179),new Vector2(990,36),Dim);
+        string[] targets=sheet?
+            new[]{"LAYER RESPONSE","BONDING FORCE","FINAL SHAPE"}:
+            new[]{"DRAWING ACTION","BONDING CONDITION","FINAL SHAPE"};
+        string[] correct=sheet?
+            new[]{"layers-slide","electrons-bond","sheet-forms"}:
+            new[]{"layers-extend","bond-stays","wire-forms"};
+        for(int i=0;i<3;i++)
+        {
+            float x=-337+i*337;
+            Label(card.transform,"MetalSlotTitle"+i,targets[i],17,
+                new Vector2(x,130),new Vector2(310,30),Blue);
+            var slot=Rect(card.transform,"MetalDropSlot"+i,new Vector2(x,71),
+                new Vector2(305,82),new Color32(43,86,120,255));
+            slot.gameObject.AddComponent<Stage4DriftSlot>().CorrectAnswerId=correct[i];
+            Label(slot.transform,"Placeholder","DROP HERE",16,Vector2.zero,
+                new Vector2(285,53),Dim);
+        }
+        var tray=Rect(card.transform,"MetalChallengeTray",new Vector2(0,-100),
+            new Vector2(998,155),new Color32(11,29,51,255));
+        tray.raycastTarget=false;
+        string[] ids=sheet?
+            new[]{"layers-slide","sheet-breaks","sheet-forms",
+                  "electrons-stop","electrons-bond","cores-escape"}:
+            new[]{"wire-forms","bond-breaks","layers-extend",
+                  "ions-scatter","bond-stays","sheet-forms-decoy"};
+        string[] labels=sheet?
+            new[]{"LAYERS SLIDE","METAL CRACKS","SHEET FORMS",
+                  "ELECTRONS STOP","ELECTRONS HOLD BOND","CORES ESCAPE"}:
+            new[]{"WIRE FORMS","BONDS BREAK","STRUCTURE EXTENDS",
+                  "IONS SCATTER","METALLIC BOND REMAINS","SHEET FORMS"};
+        for(int i=0;i<ids.Length;i++)
+        {
+            float x=-330+(i%3)*330;
+            float y=i<3?42:-39;
+            var tile=Rect(tray.transform,"MetalTile"+phase+"_"+i,new Vector2(x,y),
+                new Vector2(306,56),new Color32(36,117,151,255));
+            tile.gameObject.AddComponent<CanvasGroup>();
+            tile.gameObject.AddComponent<Stage4DriftTile>().AnswerId=ids[i];
+            var text=Label(tile.transform,"Text",labels[i],17,
+                Vector2.zero,new Vector2(294,48),Color.white);
+            text.enableAutoSizing=true;text.fontSizeMin=13;text.fontSizeMax=17;
+            text.textWrappingMode=TextWrappingModes.NoWrap;
+        }
+        Label(card.transform,"MetalChallengeFeedback",
+            "Place all three tiles, then CHECK MODEL. Decoys count only on CHECK.",15,
+            new Vector2(0,-195),new Vector2(990,27),Gold);
+        Button(card.transform,"MetalChallengeReset","RESET TILES",
+            new Vector2(-170,-240),new Vector2(255,51),
+            new Color32(70,86,119,255));
+        Button(card.transform,"MetalChallengeCheck","CHECK MODEL",
+            new Vector2(170,-240),new Vector2(255,51),
+            new Color32(12,132,135,255));
+        return overlay.transform;
+    }
+
+    private void ShowMetalChallenge(int phase)
+    {
+        if(metalChallengePanels==null || phase<0 || phase>=2)return;
+        metalChallengeStep=phase+1;
+        foreach(var panel in metalChallengePanels)
+            if(panel!=null)panel.SetActive(false);
+        SetLevel3UnderlyingFeedbackVisible(false);
+        if(metalChallengePanels[phase]!=null)
+        {
+            metalChallengePanels[phase].SetActive(true);
+            metalChallengePanels[phase].transform.SetAsLastSibling();
+        }
+    }
+
+    private void ResetMetalTiles(int phase)
+    {
+        if(metalChallengeSlots==null || phase<0 || phase>=metalChallengeSlots.Length)return;
+        foreach(var slot in metalChallengeSlots[phase])slot.ResetSlot();
+        foreach(var tile in metalChallengeTiles[phase])tile.ReturnHome();
+        if(metalChallengeMessages[phase]!=null)
+            metalChallengeMessages[phase].text="Arrange all three properties, then CHECK MODEL.";
+    }
+
+    private void CheckMetalChallenge(int phase)
+    {
+        if(Level!=3 || !CanInteract || metalChallengePanels==null ||
+            phase<0 || phase>1 || !metalChallengePanels[phase].activeSelf)return;
+        int filled=0;
+        bool correct=metalChallengeSlots[phase]!=null &&
+                     metalChallengeSlots[phase].Length==3;
+        foreach(var slot in metalChallengeSlots[phase])
+        {
+            if(slot.IsFilled)filled++;
+            if(!slot.IsCorrect)correct=false;
+        }
+        if(filled<3)
+        {
+            metalChallengeMessages[phase].text=
+                "Fill the three slots first. No penalty for incomplete models.";
+            return;
+        }
+        if(!correct)
+        {
+            RegisterMistake();
+            if(!failed && metalChallengeMessages[phase]!=null)
+                metalChallengeMessages[phase].text=phase==0?
+                    "HINT: Layers slide while delocalized electrons keep bonding intact.":
+                    "HINT: A metallic structure can elongate while metallic bonding remains.";
+            return;
+        }
+        metalChallengePanels[phase].SetActive(false);
+        if(phase==0)ShowMetalChallenge(1);
+        else
+        {
+            level3BowStep=0;
+            ShowLevel3BowQuestion();
+        }
+    }
+
+
+    // BOW-aligned two-question check, persisted in the saved scene Hierarchy.
+    // It assesses the bonding explanation after both malleability/ductility
+    // construction tasks, without replacing either drag-and-drop activity.
+    public void EnsureLevel3BowPanel()
+    {
+        if(Level!=3)return;
+        var root=GameObject.Find("Stage4Level3Canvas");
+        if(root==null)return;
+        var existing=Find(root.transform,"Stage4Level3BowCheck");
+        if(existing==null)
+        {
+            var shade=Rect(root.transform,"Stage4Level3BowCheck",Vector2.zero,
+                new Vector2(1280,720),new Color32(5,13,30,222));
+            shade.raycastTarget=true;
+            var card=Rect(shade.transform,"BowCard",Vector2.zero,
+                new Vector2(770,420),Panel);
+            card.raycastTarget=true;
+            Label(card.transform,"BowTitle","BOW LEARNING CHECK",31,
+                new Vector2(0,145),new Vector2(715,55),Gold);
+            Label(card.transform,"BowDescription",
+                "Answer two questions about metallic bonding and properties.",17,
+                new Vector2(0,94),new Vector2(720,38),Dim);
+            Label(card.transform,"BowQuestion","",21,
+                new Vector2(0,15),new Vector2(708,75),Color.white);
+            Label(card.transform,"BowHint","",15,
+                new Vector2(0,-70),new Vector2(710,30),Gold);
+            Button(card.transform,"BowAnswerA","CHOICE A",
+                new Vector2(-175,-138),new Vector2(332,57),
+                new Color32(16,140,151,255));
+            Button(card.transform,"BowAnswerB","CHOICE B",
+                new Vector2(175,-138),new Vector2(332,57),
+                new Color32(64,93,134,255));
+            existing=shade.transform;
+        }
+        level3BowPanel=existing.gameObject;
+        level3BowQuestion=Find(existing,"BowQuestion")?.GetComponent<TMP_Text>();
+        level3BowHint=Find(existing,"BowHint")?.GetComponent<TMP_Text>();
+        if(Application.isPlaying)
+        {
+            Wire(existing,"BowAnswerA",()=>AnswerLevel3Bow(0));
+            Wire(existing,"BowAnswerB",()=>AnswerLevel3Bow(1));
+        }
+        level3BowPanel.SetActive(false);
+    }
+    private void SetLevel3BowAnswer(string buttonName,string text)
+    {
+        var button=level3BowPanel==null?null:Find(level3BowPanel.transform,buttonName);
+        var label=button==null?null:button.GetComponentInChildren<TMP_Text>(true);
+        if(label!=null)label.text=text;
+    }
+    private void ShowLevel3BowQuestion()
+    {
+        if(Level!=3)return;
+        if(level3BowPanel==null)EnsureLevel3BowPanel();
+        if(level3BowPanel==null)return;
+        SetLevel3UnderlyingFeedbackVisible(false);
+        if(level3BowQuestion!=null)level3BowQuestion.text=level3BowStep==0?
+            "Why can metal layers slide without the structure breaking?":
+            "Which property lets a metal be drawn into a wire?";
+        SetLevel3BowAnswer("BowAnswerA",level3BowStep==0?
+            "Delocalized electrons maintain attraction":"Ductility");
+        SetLevel3BowAnswer("BowAnswerB",level3BowStep==0?
+            "Metallic bonds disappear when layers move":"Brittleness");
+        if(level3BowHint!=null)level3BowHint.text="";
+        level3BowPanel.SetActive(true);
+        level3BowPanel.transform.SetAsLastSibling();
+    }
+    private void AnswerLevel3Bow(int choice)
+    {
+        if(Level!=3 || !CanInteract || level3BowPanel==null ||
+            !level3BowPanel.activeSelf || level3BowStep<0 ||
+            level3BowStep>=2)return;
+        if(choice!=0)
+        {
+            ChemQuestSoundtrack.Wrong();
+            RegisterMistake();
+            if(failed)
+            {
+                level3BowPanel.SetActive(false);
+                if(failedPanel!=null)failedPanel.transform.SetAsLastSibling();
+            }
+            else if(level3BowHint!=null)
+                level3BowHint.text=level3BowStep==0?
+                    "HINT: Mobile electrons keep attracting positive metal ions.":
+                    "HINT: Drawing metal into wire is called ductility.";
+            return;
+        }
+        ChemQuestSoundtrack.Correct();
+        level3BowStep++;
+        if(level3BowStep<2)ShowLevel3BowQuestion();
+        else
+        {
+            level3BowPanel.SetActive(false);
+            Complete();
+        }
+    }
+    private void SetLevel3UnderlyingFeedbackVisible(bool visible)
+    {
+        if(Level!=3)return;
+        var root=GameObject.Find("Stage4Level3Canvas");
+        if(root==null)return;
+        foreach(var name in new[]{"FeedbackText","Level3FeedbackStrip"})
+        {
+            var item=Find(root.transform,name);
+            if(item!=null)item.gameObject.SetActive(visible);
+        }
+    }
+
+    // Repair both newly built and already serialized Level 3 slider objects.
+    // Unity's Slider component controls fill/handle anchors at runtime, so
+    // they must not retain fixed -294 X offsets from an older scene.
+    public void FixLevel3ForceSliderLayout()
+    {
+        if(Level!=3)return;
+        var root=GameObject.Find("Stage4Level3Canvas");
+        if(root==null)return;
+        var slider=Find(root.transform,"ForceSlider")?.GetComponent<Slider>();
+        if(slider==null)return;
+
+        RectTransform track=slider.GetComponent<RectTransform>();
+        track.anchorMin=track.anchorMax=new Vector2(.5f,.5f);
+        track.pivot=new Vector2(.5f,.5f);
+        track.anchoredPosition=new Vector2(0,-86);
+        track.sizeDelta=new Vector2(650,42);
+
+        var back=Find(track,"Background")?.GetComponent<RectTransform>();
+        if(back!=null)
+        {
+            back.anchorMin=back.anchorMax=new Vector2(.5f,.5f);
+            back.pivot=new Vector2(.5f,.5f);
+            back.anchoredPosition=Vector2.zero;
+            back.sizeDelta=new Vector2(650,16);
+        }
+        var fill=slider.fillRect;
+        if(fill!=null)
+        {
+            fill.anchorMin=new Vector2(0,0.5f);
+            fill.anchorMax=new Vector2(0,0.5f);
+            fill.pivot=new Vector2(0,0.5f);
+            fill.anchoredPosition=Vector2.zero;
+            fill.sizeDelta=new Vector2(0,16);
+            // Constrain fill to a thin strip even when the Slider adjusts its width.
+            fill.offsetMin=new Vector2(0,-8);
+            fill.offsetMax=new Vector2(0,8);
+        }
+        var handle=slider.handleRect;
+        if(handle!=null)
+        {
+            handle.anchorMin=handle.anchorMax=new Vector2(0,0.5f);
+            handle.pivot=new Vector2(.5f,.5f);
+            handle.anchoredPosition=Vector2.zero;
+            handle.sizeDelta=new Vector2(30,34);
+        }
+        slider.direction=Slider.Direction.LeftToRight;
+        slider.minValue=0;
+        slider.maxValue=1;
+        slider.wholeNumbers=false;
+        slider.value=0;
+    }
+
     private void OnForceChanged(float value)
     {
         if(Level!=3 || upperLayer==null || forceLabel==null)return;
-        upperLayer.anchoredPosition=new Vector2(value*110f,54);
-        forceLabel.text="FORCE: "+Mathf.RoundToInt(value*100f)+"%  |  LAYERS SHIFTING";
-        if(value>=0.75f)forceApplied=true;
+        upperLayer.anchoredPosition=new Vector2(value*90f,56);
+        forceLabel.text="FORCE: "+Mathf.RoundToInt(value*100f)+"%  |  "+
+            (value<=0.001f?"LAYERS ALIGNED":"LAYERS SHIFTING");
+        if(value>=0.75f && !forceApplied)
+        {
+            forceApplied=true;
+            if(feedback!=null)feedback.text=
+                "Metal layers shifted while bonding remained. Press CHECK for the Malleability Puzzle.";
+        }
     }
     private void Check()
     {
@@ -952,11 +1768,24 @@ public class Stage4ElectronOceanGame : MonoBehaviour
                 return;
             }
         }
+        if(Level==3)
+        {
+            if(!forceApplied)
+            {
+                if(feedback!=null)feedback.text="Apply at least 75% force before starting the puzzles.";
+                return;
+            }
+            if(metalChallengePanels==null)EnsureMetalChallenges();
+            if(metalChallengePanels!=null)ShowMetalChallenge(0);
+            else if(feedback!=null)feedback.text="Malleability challenge unavailable. Reopen scene.";
+            return;
+        }
         if(Level==2 && terminalsPlaced==2 && observedDrift)
         {
             if(driftPuzzlePanel==null)EnsureDriftPuzzle();
             if(driftPuzzlePanel!=null)
             {
+                SetLevel2BackgroundInstructionsVisible(false);
                 driftPuzzlePanel.SetActive(true);
                 driftPuzzlePanel.transform.SetAsLastSibling();
                 return;
@@ -972,6 +1801,12 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             RegisterMistake();
             return;
         }
+        if(Level==1)
+        {
+            level1BowStep=0;
+            ShowLevel1BowQuestion();
+            return;
+        }
         Complete();
     }
     public void RegisterMistake()
@@ -983,7 +1818,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             if(feedback!=null)feedback.text=Level==1?
                 "HINT: Remove decoys, then use RESET to arrange the correct metal cores and electrons.":
                 Level==2?"HINT: Negative left, positive right; switch ON and observe electron drift.":
-                "HINT: Apply sufficient force using the slider; metal layers must slide.";
+                "HINT: Observe sliding layers, then arrange the metal property tiles correctly.";
         }
         else
         {
@@ -1009,6 +1844,9 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         PlayerPrefs.Save();
         if(score!=null)score.text="SCORE\n"+scoreValue.ToString("D6");
         if(finalScore!=null)finalScore.text="FINAL SCORE: "+scoreValue.ToString("D6");
+        if(Level==1)SetLevel1BackgroundInstructionsVisible(false);
+        if(Level==2)SetLevel2BackgroundInstructionsVisible(false);
+        if(Level==3)SetLevel3UnderlyingFeedbackVisible(false);
         if(winPanel!=null)
         {
             winPanel.SetActive(true);
@@ -1022,16 +1860,42 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         foreach(var z in zones)z.ResetZone();
         metalPlaced=electronsPlaced=terminalsPlaced=0;
         UpdateLevel1Progress();
+        if(Level==1)
+        {
+            SetLevel1BackgroundInstructionsVisible(true);
+            level1BowStep=-1;
+            if(level1BowPanel!=null)level1BowPanel.SetActive(false);
+        }
         if(Level==2)
         {
+            SetLevel2BackgroundInstructionsVisible(true);
+            level2BowStep=-1;
+            if(level2BowPanel!=null)level2BowPanel.SetActive(false);
             if(driftPuzzlePanel!=null)driftPuzzlePanel.SetActive(false);
             ResetDriftTiles();
             powerOn=observedDrift=false;driftClock=0f;
             var text=switchButton?.GetComponentInChildren<TMP_Text>(true);
             if(text!=null)text.text="SWITCH: OFF";
         }
-        if(Level==3&&forceSlider!=null){forceApplied=false;forceSlider.value=0;}
-        if(feedback!=null)feedback.text=IsLevel1?"Reset: arrange matching cores and electrons; avoid decoys.":"Reset complete. No penalty.";
+        if(Level==3)
+        {
+            SetLevel3UnderlyingFeedbackVisible(true);
+            level3BowStep=-1;
+            if(level3BowPanel!=null)level3BowPanel.SetActive(false);
+            forceApplied=false;
+            metalChallengeStep=0;
+            if(forceSlider!=null)forceSlider.value=0;
+            if(metalChallengePanels!=null)
+                for(int i=0;i<metalChallengePanels.Length;i++)
+                {
+                    if(metalChallengePanels[i]!=null)metalChallengePanels[i].SetActive(false);
+                    ResetMetalTiles(i);
+                }
+        }
+        if(feedback!=null)feedback.text=IsLevel1?
+            "Reset: arrange matching cores and electrons; avoid decoys.":
+            Level==3?"Drag the slider to apply force, then press CHECK.":
+                "Reset complete. No penalty.";
     }
     private void Update()
     {
@@ -1057,6 +1921,170 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             }
         }
     }
+
+
+    // Make the existing Stage4Level3 scene match the approved clean UI mockup.
+    // Applies to serialized scenes AND newly generated UI without affecting
+    // any of the other Stage 4 levels or puzzle/energy logic.
+    public void PolishLevel3GameUILayout()
+    {
+        if(Level!=3)return;
+        var canvas=GameObject.Find("Stage4Level3Canvas");
+        if(canvas==null)return;
+        var root=canvas.transform;
+        var board=Find(root,"ExperimentBoard")?.GetComponent<RectTransform>();
+        if(board==null)return;
+
+        // Grow downward only; leave the illustrated top banner unobstructed.
+        board.anchorMin=board.anchorMax=new Vector2(.5f,.5f);
+        board.anchoredPosition=new Vector2(0,-26);
+        board.sizeDelta=new Vector2(1110,444);
+
+        var boardImage=board.GetComponent<Image>();
+        if(boardImage!=null)boardImage.color=new Color32(18,42,74,255);
+        var outline=board.GetComponent<Outline>();
+        if(outline==null)outline=board.gameObject.AddComponent<Outline>();
+        outline.effectColor=new Color32(44,174,210,185);
+        outline.effectDistance=new Vector2(2,-2);
+
+        var heading=Find(board,"LayerHeading")?.GetComponent<TMP_Text>();
+        if(heading!=null)
+        {
+            heading.fontSize=25;
+            heading.enableAutoSizing=true;
+            heading.fontSizeMin=20;
+            heading.fontSizeMax=25;
+            heading.rectTransform.anchoredPosition=new Vector2(0,145);
+            heading.rectTransform.sizeDelta=new Vector2(850,42);
+        }
+        var sub=Find(board,"ForceInfo")?.GetComponent<TMP_Text>();
+        if(sub!=null)
+        {
+            sub.fontSize=16;
+            sub.rectTransform.anchoredPosition=new Vector2(0,109);
+            sub.rectTransform.sizeDelta=new Vector2(830,30);
+        }
+
+        // Place all electrons in the open gap instead of on a lattice edge.
+        for(int layer=0;layer<2;layer++)
+        {
+            var r=Find(board,layer==0?"UpperMetalLayer":"LowerMetalLayer")?.GetComponent<RectTransform>();
+            if(r==null)continue;
+            r.anchoredPosition=new Vector2(layer==0?forceSlider!=null?forceSlider.value*90f:0:0,
+                layer==0?56:-33);
+            r.sizeDelta=new Vector2(730,58);
+            var img=r.GetComponent<Image>();
+            if(img!=null)img.color=new Color32(31,92,124,255);
+            var edge=r.GetComponent<Outline>();
+            if(edge==null)edge=r.gameObject.AddComponent<Outline>();
+            edge.effectColor=new Color32(51,180,216,255);
+            edge.effectDistance=new Vector2(1,1);
+        }
+        for(int i=0;i<7;i++)
+        {
+            var electron=Find(board,"ElectronCloud"+i)?.GetComponent<TMP_Text>();
+            if(electron==null)continue;
+            electron.rectTransform.anchoredPosition=new Vector2(-336+i*112,12);
+            electron.rectTransform.sizeDelta=new Vector2(47,22);
+            electron.fontSize=19;
+            electron.alignment=TextAlignmentOptions.Center;
+        }
+
+        // The force indicator, explanation and feedback remain fully inside
+        // the board; bottom controls are visibly separated from them.
+        FixLevel3ForceSliderLayout();
+        var indicator=Find(board,"ForceValue")?.GetComponent<TMP_Text>();
+        if(indicator!=null)
+        {
+            indicator.rectTransform.anchoredPosition=new Vector2(0,-126);
+            indicator.rectTransform.sizeDelta=new Vector2(750,28);
+            indicator.fontSize=18;
+        }
+        var note=Find(board,"BindingNote")?.GetComponent<TMP_Text>();
+        if(note!=null)
+        {
+            note.rectTransform.anchoredPosition=new Vector2(0,-155);
+            note.rectTransform.sizeDelta=new Vector2(900,22);
+            note.fontSize=13;
+        }
+
+        var strip=Find(root,"Level3FeedbackStrip")?.GetComponent<Image>();
+        if(strip==null)
+        {
+            strip=Rect(root,"Level3FeedbackStrip",new Vector2(0,-221),
+                new Vector2(980,42),new Color32(12,57,85,255));
+            strip.transform.SetSiblingIndex(board.GetSiblingIndex()+1);
+        }
+        strip.rectTransform.anchorMin=strip.rectTransform.anchorMax=new Vector2(.5f,.5f);
+        strip.rectTransform.anchoredPosition=new Vector2(0,-221);
+        strip.rectTransform.sizeDelta=new Vector2(980,42);
+        strip.color=new Color32(12,57,85,255);
+        strip.raycastTarget=false;
+        var stripOutline=strip.GetComponent<Outline>();
+        if(stripOutline==null)stripOutline=strip.gameObject.AddComponent<Outline>();
+        stripOutline.effectColor=new Color32(36,191,211,205);
+        stripOutline.effectDistance=new Vector2(1,1);
+
+        var status=Find(root,"FeedbackText")?.GetComponent<TMP_Text>();
+        if(status!=null)
+        {
+            status.rectTransform.anchorMin=status.rectTransform.anchorMax=new Vector2(.5f,.5f);
+            status.rectTransform.anchoredPosition=new Vector2(0,-221);
+            status.rectTransform.sizeDelta=new Vector2(935,38);
+            // Saved scenes can still contain the old generic instruction.
+            // Update that initial copy without overwriting active puzzle hints.
+            if(string.IsNullOrWhiteSpace(status.text) ||
+                status.text=="Follow the instructions to complete the metallic bonding model.")
+                status.text="Drag the slider to apply force, then press CHECK.";
+            status.enableAutoSizing=true;
+            status.fontSizeMin=13;
+            status.fontSizeMax=17;
+            status.color=Color.white;
+            status.alignment=TextAlignmentOptions.Center;
+            status.textWrappingMode=TextWrappingModes.Normal;
+        }
+        foreach(var spec in new[]{
+            new {Name="ResetButton",X=-144f,Width=220f},
+            new {Name="CheckButton",X=144f,Width=220f}})
+        {
+            var button=Find(root,spec.Name)?.GetComponent<RectTransform>();
+            if(button==null)continue;
+            button.anchorMin=button.anchorMax=new Vector2(.5f,.5f);
+            button.anchoredPosition=new Vector2(spec.X,-287);
+            button.sizeDelta=new Vector2(spec.Width,55);
+        }
+    }
+
+    // Also works with scenes previously serialized in Edit Mode.
+    // The illustrated background already contains the STAGE 4 banner,
+    // and the experiment board has its own readable heading. Hide the
+    // duplicated floating labels that overlap the illustrated banner.
+    public void PolishLevel3Presentation()
+    {
+        if(Level!=3)return;
+        EnsureLevel3BowPanel();
+        var root=GameObject.Find("Stage4Level3Canvas");
+        if(root==null)return;
+        foreach(var name in new[]{"StageTitle","LevelTitle","Instructions"})
+        {
+            var duplicate=Find(root.transform,name);
+            if(duplicate!=null)duplicate.gameObject.SetActive(false);
+        }
+        var complete=Find(root.transform,"CompletePanel");
+        if(complete!=null)
+        {
+            var description=Find(complete,"Description")?.GetComponent<TMP_Text>();
+            if(description!=null)
+            {
+                description.text="Malleability and ductility challenges successfully completed!";
+                description.enableAutoSizing=true;
+                description.fontSizeMin=17;
+                description.fontSizeMax=21;
+                description.textWrappingMode=TextWrappingModes.Normal;
+            }
+        }
+    }
+
     private void UpdateEnergy()
     {
         var energy=EnergyManager.Instance;

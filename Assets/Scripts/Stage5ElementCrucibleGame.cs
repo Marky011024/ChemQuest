@@ -32,6 +32,13 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
     private int stateIndex;
     private TMP_Text feedback,progress,scoreText,finalScore,energyText,timer,selectedLabel,evidenceText,resultLabel;
     private GameObject failPanel,completePanel,pausePanel,emptyPanel;
+    private GameObject level1BowPanel,level2BowPanel,level3BowPanel;
+    private TMP_Text level3BowQuestion,level3BowHint;
+    private int level3BowStep=-1;
+    private TMP_Text level2BowQuestion,level2BowHint;
+    private int level2BowStep=-1;
+    private TMP_Text level1BowQuestion,level1BowHint;
+    private int level1BowStep=-1;
     private Slider heat;
     private Transform root;
     private float nextEnergyUpdate;
@@ -51,7 +58,11 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         if(EnergyManager.Instance==null)new GameObject("SharedEnergyManager",typeof(EnergyManager));
         if(GameObject.Find("Stage5Level"+Level+"Canvas")==null)BuildEditableUI();
         root=GameObject.Find("Stage5Level"+Level+"Canvas").transform;
+        if(Level==1)PolishStage5Level1Layout();
         Bind();
+        if(Level==1)EnsureLevel1BowPanel();
+        if(Level==2)EnsureLevel2BowPanel();
+        if(Level==3)EnsureLevel3BowPanel();
         RefreshEnergy();
     }
 
@@ -212,7 +223,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
             "Workbench observations recorded successfully.");
         Txt(completePanel.transform,"FinalScore","FINAL SCORE 000000",27,
             new Vector2(0,-33),new Vector2(640,50),Gold);
-        Btn(completePanel.transform,"NextButton",Level==3?"VIEW CERTIFICATE":"NEXT LEVEL",
+        Btn(completePanel.transform,"NextButton",Level==3?"STAGE SELECTION":"NEXT LEVEL",
             new Vector2(160,-139),new Vector2(280,58),Teal);
         Btn(completePanel.transform,"CompleteLevelButton","LEVEL SELECTION",
             new Vector2(-160,-139),new Vector2(280,58),new Color32(45,83,123,255));
@@ -224,6 +235,211 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         Btn(emptyPanel.transform,"EmptyLevelButton","LEVEL SELECTION",
             new Vector2(0,-152),new Vector2(300,55),Teal);
         emptyPanel.SetActive(false);
+        if(Level==1)EnsureLevel1BowPanel();
+        if(Level==2)EnsureLevel2BowPanel();
+        if(Level==3)EnsureLevel3BowPanel();
+    }
+
+
+    // Polishes an existing serialized Stage5Level1 scene, so none of the
+    // gameplay components, drag targets, or scoring logic are replaced.
+    // Positions use the 1280x720 canvas reference resolution.
+    public void PolishStage5Level1Layout()
+    {
+        if(Level!=1)return;
+        Transform canvas=GameObject.Find("Stage5Level1Canvas")?.transform;
+        if(canvas==null)return;
+
+        // The illustrated background already contains the Stage 5 branding.
+        // Remove only duplicate floating headings that cover it.
+        foreach(string name in new[]{"StageText","LevelTitle","Instructions"})
+        {
+            Transform duplicate=Find(canvas,name);
+            if(duplicate!=null)duplicate.gameObject.SetActive(false);
+        }
+
+        Transform board=Find(canvas,"LabBoard");
+        SetRect(board,new Vector2(0,-24),new Vector2(1100,486));
+        Image boardImage=board?.GetComponent<Image>();
+        if(boardImage!=null)
+        {
+            boardImage.color=new Color32(15,40,71,255);
+            var outline=boardImage.GetComponent<Outline>();
+            if(outline==null)outline=boardImage.gameObject.AddComponent<Outline>();
+            outline.effectColor=new Color32(65,168,212,200);
+            outline.effectDistance=new Vector2(1.5f,1.5f);
+        }
+
+        var title=Find(board,"BoardTitle")?.GetComponent<TMP_Text>();
+        if(title!=null)
+        {
+            title.text="THERMAL RESISTANCE TRIAL";
+            title.fontStyle=FontStyles.Bold;
+            title.color=Gold;
+            title.fontSize=25;
+            SetRect(title.transform,new Vector2(0,200),new Vector2(920,43));
+        }
+        Transform prompt=Find(board,"Stage5Level1Prompt");
+        if(prompt==null)
+        {
+            var text=Txt(board,"Stage5Level1Prompt",
+                "Drag each unknown sample onto the heating bench. Apply heat and record evidence.",
+                16,new Vector2(0,164),new Vector2(1000,33),Color.white);
+            prompt=text.transform;
+        }
+        else
+        {
+            var text=prompt.GetComponent<TMP_Text>();
+            if(text!=null)text.text=
+                "Drag each unknown sample onto the heating bench. Apply heat and record evidence.";
+        }
+        SetRect(prompt,new Vector2(0,164),new Vector2(1000,33));
+
+        Transform bank=Find(board,"SampleBank");
+        SetRect(bank,new Vector2(-383,4),new Vector2(260,245));
+        SetRect(Find(bank,"BankLabel"),new Vector2(0,99),new Vector2(248,30));
+        for(int i=0;i<3;i++)
+            SetRect(Find(bank,"Sample"+i),
+                new Vector2(0,42-i*64),new Vector2(216,53));
+
+        Transform station=Find(board,"TestStation");
+        SetRect(station,new Vector2(-8,4),new Vector2(430,245));
+        SetRect(Find(station,"StationLabel"),new Vector2(0,78),new Vector2(405,39));
+        SetRect(Find(station,"SelectedSample"),new Vector2(0,10),new Vector2(410,48));
+        SetRect(Find(station,"ExperimentResult"),new Vector2(0,-65),new Vector2(410,58));
+        SetRect(Find(station,"TestIndicator"),new Vector2(0,-103),new Vector2(100,10));
+
+        Transform notebook=Find(board,"EvidenceBoard");
+        SetRect(notebook,new Vector2(392,4),new Vector2(244,245));
+        SetRect(Find(notebook,"EvidenceTitle"),new Vector2(0,98),new Vector2(235,32));
+        SetRect(Find(notebook,"EvidenceText"),new Vector2(0,-12),new Vector2(232,178));
+
+        // Place the slider and its fill/handle safely within the lab panel.
+        Transform heatCaption=Find(canvas,"HeatLabel");
+        SetRect(heatCaption,new Vector2(-367,-201),new Vector2(190,31));
+        if(heatCaption!=null)
+        {
+            var label=heatCaption.GetComponent<TMP_Text>();
+            if(label!=null){label.text="HEAT LEVEL";label.fontSize=16;}
+        }
+        Slider slider=Find(canvas,"HeatSlider")?.GetComponent<Slider>();
+        if(slider!=null)
+        {
+            SetRect(slider.transform,new Vector2(65,-201),new Vector2(600,45));
+            RectTransform track=Find(slider.transform,"Track")?.GetComponent<RectTransform>();
+            if(track!=null)
+            {
+                track.anchorMin=track.anchorMax=new Vector2(.5f,.5f);
+                track.pivot=new Vector2(.5f,.5f);
+                track.anchoredPosition=Vector2.zero;
+                track.sizeDelta=new Vector2(600,14);
+            }
+            RectTransform fill=slider.fillRect;
+            if(fill!=null)
+            {
+                fill.anchorMin=fill.anchorMax=new Vector2(0,.5f);
+                fill.pivot=new Vector2(0,.5f);
+                fill.anchoredPosition=Vector2.zero;
+                fill.sizeDelta=new Vector2(0,14);
+            }
+            RectTransform handle=slider.handleRect;
+            if(handle!=null)
+            {
+                handle.anchorMin=handle.anchorMax=new Vector2(0,.5f);
+                handle.pivot=new Vector2(.5f,.5f);
+                handle.anchoredPosition=Vector2.zero;
+                handle.sizeDelta=new Vector2(28,34);
+            }
+            slider.direction=Slider.Direction.LeftToRight;
+        }
+
+        // Show the actual slider setting as a percentage (not a temperature).
+        // The experiment currently uses a 0-100 relative heat input.
+        Transform readout=Find(canvas,"HeatValueText");
+        if(readout==null)
+            readout=Txt(canvas,"HeatValueText","HEAT: 0%",16,
+                new Vector2(445,-201),new Vector2(120,33),Gold).transform;
+        SetRect(readout,new Vector2(445,-201),new Vector2(120,33));
+        var valueText=readout.GetComponent<TMP_Text>();
+        if(valueText!=null && slider!=null)
+            valueText.text="HEAT: "+Mathf.RoundToInt(slider.value)+"%";
+
+        // Raise the action row and give progress its own dark plate.
+        const float actionY=-304f;
+        Transform progressPlate=Find(canvas,"Level1ProgressPlate");
+        if(progressPlate==null)
+        {
+            var image=Image(canvas,"Level1ProgressPlate",new Vector2(0,actionY),
+                new Vector2(300,50),new Color32(10,34,63,255));
+            image.raycastTarget=false;
+            progressPlate=image.transform;
+            var edge=image.gameObject.AddComponent<Outline>();
+            edge.effectColor=new Color32(55,183,223,255);
+            edge.effectDistance=new Vector2(1,1);
+        }
+        SetRect(progressPlate,new Vector2(0,actionY),new Vector2(300,50));
+        // Behind the progress text and controls, but in front of the background.
+        progressPlate.SetSiblingIndex(Mathf.Max(0,Find(canvas,"LabBoard").GetSiblingIndex()+1));
+        SetRect(Find(canvas,"TestButton"),new Vector2(-326,actionY),new Vector2(284,50));
+        SetRect(Find(canvas,"Progress"),new Vector2(0,actionY),new Vector2(292,42));
+        SetRect(Find(canvas,"SubmitButton"),new Vector2(327,actionY),new Vector2(283,50));
+        var submit=Find(canvas,"SubmitButton")?.GetComponentInChildren<TMP_Text>(true);
+        if(submit!=null)
+        {
+            submit.text="SUBMIT LAB RESULTS";
+            submit.enableAutoSizing=true;
+            submit.fontSizeMin=13;
+            submit.fontSizeMax=18;
+        }
+        var progressLabel=Find(canvas,"Progress")?.GetComponent<TMP_Text>();
+        if(progressLabel!=null)
+        {
+            progressLabel.fontSize=17;
+            progressLabel.fontStyle=FontStyles.Bold;
+            progressLabel.enableAutoSizing=true;
+            progressLabel.fontSizeMin=15;
+            progressLabel.fontSizeMax=17;
+            progressLabel.textWrappingMode=TextWrappingModes.NoWrap;
+        }
+
+        // Dedicated lower workbench strip: not part of the action button row.
+        Transform instructionStrip=Find(canvas,"Level1InstructionStrip");
+        if(instructionStrip==null)
+        {
+            var background=Image(canvas,"Level1InstructionStrip",
+                new Vector2(0,-243),new Vector2(930,31),
+                new Color32(10,34,63,255));
+            background.raycastTarget=false;
+            instructionStrip=background.transform;
+            var line=background.gameObject.AddComponent<Outline>();
+            line.effectColor=new Color32(39,143,183,190);
+            line.effectDistance=new Vector2(1,1);
+        }
+        SetRect(instructionStrip,new Vector2(0,-243),new Vector2(930,31));
+        instructionStrip.GetComponent<Image>().raycastTarget=false;
+        instructionStrip.SetSiblingIndex(
+            Mathf.Max(0,Find(canvas,"LabBoard").GetSiblingIndex()+1));
+
+        var feedbackText=Find(canvas,"Feedback")?.GetComponent<TMP_Text>();
+        if(feedbackText!=null)
+        {
+            SetRect(feedbackText.transform,new Vector2(0,-243),new Vector2(890,27));
+            feedbackText.enableAutoSizing=true;
+            feedbackText.fontSizeMin=12;
+            feedbackText.fontSizeMax=16;
+            feedbackText.textWrappingMode=TextWrappingModes.NoWrap;
+        }
+    }
+
+    private static void SetRect(Transform target,Vector2 position,Vector2 size)
+    {
+        if(target==null)return;
+        var rect=target.GetComponent<RectTransform>();
+        if(rect==null)return;
+        rect.anchorMin=rect.anchorMax=new Vector2(.5f,.5f);
+        rect.pivot=new Vector2(.5f,.5f);
+        rect.anchoredPosition=position;
+        rect.sizeDelta=size;
     }
 
     private static Image Image(Transform parent,string name,Vector2 pos,Vector2 size,Color tint)
@@ -303,6 +519,12 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         resultLabel=Find(root,"ExperimentResult")?.GetComponent<TMP_Text>();
         evidenceText=Find(root,"EvidenceText")?.GetComponent<TMP_Text>();
         heat=Find(root,"HeatSlider")?.GetComponent<Slider>();
+        if(Level==1 && heat!=null)
+        {
+            heat.onValueChanged.RemoveListener(UpdateHeatReadout);
+            heat.onValueChanged.AddListener(UpdateHeatReadout);
+            UpdateHeatReadout(heat.value);
+        }
         pausePanel=Find(root,"PauseMenuPanel")?.gameObject;
         if(pausePanel==null)pausePanel=Find(root,"PausePanel")?.gameObject;
         failPanel=Find(root,"FailedPanel")?.gameObject;
@@ -328,12 +550,12 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         Wire("FailLevelButton",()=>Go("Stage5LevelSelection"));
         Wire("CompleteLevelButton",()=>Go("Stage5LevelSelection"));
         Wire("EmptyLevelButton",()=>Go("Stage5LevelSelection"));
-        Wire("NextButton",()=>Go(Level==3?"ChemQuestCertificate":"Stage5Level"+(Level+1)));
+        Wire("NextButton",()=>Go(Level==3?"StageSelection":"Stage5Level"+(Level+1)));
         // Update older serialized UI scenes without needing to rebuild Stage 5.
         if(Level==3 && completePanel!=null)
         {
             var nextText=Find(completePanel.transform,"NextButton")?.GetComponentInChildren<TMP_Text>(true);
-            if(nextText!=null)nextText.text="VIEW CERTIFICATE";
+            if(nextText!=null)nextText.text="STAGE SELECTION";
         }
         // Certificate is only shown when all 15 levels are completed.
         if(Level==3 && completePanel!=null)
@@ -342,8 +564,20 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
             if(certificateButton==null)
             {
                 Btn(completePanel.transform,"CertificateButton","VIEW CERTIFICATE",
-                    new Vector2(0,-94),new Vector2(292,48),Teal);
+                    new Vector2(0,-77),new Vector2(292,48),Teal);
                 certificateButton=Find(completePanel.transform,"CertificateButton");
+            }
+            // The certificate is a single, separate optional action.
+            // Keep it above navigation, including for previously saved scenes.
+            if(certificateButton!=null)
+            {
+                var certRect=certificateButton.GetComponent<RectTransform>();
+                if(certRect!=null)
+                {
+                    certRect.anchorMin=certRect.anchorMax=new Vector2(.5f,.5f);
+                    certRect.anchoredPosition=new Vector2(0,-77);
+                    certRect.sizeDelta=new Vector2(292,48);
+                }
             }
             var button=certificateButton?.GetComponent<Button>();
             if(button!=null)
@@ -361,9 +595,15 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         Wire("AqueousButton",()=>SelectState(2));
         Wire("ProbeButton",Probe);
         Wire("SubmitButton",Submit);
+        if(Level==1)EnsureLevel1BowPanel();
+        if(Level==2)EnsureLevel2BowPanel();
+        if(Level==3)EnsureLevel3BowPanel();
         foreach(var panel in new[]{pausePanel,failPanel,completePanel,emptyPanel})
             if(panel!=null)panel.SetActive(false);
         selected=-1;wrong=0;completedCount=0;failed=completed=paused=false;
+        level1BowStep=-1;
+        level2BowStep=-1;
+        level3BowStep=-1;
         for(int i=0;i<3;i++){examined[i]=classified[i]=false;selectedBin[i]=-1;
             for(int j=0;j<3;j++)probed[i,j]=false;}
         UpdateEvidence();
@@ -405,6 +645,13 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         SetIndicator(new Color32(70,90,120,255));
         if(feedback!=null)feedback.text="Sample "+samples[index]+" placed on workbench.";
     }
+    private void UpdateHeatReadout(float level)
+    {
+        if(Level!=1 || root==null)return;
+        var label=Find(root,"HeatValueText")?.GetComponent<TMP_Text>();
+        if(label!=null)label.text="HEAT: "+Mathf.RoundToInt(level)+"%";
+    }
+
     private void ApplyHeat()
     {
         if(!CanInteract||Level!=1)return;
@@ -467,7 +714,16 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         {
             for(int i=0;i<3;i++)
                 if(!examined[i]){WrongAttempt("Not all samples have complete observations.");return;}
-            CompleteLevel();
+            if(Level==1)
+            {
+                level1BowStep=0;
+                ShowLevel1BowQuestion();
+            }
+            else
+            {
+                level2BowStep=0;
+                ShowLevel2BowQuestion();
+            }
             return;
         }
         for(int i=0;i<3;i++)
@@ -485,8 +741,337 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
             if(selectedBin[i]!=correct)
             {WrongAttempt("Use the thermal, mechanical, and conductivity evidence together.");return;}
         }
-        CompleteLevel();
+        level3BowStep=0;
+        ShowLevel3BowQuestion();
     }
+    // A separate BOW learning check is shown after all three thermal tests.
+    // These materials are fictional teaching samples; thermal results alone
+    // do not establish a unique ionic/covalent/metallic classification.
+    public void EnsureLevel1BowPanel()
+    {
+        if(Level!=1)return;
+        var parent=GameObject.Find("Stage5Level1Canvas")?.transform;
+        if(parent==null)return;
+        var obj=Find(parent,"Stage5Level1BowCheck");
+        if(obj==null)
+        {
+            var shade=Image(parent,"Stage5Level1BowCheck",Vector2.zero,
+                new Vector2(1280,720),new Color32(5,13,29,228));
+            shade.raycastTarget=true;
+            var sr=shade.rectTransform;
+            sr.anchorMin=Vector2.zero;sr.anchorMax=Vector2.one;
+            sr.offsetMin=Vector2.zero;sr.offsetMax=Vector2.zero;
+            var card=Image(shade.transform,"BowCard",Vector2.zero,
+                new Vector2(770,430),Panel);
+            card.raycastTarget=true;
+            Txt(card.transform,"BowTitle","BOW LEARNING CHECK",31,
+                new Vector2(0,149),new Vector2(720,51),Gold);
+            Txt(card.transform,"BowDescription",
+                "Answer two questions about thermal evidence and material properties.",17,
+                new Vector2(0,97),new Vector2(735,44),Color.white);
+            Txt(card.transform,"BowQuestion","",21,
+                new Vector2(0,16),new Vector2(710,79),Color.white);
+            Txt(card.transform,"BowHint","",15,
+                new Vector2(0,-70),new Vector2(712,33),Gold);
+            Btn(card.transform,"BowAnswerA","CHOICE A",
+                new Vector2(-175,-143),new Vector2(335,58),Teal);
+            Btn(card.transform,"BowAnswerB","CHOICE B",
+                new Vector2(175,-143),new Vector2(335,58),new Color32(63,91,132,255));
+            obj=shade.transform;
+        }
+        level1BowPanel=obj.gameObject;
+        level1BowQuestion=Find(obj,"BowQuestion")?.GetComponent<TMP_Text>();
+        level1BowHint=Find(obj,"BowHint")?.GetComponent<TMP_Text>();
+        if(Application.isPlaying)
+        {
+            Wire("BowAnswerA",()=>AnswerLevel1Bow(0));
+            Wire("BowAnswerB",()=>AnswerLevel1Bow(1));
+        }
+        level1BowPanel.SetActive(false);
+    }
+    private void SetBowAnswer(string name,string value)
+    {
+        if(level1BowPanel==null)return;
+        var obj=Find(level1BowPanel.transform,name);
+        var caption=obj==null?null:obj.GetComponentInChildren<TMP_Text>(true);
+        if(caption!=null)caption.text=value;
+    }
+    private void ShowLevel1BowQuestion()
+    {
+        if(Level!=1)return;
+        if(level1BowPanel==null)EnsureLevel1BowPanel();
+        if(level1BowPanel==null)return;
+        SetLevel1BackgroundFeedbackVisible(false);
+        if(level1BowQuestion!=null)level1BowQuestion.text=level1BowStep==0?
+            "Which conclusion is supported by comparing the heating tests?":
+            "What should a scientist do before identifying a material's bonding type?";
+        SetBowAnswer("BowAnswerA",level1BowStep==0?
+            "The samples respond differently to heating":
+            "Combine thermal evidence with other property tests");
+        SetBowAnswer("BowAnswerB",level1BowStep==0?
+            "All three samples must have the same bonding type":
+            "Identify its bond type using only the heating result");
+        if(level1BowHint!=null)level1BowHint.text="";
+        level1BowPanel.SetActive(true);
+        level1BowPanel.transform.SetAsLastSibling();
+    }
+    private void AnswerLevel1Bow(int choice)
+    {
+        if(Level!=1 || !CanInteract || level1BowPanel==null ||
+            !level1BowPanel.activeSelf || level1BowStep<0 || level1BowStep>=2)return;
+        if(choice!=0)
+        {
+            ChemQuestSoundtrack.Wrong();
+            WrongAttempt("Heating alone cannot conclusively identify bonding type.");
+            if(failed)
+            {
+                level1BowPanel.SetActive(false);
+                if(failPanel!=null)failPanel.transform.SetAsLastSibling();
+            }
+            else if(level1BowHint!=null)
+                level1BowHint.text=level1BowStep==0?
+                    "HINT: Compare what happened to samples A, B, and C.":
+                    "HINT: Use conductivity and mechanical properties too.";
+            return;
+        }
+        ChemQuestSoundtrack.Correct();
+        level1BowStep++;
+        if(level1BowStep<2)ShowLevel1BowQuestion();
+        else
+        {
+            level1BowPanel.SetActive(false);
+            CompleteLevel();
+        }
+    }
+    private void SetLevel1BackgroundFeedbackVisible(bool value)
+    {
+        if(Level!=1 || root==null)return;
+        foreach(var name in new[]{"Feedback","Progress"})
+        {
+            var obj=Find(root,name);
+            if(obj!=null)obj.gameObject.SetActive(value);
+        }
+    }
+
+    // Grade 9 BOW check: interpret mechanical observations after all
+    // three unknown samples have been tested by STRIKE and PRESS.
+    // Save this UI in the scene with the Stage 5 editor menu command.
+    public void EnsureLevel2BowPanel()
+    {
+        if(Level!=2)return;
+        var parent=GameObject.Find("Stage5Level2Canvas")?.transform;
+        if(parent==null)return;
+        var obj=Find(parent,"Stage5Level2BowCheck");
+        if(obj==null)
+        {
+            var shade=Image(parent,"Stage5Level2BowCheck",Vector2.zero,
+                new Vector2(1280,720),new Color32(5,13,29,228));
+            shade.raycastTarget=true;
+            var sr=shade.rectTransform;
+            sr.anchorMin=Vector2.zero;sr.anchorMax=Vector2.one;
+            sr.offsetMin=Vector2.zero;sr.offsetMax=Vector2.zero;
+            var card=Image(shade.transform,"BowCard",Vector2.zero,
+                new Vector2(770,430),Panel);
+            card.raycastTarget=true;
+            Txt(card.transform,"BowTitle","BOW LEARNING CHECK",31,
+                new Vector2(0,149),new Vector2(720,51),Gold);
+            Txt(card.transform,"BowDescription",
+                "Answer two questions about mechanical properties and metallic bonding.",17,
+                new Vector2(0,97),new Vector2(735,44),Color.white);
+            Txt(card.transform,"BowQuestion","",21,
+                new Vector2(0,16),new Vector2(710,79),Color.white);
+            Txt(card.transform,"BowHint","",15,
+                new Vector2(0,-70),new Vector2(712,33),Gold);
+            Btn(card.transform,"BowAnswerA","CHOICE A",
+                new Vector2(-175,-143),new Vector2(335,58),Teal);
+            Btn(card.transform,"BowAnswerB","CHOICE B",
+                new Vector2(175,-143),new Vector2(335,58),
+                new Color32(63,91,132,255));
+            obj=shade.transform;
+        }
+        level2BowPanel=obj.gameObject;
+        level2BowQuestion=Find(obj,"BowQuestion")?.GetComponent<TMP_Text>();
+        level2BowHint=Find(obj,"BowHint")?.GetComponent<TMP_Text>();
+        if(Application.isPlaying)
+        {
+            Wire("BowAnswerA",()=>AnswerLevel2Bow(0));
+            Wire("BowAnswerB",()=>AnswerLevel2Bow(1));
+        }
+        level2BowPanel.SetActive(false);
+    }
+    private void SetLevel2BowAnswer(string name,string value)
+    {
+        if(level2BowPanel==null)return;
+        var obj=Find(level2BowPanel.transform,name);
+        var caption=obj==null?null:obj.GetComponentInChildren<TMP_Text>(true);
+        if(caption!=null)caption.text=value;
+    }
+    private void ShowLevel2BowQuestion()
+    {
+        if(Level!=2)return;
+        if(level2BowPanel==null)EnsureLevel2BowPanel();
+        if(level2BowPanel==null)return;
+        SetLevel2BackgroundFeedbackVisible(false);
+        if(level2BowQuestion!=null)level2BowQuestion.text=level2BowStep==0?
+            "Which observation is evidence that a sample is malleable?":
+            "Why can metallic substances change shape without shattering?";
+        SetLevel2BowAnswer("BowAnswerA",level2BowStep==0?
+            "It bends or flattens when pressed":
+            "Delocalized electrons maintain bonding as layers slide");
+        SetLevel2BowAnswer("BowAnswerB",level2BowStep==0?
+            "It breaks into fragments when struck":
+            "All metallic bonds disappear when layers move");
+        if(level2BowHint!=null)level2BowHint.text="";
+        level2BowPanel.SetActive(true);
+        level2BowPanel.transform.SetAsLastSibling();
+    }
+    private void AnswerLevel2Bow(int choice)
+    {
+        if(Level!=2 || !CanInteract || level2BowPanel==null ||
+            !level2BowPanel.activeSelf || level2BowStep<0 || level2BowStep>=2)return;
+        if(choice!=0)
+        {
+            ChemQuestSoundtrack.Wrong();
+            WrongAttempt("Compare deformation and brittle fracture, then consider the mobile electrons.");
+            if(failed)
+            {
+                level2BowPanel.SetActive(false);
+                if(failPanel!=null)failPanel.transform.SetAsLastSibling();
+            }
+            else if(level2BowHint!=null)
+                level2BowHint.text=level2BowStep==0?
+                    "HINT: Malleable materials deform instead of shattering.":
+                    "HINT: Mobile electrons hold the positive metal ions together.";
+            return;
+        }
+        ChemQuestSoundtrack.Correct();
+        level2BowStep++;
+        if(level2BowStep<2)ShowLevel2BowQuestion();
+        else
+        {
+            level2BowPanel.SetActive(false);
+            CompleteLevel();
+        }
+    }
+    private void SetLevel2BackgroundFeedbackVisible(bool value)
+    {
+        if(Level!=2 || root==null)return;
+        foreach(var name in new[]{"Feedback","Progress"})
+        {
+            var obj=Find(root,name);
+            if(obj!=null)obj.gameObject.SetActive(value);
+        }
+    }
+
+    // Final Stage 5 BOW: check reasoning about phase-dependent conductivity
+    // before awarding Stage 5 completion/certificate eligibility.
+    public void EnsureLevel3BowPanel()
+    {
+        if(Level!=3)return;
+        var parent=GameObject.Find("Stage5Level3Canvas")?.transform;
+        if(parent==null)return;
+        var obj=Find(parent,"Stage5Level3BowCheck");
+        if(obj==null)
+        {
+            var shade=Image(parent,"Stage5Level3BowCheck",Vector2.zero,
+                new Vector2(1280,720),new Color32(5,13,29,228));
+            shade.raycastTarget=true;
+            var sr=shade.rectTransform;
+            sr.anchorMin=Vector2.zero;sr.anchorMax=Vector2.one;
+            sr.offsetMin=Vector2.zero;sr.offsetMax=Vector2.zero;
+            var card=Image(shade.transform,"BowCard",Vector2.zero,
+                new Vector2(790,435),Panel);
+            card.raycastTarget=true;
+            Txt(card.transform,"BowTitle","BOW LEARNING CHECK",31,
+                new Vector2(0,150),new Vector2(740,54),Gold);
+            Txt(card.transform,"BowDescription",
+                "Answer two questions about the conductivity of bonding types.",17,
+                new Vector2(0,98),new Vector2(755,42),Color.white);
+            Txt(card.transform,"BowQuestion","",21,
+                new Vector2(0,14),new Vector2(728,87),Color.white);
+            Txt(card.transform,"BowHint","",15,
+                new Vector2(0,-71),new Vector2(736,32),Gold);
+            Btn(card.transform,"BowAnswerA","CHOICE A",
+                new Vector2(-180,-145),new Vector2(343,62),Teal);
+            Btn(card.transform,"BowAnswerB","CHOICE B",
+                new Vector2(180,-145),new Vector2(343,62),
+                new Color32(63,91,132,255));
+            obj=shade.transform;
+        }
+        level3BowPanel=obj.gameObject;
+        level3BowQuestion=Find(obj,"BowQuestion")?.GetComponent<TMP_Text>();
+        level3BowHint=Find(obj,"BowHint")?.GetComponent<TMP_Text>();
+        if(Application.isPlaying)
+        {
+            Wire("BowAnswerA",()=>AnswerLevel3Bow(0));
+            Wire("BowAnswerB",()=>AnswerLevel3Bow(1));
+        }
+        level3BowPanel.SetActive(false);
+    }
+    private void SetLevel3BowAnswer(string name,string value)
+    {
+        if(level3BowPanel==null)return;
+        var obj=Find(level3BowPanel.transform,name);
+        var caption=obj==null?null:obj.GetComponentInChildren<TMP_Text>(true);
+        if(caption!=null)caption.text=value;
+    }
+    private void ShowLevel3BowQuestion()
+    {
+        if(Level!=3)return;
+        if(level3BowPanel==null)EnsureLevel3BowPanel();
+        if(level3BowPanel==null)return;
+        SetLevel3BackgroundFeedbackVisible(false);
+        if(level3BowQuestion!=null)level3BowQuestion.text=level3BowStep==0?
+            "Why does an ionic compound usually conduct when molten, but not when solid?":
+            "Why do metallic solids conduct electricity?";
+        SetLevel3BowAnswer("BowAnswerA",level3BowStep==0?
+            "Ions can move when molten, but are fixed in a solid":
+            "Delocalized electrons move through the metal");
+        SetLevel3BowAnswer("BowAnswerB",level3BowStep==0?
+            "Its electrons disappear when the compound melts":
+            "Metal cations move freely through the solid lattice");
+        if(level3BowHint!=null)level3BowHint.text="";
+        level3BowPanel.SetActive(true);
+        level3BowPanel.transform.SetAsLastSibling();
+    }
+    private void AnswerLevel3Bow(int choice)
+    {
+        if(Level!=3 || !CanInteract || level3BowPanel==null ||
+            !level3BowPanel.activeSelf || level3BowStep<0 || level3BowStep>=2)return;
+        if(choice!=0)
+        {
+            ChemQuestSoundtrack.Wrong();
+            WrongAttempt("Think about mobile charged particles in ionic and metallic materials.");
+            if(failed)
+            {
+                level3BowPanel.SetActive(false);
+                if(failPanel!=null)failPanel.transform.SetAsLastSibling();
+            }
+            else if(level3BowHint!=null)
+                level3BowHint.text=level3BowStep==0?
+                    "HINT: In molten ionic compounds, ions are mobile.":
+                    "HINT: Metals contain mobile delocalized electrons.";
+            return;
+        }
+        ChemQuestSoundtrack.Correct();
+        level3BowStep++;
+        if(level3BowStep<2)ShowLevel3BowQuestion();
+        else
+        {
+            level3BowPanel.SetActive(false);
+            CompleteLevel();
+        }
+    }
+    private void SetLevel3BackgroundFeedbackVisible(bool value)
+    {
+        if(Level!=3 || root==null)return;
+        foreach(var name in new[]{"Feedback","Progress"})
+        {
+            var obj=Find(root,name);
+            if(obj!=null)obj.gameObject.SetActive(value);
+        }
+    }
+
     private void WrongAttempt(string message)
     {
         wrong++;
@@ -515,6 +1100,9 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
             if(certificateButton!=null)
                 certificateButton.SetActive(ChemQuestCertificate.AllLevelsComplete());
         }
+        if(Level==1)SetLevel1BackgroundFeedbackVisible(false);
+        if(Level==2)SetLevel2BackgroundFeedbackVisible(false);
+        if(Level==3)SetLevel3BackgroundFeedbackVisible(false);
         if(scoreText!=null)scoreText.text="SCORE\n"+points.ToString("D6");
         if(finalScore!=null)finalScore.text="FINAL SCORE "+points.ToString("D6");
         if(completePanel!=null){completePanel.SetActive(true);completePanel.transform.SetAsLastSibling();}
@@ -525,19 +1113,41 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         string text="";
         for(int i=0;i<3;i++)
         {
-            string value=Level==1?(examined[i]?thermal[i]:"NOT TESTED"):
-                Level==2?(examined[i]?mechanical[i]:"NEEDS STRIKE + PRESS"):
-                ("Thermal: "+thermal[i]+"\\nMechanical: "+mechanical[i]+"\\nProbe: "+
-                 (probed[i,0]?"Solid tested":"Solid ?")+" / "+
-                 (probed[i,1]?"Molten tested":"Molten ?")+
-                 (i==1?(probed[i,2]?" / Aqueous tested":" / Aqueous ?"):""));
-            text+=samples[i]+": "+value+"\n\n";
+            if(Level==3)
+            {
+                // Three concise evidence cards fit in the static notebook;
+                // S/M/Aq mean solid, molten and aqueous respectively.
+                string thermalNote=i==0?"Softens at low heat":"Solid in heat trial";
+                string mechanicalNote=i==0?"Soft; low shape retention":
+                    i==1?"Brittle on impact":"Malleable under pressure";
+                string solid=probed[i,0]?(i==2?"ON":"OFF"):"?";
+                string molten=probed[i,1]?(i==0?"OFF":"ON"):"?";
+                string aqueous=i==1?(probed[i,2]?" | Aq: ON":" | Aq: ?"):"";
+                text+=samples[i]+": "+thermalNote+"\n"+
+                    mechanicalNote+"\n"+
+                    "Probe S: "+solid+"  M: "+molten+aqueous+"\n\n";
+            }
+            else
+            {
+                string value=Level==1?(examined[i]?thermal[i]:"NOT TESTED"):
+                    (examined[i]?mechanical[i]:"NEEDS STRIKE + PRESS");
+                text+=samples[i]+": "+value+"\n\n";
+            }
         }
         evidenceText.text=text;
         int count=0;
         for(int i=0;i<3;i++)if(examined[i])count++;
-        if(progress!=null)progress.text=Level==3?"EXAMINE STATES & CLASSIFY SAMPLES":
-            "SAMPLES TESTED  "+count+" / 3";
+        if(progress!=null)
+        {
+            if(Level==3)
+            {
+                int ready=0;
+                for(int i=0;i<3;i++)
+                    if(probed[i,0]&&probed[i,1]&&(i!=1||probed[i,2]))ready++;
+                progress.text="CONDUCTIVITY TESTED  "+ready+" / 3";
+            }
+            else progress.text="SAMPLES TESTED  "+count+" / 3";
+        }
     }
     private void SetIndicator(Color color)
     {

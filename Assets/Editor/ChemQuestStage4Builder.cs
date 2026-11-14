@@ -75,6 +75,178 @@ public static class ChemQuestStage4Builder
             "OK");
     }
 
+    [MenuItem("Tools/ChemQuest/Stage 4/Fix Level 1 Bottom UI")]
+    public static void FixLevel1BottomUI()
+    {
+        if(EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            EditorUtility.DisplayDialog("Stop Play Mode",
+                "Stop Play Mode before saving the Stage 4 Level 1 UI.", "OK");
+            return;
+        }
+        const string path="Assets/Scenes/Stage4Level1.unity";
+        var scene=SceneManager.GetActiveScene();
+        if(scene.path!=path)
+        {
+            EditorUtility.DisplayDialog("Open Stage 4 Level 1",
+                "Open Assets/Scenes/Stage4Level1.unity and run this command again.", "OK");
+            return;
+        }
+        var controller=GameObject.Find("Stage4Level1Controller");
+        var game=controller==null?null:controller.GetComponent<Stage4ElectronOceanGame>();
+        if(game==null)
+        {
+            EditorUtility.DisplayDialog("Missing Level 1 Controller",
+                "Stage4Level1Controller was not found; no changes were made.", "OK");
+            return;
+        }
+        game.Level=1;
+        game.PolishEditorScene();
+        EditorUtility.SetDirty(game);
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        Debug.Log("ChemQuest Stage 4 Level 1: footer and buttons saved in Hierarchy.");
+        EditorUtility.DisplayDialog("Stage 4 Level 1 UI Saved",
+            "The instructions and buttons now have a dedicated footer. Expand Stage4Level1Canvas in Hierarchy to inspect Level1ActionFooter.", "OK");
+    }
+
+    [MenuItem("Tools/ChemQuest/Stage 4/Fix Level 2 Bottom UI")]
+    public static void FixLevel2BottomUI()
+    {
+        if(EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            EditorUtility.DisplayDialog("Stop Play Mode",
+                "Stop Play Mode before saving Level 2 layout.", "OK");
+            return;
+        }
+        const string path="Assets/Scenes/Stage4Level2.unity";
+        var scene=SceneManager.GetActiveScene();
+        if(scene.path!=path)
+        {
+            EditorUtility.DisplayDialog("Open Stage 4 Level 2",
+                "Open Assets/Scenes/Stage4Level2.unity first.", "OK");
+            return;
+        }
+        var controller=GameObject.Find("Stage4Level2Controller");
+        var game=controller==null?null:controller.GetComponent<Stage4ElectronOceanGame>();
+        if(game==null)
+        {
+            EditorUtility.DisplayDialog("Missing Controller",
+                "The Stage4Level2Controller was not found; no changes made.", "OK");
+            return;
+        }
+        game.Level=2;
+        game.PolishEditorScene();
+        EditorUtility.SetDirty(game);
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        Debug.Log("ChemQuest Stage 4 Level 2: footer, labels, and buttons saved in Hierarchy.");
+        EditorUtility.DisplayDialog("Level 2 Layout Saved",
+            "Expand Stage4Level2Canvas in Hierarchy to see Level2ActionFooter. Ready to test in Play Mode.", "OK");
+    }
+
+    [MenuItem("Tools/ChemQuest/Stage 4/Save Level 1 BOW and UI")]
+    public static void SaveLevel1BowAndUI()
+    {
+        if(EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            EditorUtility.DisplayDialog("Stop Play Mode",
+                "Stop Play Mode before saving Level 1 BOW UI.", "OK");
+            return;
+        }
+        var scene=SceneManager.GetActiveScene();
+        if(scene.path!="Assets/Scenes/Stage4Level1.unity")
+        {
+            EditorUtility.DisplayDialog("Open Stage 4 Level 1",
+                "Open Assets/Scenes/Stage4Level1.unity first.", "OK");
+            return;
+        }
+        var controller=GameObject.Find("Stage4Level1Controller");
+        var game=controller==null?null:controller.GetComponent<Stage4ElectronOceanGame>();
+        if(game==null)
+        {
+            EditorUtility.DisplayDialog("Missing Controller",
+                "Stage4Level1Controller was not found; no changes were made.", "OK");
+            return;
+        }
+        game.Level=1;
+        game.EnsureLevel1BowPanel();
+        EditorUtility.SetDirty(game);
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        Debug.Log("CHEMQUEST Stage 4 Level 1: BOW Learning Check saved in Hierarchy.");
+        EditorUtility.DisplayDialog("Stage 4 Level 1 Saved",
+            "Stage4Level1BowCheck now exists under Stage4Level1Canvas and remains inactive until the completed lattice is checked.", "OK");
+    }
+
+    [MenuItem("Tools/ChemQuest/Stage 4/Save Level 2 BOW and UI")]
+    public static void SaveLevel2BowAndUI()
+    {
+        if(EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            EditorUtility.DisplayDialog("Stop Play Mode",
+                "Stop Play Mode before saving Level 2 BOW UI.", "OK");
+            return;
+        }
+        var scene=SceneManager.GetActiveScene();
+        if(scene.path!="Assets/Scenes/Stage4Level2.unity")
+        {
+            EditorUtility.DisplayDialog("Open Stage 4 Level 2",
+                "Open Assets/Scenes/Stage4Level2.unity first.", "OK");
+            return;
+        }
+        var controller=GameObject.Find("Stage4Level2Controller");
+        var game=controller==null?null:controller.GetComponent<Stage4ElectronOceanGame>();
+        if(game==null)
+        {
+            EditorUtility.DisplayDialog("Missing Controller",
+                "Stage4Level2Controller was not found; no changes were made.", "OK");
+            return;
+        }
+        game.Level=2;
+        game.EnsureLevel2BowPanel();
+        EditorUtility.SetDirty(game);
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        Debug.Log("CHEMQUEST Stage 4 Level 2: BOW Learning Check saved in Hierarchy.");
+        EditorUtility.DisplayDialog("Stage 4 Level 2 Saved",
+            "Stage4Level2BowCheck now exists under Stage4Level2Canvas and stays inactive until the electron drift puzzle is complete.", "OK");
+    }
+
+    [MenuItem("Tools/ChemQuest/Stage 4/Save Level 3 BOW and UI")]
+    public static void SaveLevel3BowAndUI()
+    {
+        if(EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            EditorUtility.DisplayDialog("Stop Play Mode",
+                "Stop Play Mode before saving Level 3 BOW UI.", "OK");
+            return;
+        }
+        var scene=SceneManager.GetActiveScene();
+        if(scene.path!="Assets/Scenes/Stage4Level3.unity")
+        {
+            EditorUtility.DisplayDialog("Open Stage 4 Level 3",
+                "Open Assets/Scenes/Stage4Level3.unity first.", "OK");
+            return;
+        }
+        var controller=GameObject.Find("Stage4Level3Controller");
+        var game=controller==null?null:controller.GetComponent<Stage4ElectronOceanGame>();
+        if(game==null)
+        {
+            EditorUtility.DisplayDialog("Missing Controller",
+                "Stage4Level3Controller not found; no changes were made.", "OK");
+            return;
+        }
+        game.Level=3;
+        game.PolishLevel3Presentation();
+        EditorUtility.SetDirty(game);
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        Debug.Log("CHEMQUEST Stage 4 Level 3: BOW Learning Check saved in Hierarchy.");
+        EditorUtility.DisplayDialog("Stage 4 Level 3 Saved",
+            "Stage4Level3BowCheck now exists under Stage4Level3Canvas. It stays inactive until the malleability and ductility puzzles are complete.", "OK");
+    }
+
     [MenuItem("Tools/ChemQuest/Refresh Stage 4 Gameplay Layout")]
     public static void RefreshGameplay()
     {

@@ -39,3 +39,6 @@ UpgradeLog.htm
 /Assets/_Recovery/
 
 /Library_Old/
+
+# Unity temporary files
+.utmp/

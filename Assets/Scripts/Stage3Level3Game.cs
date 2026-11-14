@@ -23,6 +23,9 @@ public class Stage3Level3Game : MonoBehaviour
     private GameObject pausePanel, failedPanel, energyPanel, transitionPanel, completedPanel;
     private TMP_Text feedback, scoreText, finalScoreText, timerText, energyCount;
     private Button retryButton;
+    private GameObject bowPanel;
+    private TMP_Text bowQuestion, bowHint;
+    private int bowQuestionIndex=-1;
     private int[] placed = new int[2];
     private int phase, mistakes;
     private bool paused, failed, completed, transitioning;
@@ -43,6 +46,7 @@ public class Stage3Level3Game : MonoBehaviour
         if(EnergyManager.Instance==null)
             new GameObject("SharedEnergyManager",typeof(EnergyManager));
         if(GameObject.Find("Stage3Level3Canvas")==null) BuildInEditor();
+        RepairCanvasLayout();
         BindScene();
         UpdateEnergy();
     }
@@ -50,7 +54,11 @@ public class Stage3Level3Game : MonoBehaviour
     // Called by the Unity Editor builder: creates *saved* Hierarchy objects before Play.
     public void BuildInEditor()
     {
-        if(GameObject.Find("Stage3Level3Canvas")!=null) return; // preserve manual layout edits
+        if(GameObject.Find("Stage3Level3Canvas")!=null)
+        {
+            RepairCanvasLayout(); // retain saved puzzle objects
+            return;
+        }
         var root=new GameObject("Stage3Level3Canvas",typeof(RectTransform),
             typeof(Canvas),typeof(CanvasScaler),typeof(GraphicRaycaster));
         var canvas=root.GetComponent<Canvas>();
@@ -68,10 +76,10 @@ public class Stage3Level3Game : MonoBehaviour
 
         Text(root.transform,"StageTitle","STAGE 3  |  LEVEL 3",20,
             new Vector2(0,320),new Vector2(640,38),Accent);
-        Text(root.transform,"LevelTitle","DOUBLE BOND CHALLENGE  -  O₂ & CO₂",30,
+        Text(root.transform,"LevelTitle","DOUBLE BOND CHALLENGE  -  O<sub>2</sub> & CO<sub>2</sub>",30,
             new Vector2(0,275),new Vector2(890,47),Color.white);
         Text(root.transform,"Instruction",
-            "Drag electron PAIRS into their correct bond or lone-pair positions.\nO₂ has one double bond; CO₂ has two C=O double bonds.",
+            "Drag electron PAIRS into their correct bond or lone-pair positions.\nO<sub>2</sub> has one double bond; CO<sub>2</sub> has two C=O double bonds.",
             17,new Vector2(0,222),new Vector2(960,58),Dim);
         scoreText=Text(root.transform,"ScoreText","SCORE\n000000",20,
             new Vector2(532,296),new Vector2(140,70),Gold);
@@ -92,7 +100,7 @@ public class Stage3Level3Game : MonoBehaviour
         puzzles[1].SetActive(false);
 
         feedback=Text(root.transform,"FeedbackText",
-            "O₂: Place 2 bonding pairs between oxygen atoms and 2 lone pairs around EACH oxygen.",
+            "O<sub>2</sub>: Place 2 bonding pairs between oxygen atoms and 2 lone pairs around EACH oxygen.",
             16,new Vector2(0,-248),new Vector2(1050,49),Gold);
 
         Button(root.transform,"CheckButton","CHECK MOLECULE",
@@ -146,14 +154,14 @@ public class Stage3Level3Game : MonoBehaviour
             new Vector2(0,-162),new Vector2(280,54),new Color32(64,83,119,255));
         failedPanel.SetActive(false);
 
-        transitionPanel=MakeModal(root.transform,"OxygenCompletePanel","O₂ COMPLETE!",
+        transitionPanel=MakeModal(root.transform,"OxygenCompletePanel","O<sub>2</sub> COMPLETE!",
             "One O=O double bond, four oxygen lone pairs. Each O has an octet.");
-        Button(transitionPanel.transform,"NextMoleculeButton","NEXT: CO₂",
+        Button(transitionPanel.transform,"NextMoleculeButton","NEXT: CO<sub>2</sub>",
             new Vector2(0,-116),new Vector2(270,65),new Color32(7,134,140,255));
         transitionPanel.SetActive(false);
 
         completedPanel=MakeModal(root.transform,"Stage3CompletePanel","STAGE 3 COMPLETE!",
-            "O₂ and CO₂ double bonds formed successfully!");
+            "O<sub>2</sub> and CO<sub>2</sub> double bonds formed successfully!");
         Text(completedPanel.transform,"FinalScoreText","FINAL SCORE: 000000",29,
             new Vector2(0,-44),new Vector2(590,65),Gold);
         Button(completedPanel.transform,"CompleteLevelSelectionButton","LEVEL SELECTION",
@@ -171,12 +179,313 @@ public class Stage3Level3Game : MonoBehaviour
         energyPanel.SetActive(false);
     }
 
+    // Repair serialized Canvas transforms on saved scenes. A zero local scale
+    // makes the entire challenge appear as a tiny inset in the Game view.
+    public void RepairCanvasLayout()
+    {
+        var root=GameObject.Find("Stage3Level3Canvas");
+        if(root==null)return;
+        EnsureBowPanel(root.transform); // saved in Edit Mode, not only created during Play
+        var rect=root.GetComponent<RectTransform>();
+        if(rect!=null)
+        {
+            rect.localScale=Vector3.one;
+            rect.localRotation=Quaternion.identity;
+        }
+        var canvas=root.GetComponent<Canvas>();
+        if(canvas!=null)
+        {
+            canvas.renderMode=RenderMode.ScreenSpaceOverlay;
+            canvas.overrideSorting=false;
+        }
+        var scaler=root.GetComponent<CanvasScaler>();
+        if(scaler!=null)
+        {
+            scaler.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution=new Vector2(1280,720);
+            scaler.screenMatchMode=CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+            scaler.matchWidthOrHeight=1f;
+        }
+        // Existing saved scene text may still contain an unsupported Unicode
+        // subscript. TMP rich-text gives the same chemistry notation safely.
+        foreach(var label in root.GetComponentsInChildren<TMP_Text>(true))
+        {
+            if(label!=null && label.text.Contains("₂"))
+                label.text=label.text.Replace("₂","<sub>2</sub>");
+        }
+        // Extend the bottom of the dark workbench behind the action row.
+        // Keep this editable in Hierarchy, not a temporary Play-mode graphic.
+        var footer=Find(root.transform,"BottomActionFooter");
+        if(footer==null)
+        {
+            var footerImage=Image(root.transform,"BottomActionFooter",
+                new Vector2(0,-294),new Vector2(1050,114),Panel);
+            footerImage.raycastTarget=false;
+            footer=footerImage.transform;
+        }
+        var footerRect=footer.GetComponent<RectTransform>();
+        if(footerRect!=null)
+        {
+            footerRect.anchoredPosition=new Vector2(0,-294);
+            footerRect.sizeDelta=new Vector2(1050,114);
+        }
+        var footerGraphic=footer.GetComponent<Image>();
+        if(footerGraphic!=null)
+        {
+            footerGraphic.color=Panel;
+            footerGraphic.raycastTarget=false;
+        }
+        // Draw the footer after puzzle backgrounds but beneath text/buttons
+        // and all assessment/completion dialogs.
+        var instructionObject=Find(root.transform,"FeedbackText");
+        if(instructionObject!=null)
+            footer.SetSiblingIndex(instructionObject.GetSiblingIndex());
+        foreach(var actionName in new[]{"CheckButton","ResetButton"})
+        {
+            var action=Find(root.transform,actionName)?.GetComponent<RectTransform>();
+            if(action!=null)
+                action.anchoredPosition=new Vector2(action.anchoredPosition.x,-298);
+        }
+        var instruction=instructionObject?.GetComponent<RectTransform>();
+        if(instruction!=null)
+        {
+            instruction.anchoredPosition=new Vector2(0,-245);
+            instruction.sizeDelta=new Vector2(1050,36);
+        }
+        ApplyReferenceStyle(root.transform);
+        var background=Find(root.transform,"Background")?.GetComponent<RectTransform>();
+        if(background!=null)
+        {
+            background.anchorMin=Vector2.zero;
+            background.anchorMax=Vector2.one;
+            background.offsetMin=Vector2.zero;
+            background.offsetMax=Vector2.zero;
+        }
+    }
+
+    // Stage 3 Level 3 visual polish based on the approved CHEMQUEST mockup.
+    // Idempotent and Editor-safe: every styled element is saved in the scene
+    // by Tools > ChemQuest > Stage 3 > Fix Level 3 Canvas and Save Hierarchy.
+    private void ApplyReferenceStyle(Transform root)
+    {
+        var navy=new Color32(9,30,63,255);
+        var cyan=new Color32(42,205,249,255);
+        var teal=new Color32(13,164,166,255);
+        var pale=new Color32(214,230,251,255);
+        var workbench=Find(root,"Stage3ReferenceWorkbench");
+        if(workbench==null)
+        {
+            var created=Image(root,"Stage3ReferenceWorkbench",
+                new Vector2(0,-84),new Vector2(1084,536),navy);
+            created.raycastTarget=false;
+            workbench=created.transform;
+        }
+        var wbRect=workbench.GetComponent<RectTransform>();
+        if(wbRect!=null)
+        {
+            // Top edge Y=184 leaves clearance below the Stage 3 title banner.
+            // Bottom edge Y=-352 still encloses the button row at Y=-299.
+            wbRect.anchoredPosition=new Vector2(0,-84);
+            wbRect.sizeDelta=new Vector2(1084,536);
+        }
+        DecorateGraphic(workbench.gameObject,navy,cyan,3f,false);
+        // The workbench is a DECORATIVE BACKDROP. Keep it immediately above
+        // the root Background in draw order, before all gameplay UI.
+        // Placing it just before a puzzle can still cover the puzzle after
+        // later transforms are reordered during the scene repair.
+        var sceneBackground=Find(root,"Background");
+        if(sceneBackground!=null)
+        {
+            sceneBackground.SetAsFirstSibling();
+            workbench.SetSiblingIndex(1);
+        }
+        else workbench.SetAsFirstSibling();
+        foreach(var puzzleName in new[]{"OxygenPuzzle","CarbonDioxidePuzzle"})
+        {
+            var board=Find(root,puzzleName);
+            if(board==null)continue;
+            // Transparent working area over the framed navy reference board.
+            var boardImage=board.GetComponent<Image>();
+            if(boardImage!=null)
+            {
+                boardImage.color=new Color32(9,30,63,0);
+                boardImage.raycastTarget=false;
+            }
+            var heading=Find(board,"PuzzleTitle")?.GetComponent<TMP_Text>();
+            if(heading!=null)
+            {
+                heading.fontSize=25;
+                heading.fontStyle=FontStyles.Bold;
+                heading.color=cyan;
+            }
+            foreach(var zone in board.GetComponentsInChildren<Stage3Level3PairDropZone>(true))
+            {
+                var graphic=zone.GetComponent<Image>();
+                if(graphic!=null)
+                {
+                    graphic.color=new Color32(32,79,111,255);
+                    graphic.raycastTarget=true;
+                    var border=zone.GetComponent<Outline>();
+                    if(border==null)border=zone.gameObject.AddComponent<Outline>();
+                    border.effectColor=cyan;
+                    border.effectDistance=new Vector2(2,-2);
+                    border.useGraphicAlpha=false;
+                }
+                var label=zone.GetComponentInChildren<TMP_Text>(true);
+                if(label!=null){label.fontSize=24;label.color=Gold;}
+            }
+            foreach(var drag in board.GetComponentsInChildren<Stage3Level3PairDrag>(true))
+            {
+                var token=drag.GetComponent<Image>();
+                if(token==null)continue;
+                token.color=drag.IsBondPair?new Color32(36,159,223,255):
+                    new Color32(249,180,51,255);
+                var border=drag.GetComponent<Outline>();
+                if(border==null)border=drag.gameObject.AddComponent<Outline>();
+                border.effectColor=drag.IsBondPair?
+                    new Color32(104,226,255,255):new Color32(255,223,132,255);
+                border.effectDistance=new Vector2(2,-2);
+                border.useGraphicAlpha=false;
+            }
+            var bank=Find(board,puzzleName=="OxygenPuzzle"?"O2ElectronBank":"CO2ElectronBank");
+            if(bank!=null)
+            {
+                var img=bank.GetComponent<Image>();
+                if(img!=null)img.color=new Color32(6,24,52,255);
+                DecorateGraphic(bank.gameObject,new Color32(6,24,52,255),
+                    new Color32(35,133,186,255),1.5f,false);
+                var bankLabel=Find(bank,"BankTitle")?.GetComponent<TMP_Text>();
+                if(bankLabel!=null)
+                {
+                    bankLabel.fontSize=16;
+                    bankLabel.fontStyle=FontStyles.Bold;
+                    bankLabel.color=pale;
+                }
+            }
+            var legend=Find(board,"BankLegend")?.GetComponent<TMP_Text>();
+            if(legend!=null){legend.fontSize=15;legend.color=pale;}
+        }
+        // Put the game feedback and action buttons on a single unified card.
+        var footer=Find(root,"BottomActionFooter");
+        if(footer!=null)
+        {
+            var footerRect=footer.GetComponent<RectTransform>();
+            if(footerRect!=null)
+            {
+                footerRect.anchoredPosition=new Vector2(0,-289);
+                footerRect.sizeDelta=new Vector2(1050,124);
+            }
+            var image=footer.GetComponent<Image>();
+            if(image!=null){image.color=navy;image.raycastTarget=false;}
+        }
+        // Keep the current contextual instruction legible against the workbench.
+        // The separate, static Intro/Instruction label duplicates this line
+        // and can obscure the updated layout, so hide only that label.
+        var oldIntro=Find(root,"Instruction");
+        if(oldIntro!=null)oldIntro.gameObject.SetActive(false);
+        var instruction=Find(root,"FeedbackText")?.GetComponent<TMP_Text>();
+        if(instruction!=null)
+        {
+            instruction.fontSize=18;
+            instruction.fontStyle=FontStyles.Bold;
+            instruction.color=new Color32(255,210,90,255);
+            instruction.alpha=1f;
+            instruction.alignment=TextAlignmentOptions.Center;
+            instruction.textWrappingMode=TextWrappingModes.Normal;
+            var line=instruction.GetComponent<RectTransform>();
+            if(line!=null)
+            {
+                line.anchoredPosition=new Vector2(0,-249);
+                line.sizeDelta=new Vector2(1000,40);
+                // Draw order is applied once after all components have been styled.
+                // Never insert the feedback among the inactive modal panels here.
+            }
+        }
+        foreach(var buttonName in new[]{"ResetButton","CheckButton"})
+        {
+            var button=Find(root,buttonName);
+            if(button==null)continue;
+            var rect=button.GetComponent<RectTransform>();
+            if(rect!=null)
+            {
+                rect.anchoredPosition=new Vector2(buttonName=="ResetButton"?-155:155,-299);
+                rect.sizeDelta=new Vector2(290,52);
+            }
+            var baseColor=buttonName=="ResetButton"?
+                new Color32(70,97,143,255):teal;
+            DecorateGraphic(button.gameObject,baseColor,
+                buttonName=="ResetButton"?new Color32(152,184,227,255):
+                    new Color32(58,241,240,255),2f,true);
+            var label=button.GetComponentInChildren<TMP_Text>(true);
+            if(label!=null)
+            {
+                label.fontSize=20;
+                label.fontStyle=FontStyles.Bold;
+                label.color=Color.white;
+            }
+        }
+        // Explicit, repeatable draw order. A newer full-size Image (footer or
+        // workbench) must never be allowed to cover electron tokens or buttons.
+        // Keep decorative images behind both puzzle canvases. Keep modals on top.
+        // Explicitly include the shared-energy icons and pause button.
+        // These were omitted in the previous ordering and became hidden behind
+        // the opaque decorative workbench after applying the reference design.
+        var order=new List<string>{"Background","Stage3ReferenceWorkbench",
+            "BottomActionFooter","OxygenPuzzle","CarbonDioxidePuzzle",
+            "StageTitle","LevelTitle","FeedbackText","ResetButton","CheckButton",
+            "EnergyHeading","EnergyCount","ScoreText"};
+        for(int i=1;i<=5;i++)order.Add("Energy"+i);
+        order.Add("Level3PauseButton");
+        // Every modal remains above the gameplay and HUD.
+        order.AddRange(new[]{"PauseMenuPanel","FailedPanel","OxygenCompletePanel",
+            "Stage3CompletePanel","OutOfEnergyPanel","Stage3BowLearningCheck"});
+        foreach(var name in order)
+        {
+            var item=Find(root,name);
+            if(item!=null && item.parent==root)item.SetAsLastSibling();
+        }
+        // Keep HUD icons and pause control enabled in the saved scene. Energy
+        //Manager.UpdateEnergy() still decides which icons are visible at runtime.
+        var pauseControl=Find(root,"Level3PauseButton");
+        if(pauseControl!=null)pauseControl.gameObject.SetActive(true);
+        for(int i=1;i<=5;i++)
+        {
+            var energyIcon=Find(root,"Energy"+i);
+            if(energyIcon!=null)energyIcon.gameObject.SetActive(true);
+        }
+    }
+
+    private void DecorateGraphic(GameObject obj,Color fill,Color border,
+        float thickness,bool withShadow)
+    {
+        var graphic=obj.GetComponent<Image>();
+        if(graphic==null)return;
+        graphic.color=fill;
+        var outline=obj.GetComponent<Outline>();
+        if(outline==null)outline=obj.AddComponent<Outline>();
+        outline.effectColor=border;
+        outline.effectDistance=new Vector2(thickness,-thickness);
+        outline.useGraphicAlpha=false;
+        if(withShadow)
+        {
+            var shadow=obj.GetComponent<Shadow>();
+            // Outline derives from Shadow; GetComponent<Shadow> may return the
+            // Outline itself. Only add a separate shadow when one is absent.
+            if(shadow==null)
+            {
+                shadow=obj.AddComponent<Shadow>();
+                shadow.effectColor=new Color32(0,9,27,170);
+                shadow.effectDistance=new Vector2(0,-4);
+            }
+        }
+    }
+
     private GameObject BuildOxygen(Transform root)
     {
         var board=Image(root,"OxygenPuzzle",new Vector2(0,18),
             new Vector2(1050,360),Panel);
         board.raycastTarget=false;
-        Text(board.transform,"PuzzleTitle","PUZZLE 1 / 2: OXYGEN  O₂",21,
+        Text(board.transform,"PuzzleTitle","PUZZLE 1 / 2: OXYGEN  O<sub>2</sub>",21,
             new Vector2(0,150),new Vector2(670,36),Accent);
         Text(board.transform,"LeftOxygen","O",70,new Vector2(-170,60),
             new Vector2(100,99),Color.white);
@@ -199,7 +508,7 @@ public class Stage3Level3Game : MonoBehaviour
         var board=Image(root,"CarbonDioxidePuzzle",new Vector2(0,18),
             new Vector2(1050,360),Panel);
         board.raycastTarget=false;
-        Text(board.transform,"PuzzleTitle","PUZZLE 2 / 2: CARBON DIOXIDE  CO₂",21,
+        Text(board.transform,"PuzzleTitle","PUZZLE 2 / 2: CARBON DIOXIDE  CO<sub>2</sub>",21,
             new Vector2(0,150),new Vector2(670,36),Accent);
         Text(board.transform,"LeftOxygen","O",68,new Vector2(-300,63),
             new Vector2(90,90),Color.white);
@@ -354,6 +663,9 @@ public class Stage3Level3Game : MonoBehaviour
         energyPanel=Find(root,"OutOfEnergyPanel")?.gameObject;
         transitionPanel=Find(root,"OxygenCompletePanel")?.gameObject;
         completedPanel=Find(root,"Stage3CompletePanel")?.gameObject;
+        bowPanel=Find(root,"Stage3BowLearningCheck")?.gameObject;
+        bowQuestion=Find(root,"BowQuestion")?.GetComponent<TMP_Text>();
+        bowHint=Find(root,"BowHint")?.GetComponent<TMP_Text>();
         feedback=Find(root,"FeedbackText")?.GetComponent<TMP_Text>();
         scoreText=Find(root,"ScoreText")?.GetComponent<TMP_Text>();
         finalScoreText=Find(root,"FinalScoreText")?.GetComponent<TMP_Text>();
@@ -383,6 +695,8 @@ public class Stage3Level3Game : MonoBehaviour
             placed[p]=0;
         }
         WireButton(root,"CheckButton",CheckMolecule);
+        WireButton(root,"BowChoiceA",()=>AnswerBow(0));
+        WireButton(root,"BowChoiceB",()=>AnswerBow(1));
         WireButton(root,"ResetButton",ResetPairs);
         WireButton(root,"Level3PauseButton",Pause);
         WireButton(root,"ContinueButton",Resume);
@@ -400,14 +714,18 @@ public class Stage3Level3Game : MonoBehaviour
                 var t=button.GetComponentInChildren<TMP_Text>(true);
                 if(t!=null)t.text="STAGE SELECTION";
             }
-        phase=0;mistakes=0;paused=failed=completed=transitioning=false;
+        phase=0;mistakes=0;bowQuestionIndex=-1;
+        paused=failed=completed=transitioning=false;
         Time.timeScale=1f;
         if(puzzles[0]!=null)puzzles[0].SetActive(true);
         if(puzzles[1]!=null)puzzles[1].SetActive(false);
-        foreach(var modal in new[]{pausePanel,failedPanel,energyPanel,transitionPanel,completedPanel})
+        foreach(var modal in new[]{pausePanel,failedPanel,energyPanel,transitionPanel,completedPanel,bowPanel})
             if(modal!=null)modal.SetActive(false);
-        if(feedback!=null)feedback.text=
-            "O₂: Place 2 shared bonding pairs and 4 lone pairs (2 around each O).";
+        if(feedback!=null)
+        {
+            feedback.gameObject.SetActive(true);
+            feedback.text="O<sub>2</sub>: Place 2 shared bonding pairs and 4 lone pairs (2 around each O).";
+        }
         if(scoreText!=null)scoreText.text="SCORE\n000000";
     }
 
@@ -458,7 +776,12 @@ public class Stage3Level3Game : MonoBehaviour
                 transitionPanel.transform.SetAsLastSibling();
             }
         }
-        else Complete();
+        else
+        {
+            transitioning=false;
+            bowQuestionIndex=0;
+            ShowBowQuestion();
+        }
     }
 
     private void NextMolecule()
@@ -467,12 +790,17 @@ public class Stage3Level3Game : MonoBehaviour
         if(transitionPanel!=null)transitionPanel.SetActive(false);
         if(puzzles[0]!=null)puzzles[0].SetActive(false);
         if(puzzles[1]!=null)puzzles[1].SetActive(true);
-        if(feedback!=null)feedback.text=
-            "CO₂: Each C=O double bond needs 2 shared pairs; each O has 2 lone pairs.";
+        if(feedback!=null)
+        {
+            feedback.gameObject.SetActive(true);
+            feedback.text="CO<sub>2</sub>: Each C=O double bond needs 2 shared pairs; each O has 2 lone pairs.";
+        }
     }
 
     private void Complete()
     {
+        if(bowQuestionIndex!=2)return;
+        if(feedback!=null)feedback.gameObject.SetActive(false);
         completed=true;
         int score=mistakes==0?100:75;
         PlayerPrefs.SetInt("Stage3Level3Completed",1);
@@ -485,6 +813,76 @@ public class Stage3Level3Game : MonoBehaviour
         {
             completedPanel.SetActive(true);
             completedPanel.transform.SetAsLastSibling();
+        }
+    }
+
+    // Create the assessment once and retain it with other editable scene objects.
+    private void EnsureBowPanel(Transform root)
+    {
+        var existing=Find(root,"Stage3BowLearningCheck");
+        if(existing!=null)return;
+        var panel=MakeModal(root,"Stage3BowLearningCheck","BOW LEARNING CHECK",
+            "Answer two questions about double bonds and molecular formulas.");
+        Text(panel.transform,"BowQuestion","",22,new Vector2(0,-20),
+            new Vector2(660,65),Color.white);
+        Text(panel.transform,"BowHint","",15,new Vector2(0,-74),
+            new Vector2(660,31),Gold);
+        Button(panel.transform,"BowChoiceA","OPTION A",new Vector2(-165,-138),
+            new Vector2(302,54),new Color32(20,134,144,255));
+        Button(panel.transform,"BowChoiceB","OPTION B",new Vector2(165,-138),
+            new Vector2(302,54),new Color32(55,91,128,255));
+        panel.SetActive(false);
+    }
+    private void ShowBowQuestion()
+    {
+        if(bowPanel==null)return;
+        if(bowQuestion!=null)
+            bowQuestion.text=bowQuestionIndex==0
+                ?"How many electron pairs are shared in an O=O double bond?"
+                :"Which chemical formula represents carbon dioxide?";
+        SetBowChoice("BowChoiceA",bowQuestionIndex==0
+            ?"Two shared electron pairs":"CO<sub>2</sub> - carbon dioxide");
+        SetBowChoice("BowChoiceB",bowQuestionIndex==0
+            ?"One shared electron pair":"CO - carbon dioxide");
+        if(bowHint!=null)bowHint.text="";
+        if(feedback!=null)feedback.gameObject.SetActive(false);
+        bowPanel.SetActive(true);
+        bowPanel.transform.SetAsLastSibling();
+    }
+    private void SetBowChoice(string buttonName,string answer)
+    {
+        var button=Find(bowPanel.transform,buttonName);
+        var label=button==null?null:button.GetComponentInChildren<TMP_Text>(true);
+        if(label!=null)label.text=answer;
+    }
+    private void AnswerBow(int choice)
+    {
+        if(completed || failed || bowQuestionIndex<0 || bowQuestionIndex>=2
+            || EnergyManager.Instance==null || !EnergyManager.Instance.HasEnergy)return;
+        if(choice!=0)
+        {
+            ChemQuestSoundtrack.Wrong();
+            WrongPlacement(); // same 100/75 and two-strike energy policy
+            if(failed)
+            {
+                bowPanel.SetActive(false);
+                if(failedPanel!=null)failedPanel.transform.SetAsLastSibling();
+            }
+            else if(bowHint!=null)
+            {
+                // Keep assessment feedback inside the BOW panel, never underneath it.
+                if(feedback!=null)feedback.gameObject.SetActive(false);
+                bowHint.text="HINT: A double bond shares TWO pairs. Carbon dioxide has TWO oxygen atoms.";
+            }
+            return;
+        }
+        ChemQuestSoundtrack.Correct();
+        bowQuestionIndex++;
+        if(bowQuestionIndex<2)ShowBowQuestion();
+        else
+        {
+            bowPanel.SetActive(false);
+            Complete();
         }
     }
 
