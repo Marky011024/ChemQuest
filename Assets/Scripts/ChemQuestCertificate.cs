@@ -597,10 +597,28 @@ public class ChemQuestCertificate : MonoBehaviour
                 cropped.EncodeToPNG();
             string file="ChemQuest_"+PlayerPrefs.GetString(CodeKey,"Certificate").Replace("-","_")+
                 (pdf?".pdf":".png");
-            string path=Path.Combine(Application.persistentDataPath,file);
-            File.WriteAllBytes(path,bytes);
-            if(status!=null)status.text="Certificate saved: "+path;
-            Debug.Log("ChemQuest certificate exported: "+path);
+            string savedLocation;
+#if UNITY_ANDROID && !UNITY_EDITOR
+            if(GetAndroidApiLevel()>=29)
+            {
+                // Android 10+: MediaStore publishes the file in the phone's
+                // public Downloads folder (no storage permission required).
+                savedLocation=SaveInAndroidDownloads(file,bytes,pdf);
+            }
+            else
+            {
+                // Older Android versions may require runtime storage permission
+                // for public Downloads. Never falsely claim the file is there.
+                string privatePath=Path.Combine(Application.persistentDataPath,file);
+                File.WriteAllBytes(privatePath,bytes);
+                savedLocation="private app storage (Android 9 or earlier): "+privatePath;
+            }
+#else
+            savedLocation=Path.Combine(Application.persistentDataPath,file);
+            File.WriteAllBytes(savedLocation,bytes);
+#endif
+            if(status!=null)status.text="Certificate saved: "+savedLocation;
+            Debug.Log("ChemQuest certificate exported: "+savedLocation);
         }
         catch(Exception e)
         {
@@ -613,6 +631,69 @@ public class ChemQuestCertificate : MonoBehaviour
             if(cropped!=null)Destroy(cropped);
         }
     }
+#if UNITY_ANDROID && !UNITY_EDITOR
+    private static int GetAndroidApiLevel()
+    {
+        using(var version=new AndroidJavaClass("android.os.Build$VERSION"))
+            return version.GetStatic<int>("SDK_INT");
+    }
+
+    // Saves into Files > Downloads > ChemQuest on Android 10+.
+    // MediaStore is the supported Android scoped-storage API for creating
+    // public PDF and PNG documents without special storage permissions.
+    private static string SaveInAndroidDownloads(string file,byte[] bytes,bool pdf)
+    {
+        using(var player=new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
+        using(var activity=player.GetStatic<AndroidJavaObject>("currentActivity"))
+        using(var resolver=activity.Call<AndroidJavaObject>("getContentResolver"))
+        using(var downloads=new AndroidJavaClass("android.provider.MediaStore$Downloads"))
+        using(var collection=downloads.GetStatic<AndroidJavaObject>("EXTERNAL_CONTENT_URI"))
+        using(var values=new AndroidJavaObject("android.content.ContentValues"))
+        {
+            values.Call("put","_display_name",file);
+            values.Call("put","mime_type",pdf?"application/pdf":"image/png");
+            values.Call("put","relative_path","Download/ChemQuest/");
+            using(var pending=new AndroidJavaObject("java.lang.Integer",1))
+                values.Call("put","is_pending",pending);
+            AndroidJavaObject uri=null;
+            bool finished=false;
+            try
+            {
+                uri=resolver.Call<AndroidJavaObject>("insert",collection,values);
+                if(uri==null)
+                    throw new IOException("Android Downloads is not available.");
+                using(var stream=resolver.Call<AndroidJavaObject>("openOutputStream",uri))
+                {
+                    if(stream==null)
+                        throw new IOException("Could not open the Downloads file.");
+                    // JNI forwards C# byte[] as a Java byte[].
+                    stream.Call("write",bytes);
+                    stream.Call("flush");
+                }
+                values.Call("clear");
+                using(var published=new AndroidJavaObject("java.lang.Integer",0))
+                    values.Call("put","is_pending",published);
+                resolver.Call<int>("update",uri,values,null,null);
+                finished=true;
+                return "Downloads/ChemQuest/"+file;
+            }
+            finally
+            {
+                if(uri!=null)
+                {
+                    if(!finished)
+                    {
+                        try { resolver.Call<int>("delete",uri,null,null); }
+                        catch(Exception cleanupError)
+                        { Debug.LogWarning("Could not remove incomplete certificate: "+cleanupError.Message); }
+                    }
+                    uri.Dispose();
+                }
+            }
+        }
+    }
+#endif
+
     // Minimal standards-compliant one-page PDF with a JPEG image embedded.
     private static byte[] EncodePdf(byte[] jpg,int width,int height)
     {
