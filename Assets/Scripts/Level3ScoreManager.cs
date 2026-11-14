@@ -78,13 +78,19 @@ public class Level3ScoreManager : MonoBehaviour
         if (ionPuzzlePanel != null)
             ionPuzzlePanel.SetActive(false);
 
-        if (levelCompletePanel != null)
-        {
-            levelCompletePanel.SetActive(true);
-            levelCompletePanel.transform.SetAsLastSibling();
-        }
+        // The BOW is complete. Show the shared centered completion popup
+        // rather than the original small Level 3 success UI.
+        if(levelCompletePanel!=null)levelCompletePanel.SetActive(false);
+        ShowUnifiedCompletion();
+        Debug.Log("Level 3 unified completion panel displayed!");
+    }
 
-        Debug.Log("Level 3 completion panel displayed!");
+    private void ShowUnifiedCompletion()
+    {
+        var popup=GetComponent<Stage1CompletionPopup>();
+        if(popup==null)popup=gameObject.AddComponent<Stage1CompletionPopup>();
+        popup.Show(3,score,finalScoreText!=null?finalScoreText.font:
+            scoreText!=null?scoreText.font:null);
     }
 
     private void UpdateScoreDisplay()
