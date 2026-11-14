@@ -861,6 +861,7 @@ public class Stage3Level3Game : MonoBehaviour
             || EnergyManager.Instance==null || !EnergyManager.Instance.HasEnergy)return;
         if(choice!=0)
         {
+            ChemQuestSoundtrack.Wrong();
             WrongPlacement(); // same 100/75 and two-strike energy policy
             if(failed)
             {
@@ -875,6 +876,7 @@ public class Stage3Level3Game : MonoBehaviour
             }
             return;
         }
+        ChemQuestSoundtrack.Correct();
         bowQuestionIndex++;
         if(bowQuestionIndex<2)ShowBowQuestion();
         else
