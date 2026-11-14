@@ -146,7 +146,7 @@ public sealed class ChemQuestSoundtrack : MonoBehaviour
         var clip=instance.GetEffect(key);
         if(clip==null)return;
         // Uses the same saved settings as the main menu Music / SFX sliders.
-        instance.effectsSource.PlayOneShot(clip,Mathf.Clamp01(ChemQuestAudioSettings.Sfx));
+        instance.effectsSource.PlayOneShot(clip,1f);
     }
 
     public static void Correct()=>Play("correct");
