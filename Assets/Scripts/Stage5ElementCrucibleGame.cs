@@ -833,6 +833,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
                     "HINT: Use conductivity and mechanical properties too.";
             return;
         }
+        ChemQuestSoundtrack.Correct();
         level1BowStep++;
         if(level1BowStep<2)ShowLevel1BowQuestion();
         else
@@ -941,6 +942,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
                     "HINT: Mobile electrons hold the positive metal ions together.";
             return;
         }
+        ChemQuestSoundtrack.Correct();
         level2BowStep++;
         if(level2BowStep<2)ShowLevel2BowQuestion();
         else
@@ -1048,6 +1050,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
                     "HINT: Metals contain mobile delocalized electrons.";
             return;
         }
+        ChemQuestSoundtrack.Correct();
         level3BowStep++;
         if(level3BowStep<2)ShowLevel3BowQuestion();
         else
