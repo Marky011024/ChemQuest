@@ -821,6 +821,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
             !level1BowPanel.activeSelf || level1BowStep<0 || level1BowStep>=2)return;
         if(choice!=0)
         {
+            ChemQuestSoundtrack.Wrong();
             WrongAttempt("Heating alone cannot conclusively identify bonding type.");
             if(failed)
             {
