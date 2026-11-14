@@ -188,10 +188,12 @@ public sealed class Stage1BowLearningCheck : MonoBehaviour
         var q=Current;
         if(choice!=q.correct)
         {
+            ChemQuestSoundtrack.Wrong();
             mistakes++;
             tipLabel.text=mistakes==1?q.hint:q.explanation+" Choose the correct answer to continue.";
             return;
         }
+        ChemQuestSoundtrack.Correct();
         questionIndex++;
         if(questionIndex<2)
         {
