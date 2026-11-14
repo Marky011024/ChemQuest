@@ -13,7 +13,7 @@ public sealed class ChemQuestSoundtrack : MonoBehaviour
     private static ChemQuestSoundtrack instance;
     private AudioSource musicSource, effectsSource;
     private readonly Dictionary<string, AudioClip> sounds=new Dictionary<string, AudioClip>();
-    private readonly HashSet<int> wiredButtons=new HashSet<int>();
+    private readonly HashSet<Button> wiredButtons=new HashSet<Button>();
     private string currentMusic="";
     private int completedCount, lastEnergy=-1;
 
@@ -95,8 +95,7 @@ public sealed class ChemQuestSoundtrack : MonoBehaviour
             foreach(var button in FindObjectsByType<Button>(FindObjectsInactive.Include,FindObjectsSortMode.None))
             {
                 if(button==null || !button.gameObject.scene.IsValid())continue;
-                int id=button.GetInstanceID();
-                if(!wiredButtons.Add(id))continue;
+                if(!wiredButtons.Add(button))continue;
                 string sound=ClassifyButton(button.gameObject.name);
                 button.onClick.AddListener(()=>Play(sound));
             }
