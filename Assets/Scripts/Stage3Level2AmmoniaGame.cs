@@ -840,8 +840,34 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         else
             UpdateOutOfEnergyUI();
     }
-    private void Pause(){if(!CanPlay())return;paused=true;pausePanel.SetActive(true);Time.timeScale=0;}
-    private void Resume(){paused=false;pausePanel.SetActive(false);Time.timeScale=1;}
+    // Keep draggable N/H tokens out of the pause overlay. Some saved layouts
+    // render the electron bank after the imported pause prefab, so its tokens
+    // can otherwise appear on top of the full-screen pause background.
+    private bool electronBankVisibleBeforePause=true;
+    private void Pause()
+    {
+        if(!CanPlay() || pausePanel==null)return;
+        paused=true;
+        var canvasRoot=GameObject.Find("Stage3Level2GeneratedCanvas");
+        var bank=canvasRoot!=null?FindUI(canvasRoot.transform,"ElectronBank"):null;
+        if(bank!=null)
+        {
+            electronBankVisibleBeforePause=bank.gameObject.activeSelf;
+            bank.gameObject.SetActive(false);
+        }
+        pausePanel.SetActive(true);
+        pausePanel.transform.SetAsLastSibling();
+        Time.timeScale=0;
+    }
+    private void Resume()
+    {
+        if(pausePanel!=null)pausePanel.SetActive(false);
+        var canvasRoot=GameObject.Find("Stage3Level2GeneratedCanvas");
+        var bank=canvasRoot!=null?FindUI(canvasRoot.transform,"ElectronBank"):null;
+        if(bank!=null)bank.gameObject.SetActive(electronBankVisibleBeforePause);
+        paused=false;
+        Time.timeScale=1;
+    }
     private void Navigate(string name)
     {
         Time.timeScale=1;
