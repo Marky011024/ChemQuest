@@ -1208,6 +1208,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             level1BowStep>=2)return;
         if(choice!=0)
         {
+            ChemQuestSoundtrack.Wrong();
             RegisterMistake();
             if(failed)
             {
@@ -1220,6 +1221,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
                     "HINT: A sea of mobile electrons attracts the metal ions.";
             return;
         }
+        ChemQuestSoundtrack.Correct();
         level1BowStep++;
         if(level1BowStep<2)ShowLevel1BowQuestion();
         else
@@ -1328,6 +1330,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
                     "HINT: The mobile electrons carry charge through the metal.";
             return;
         }
+        ChemQuestSoundtrack.Correct();
         level2BowStep++;
         if(level2BowStep<2)ShowLevel2BowQuestion();
         else
@@ -1650,6 +1653,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
                     "HINT: Drawing metal into wire is called ductility.";
             return;
         }
+        ChemQuestSoundtrack.Correct();
         level3BowStep++;
         if(level3BowStep<2)ShowLevel3BowQuestion();
         else
