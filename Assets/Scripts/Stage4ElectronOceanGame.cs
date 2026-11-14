@@ -1642,6 +1642,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             level3BowStep>=2)return;
         if(choice!=0)
         {
+            ChemQuestSoundtrack.Wrong();
             RegisterMistake();
             if(failed)
             {
