@@ -31,10 +31,14 @@ public sealed class ChemQuestSoundtrack : MonoBehaviour
         if(instance!=null && instance!=this){Destroy(gameObject);return;}
         instance=this;
         DontDestroyOnLoad(gameObject);
-        musicSource=gameObject.AddComponent<AudioSource>();
+        var musicObject=new GameObject("BackgroundMusic");
+        musicObject.transform.SetParent(transform,false);
+        musicSource=musicObject.AddComponent<AudioSource>();
         musicSource.playOnAwake=false;musicSource.loop=true;musicSource.volume=1f;
-        gameObject.AddComponent<ChemQuestMusicSource>();
-        effectsSource=gameObject.AddComponent<AudioSource>();
+        musicObject.AddComponent<ChemQuestMusicSource>();
+        var effectsObject=new GameObject("SoundEffects");
+        effectsObject.transform.SetParent(transform,false);
+        effectsSource=effectsObject.AddComponent<AudioSource>();
         effectsSource.playOnAwake=false;effectsSource.loop=false;effectsSource.volume=1f;
         effectsSource.spatialBlend=0;
         SceneManager.sceneLoaded+=OnSceneLoaded;
