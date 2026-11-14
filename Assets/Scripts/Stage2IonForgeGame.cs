@@ -957,6 +957,7 @@ public class Stage2IonForgeGame : MonoBehaviour
         int correct=((Level==2 || Level==3) && bowCheckIndex==1)?1:0;
         if(chosen!=correct)
         {
+            ChemQuestSoundtrack.Wrong();
             WrongAttempt(); // Reuse the original two-strike and energy policy.
             if(failed)
             {
@@ -971,6 +972,7 @@ public class Stage2IonForgeGame : MonoBehaviour
             }
             return;
         }
+        ChemQuestSoundtrack.Correct();
         bowCheckIndex++;
         if(bowCheckIndex<2)
         {
