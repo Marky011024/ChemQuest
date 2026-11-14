@@ -1040,6 +1040,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
             !level3BowPanel.activeSelf || level3BowStep<0 || level3BowStep>=2)return;
         if(choice!=0)
         {
+            ChemQuestSoundtrack.Wrong();
             WrongAttempt("Think about mobile charged particles in ionic and metallic materials.");
             if(failed)
             {
