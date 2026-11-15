@@ -89,6 +89,15 @@ public class EnergyManager : MonoBehaviour
         OnEnergyChanged?.Invoke();
     }
 
+    // Re-sync this persistent manager when a different local student logs in.
+    // Otherwise a manager surviving MainMenu -> StudentProfile -> MainMenu
+    // could still show the previous student's energy after switching profiles.
+    public void ReloadForSelectedProfile()
+    {
+        LoadEnergy();
+        OnEnergyChanged?.Invoke();
+    }
+
     public bool LoseEnergy()
     {
         RefreshEnergy();
