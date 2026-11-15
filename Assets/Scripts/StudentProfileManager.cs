@@ -36,6 +36,8 @@ public class StudentProfileManager : MonoBehaviour
 
         // Archive the old student's progress and restore the selected student's data.
         ChemQuestStudentProgress.SelectProfile(studentName, studentSchool, studentSection);
+        if(EnergyManager.Instance!=null)
+            EnergyManager.Instance.ReloadForSelectedProfile();
 
         // Save the student's profile locally.
         PlayerPrefs.SetString("StudentName", studentName);
