@@ -87,6 +87,33 @@ public static class ChemQuestStudentProgress
         }
         PlayerPrefs.Save();
     }
+    // Logout hides the account identity without deleting saved progress.
+    // Keep ActiveProfileKey so the next registration can restore the same
+    // student's snapshot or safely switch to another student.
+    public static void LogOutActiveProfile()
+    {
+        string active=PlayerPrefs.GetString(ActiveProfileKey,"");
+        if(string.IsNullOrEmpty(active))
+        {
+            string name=PlayerPrefs.GetString("StudentName","");
+            string school=PlayerPrefs.GetString("StudentSchool","");
+            string section=PlayerPrefs.GetString("StudentSection","");
+            if(!string.IsNullOrWhiteSpace(name) &&
+               !string.IsNullOrWhiteSpace(school) &&
+               !string.IsNullOrWhiteSpace(section))
+            {
+                active=ProfileID(name,school,section);
+                PlayerPrefs.SetString(ActiveProfileKey,active);
+            }
+        }
+        if(!string.IsNullOrEmpty(active))SaveSnapshot(active);
+        PlayerPrefs.DeleteKey("StudentName");
+        PlayerPrefs.DeleteKey("StudentSchool");
+        PlayerPrefs.DeleteKey("StudentSection");
+        PlayerPrefs.Save();
+        Debug.Log("CHEMQUEST: Student logged out. Local progress was preserved.");
+    }
+
     // Called only when a student has entered all three required profile fields.
     public static void SelectProfile(string name,string school,string section)
     {
