@@ -16,6 +16,7 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
     private static readonly Color Teal = new Color32(23,130,151,255);
     private static readonly Color Gold = new Color32(248,200,105,255);
     private GameObject settingsPanel;
+    private GameObject profilePanel;
     private TMP_Text feedback;
 
     private void Start()
@@ -74,6 +75,22 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
                 new Vector2(0,-328),new Vector2(860,25),15,Color.white);
         }
 
+        // An invisible button over the existing upper-left PLAYER badge.
+        // Keep the current labels and visual design unchanged.
+        if(root.Find("ProfileOpenButton")==null)
+        {
+            var profileHit=Panel(root,"ProfileOpenButton",
+                new Vector2(-484,296),new Vector2(270,64),
+                new Color32(0,0,0,0));
+            profileHit.raycastTarget=true;
+            profileHit.gameObject.AddComponent<Button>().targetGraphic=profileHit;
+        }
+
+        Transform profileRoot=overlay.transform.Find("ChemQuestProfilePanel");
+        if(profileRoot==null)
+            profileRoot=CreateProfilePanel(overlay.transform).transform;
+        profilePanel=profileRoot.gameObject;
+
         Transform panel=overlay.transform.Find("ChemQuestSettingsPanel");
         // Upgrade old serialized settings UI once during Editor installation.
         // The previous Slider's centered fill anchors caused oversize bars.
@@ -95,6 +112,9 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
         Bind(root,"StageSelectionButton",()=>Open("StageSelection"));
         Bind(root,"SettingsButton",()=>Settings(true));
         Bind(root,"CertificateButton",()=>Open("ChemQuestCertificate"));
+        Bind(root,"ProfileOpenButton",()=>Profile(true));
+        Bind(profileRoot.Find("ProfileCard"),"ProfileCloseButton",()=>Profile(false));
+        Bind(profileRoot.Find("ProfileCard"),"ProfileLogoutButton",LogOut);
         var card=panel.Find("SettingsCard");
         EnsureMuteStatus(card);
         UpdateMuteStatus(card);
@@ -133,6 +153,7 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
         var nameText=root.Find("PlayerName")?.GetComponent<TMP_Text>();
         if(nameText!=null)nameText.text="PLAYER: "+PlayerPrefs.GetString("StudentName","STUDENT").ToUpperInvariant();
         settingsPanel.SetActive(false);
+        profilePanel.SetActive(false);
         // Old quick-nav layout is replaced by the manuscript-centered design.
         var legacy=overlay.transform.Find("ChemQuestQuickNavigation");
         if(legacy!=null)legacy.gameObject.SetActive(false);
@@ -249,6 +270,75 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
             new Vector2(157,-167),new Vector2(255,51),MidNavy);
         return overlay.gameObject;
     }
+    private static GameObject CreateProfilePanel(Transform parent)
+    {
+        var overlay=Panel(parent,"ChemQuestProfilePanel",Vector2.zero,
+            new Vector2(1280,720),new Color32(3,12,27,215));
+        overlay.raycastTarget=true;
+        var rect=overlay.rectTransform;
+        rect.anchorMin=Vector2.zero;rect.anchorMax=Vector2.one;
+        rect.offsetMin=Vector2.zero;rect.offsetMax=Vector2.zero;
+        var card=Panel(overlay.transform,"ProfileCard",Vector2.zero,
+            new Vector2(720,500),Navy);
+        card.raycastTarget=true;
+        Panel(card.transform,"Accent",new Vector2(0,229),
+            new Vector2(668,5),Gold);
+        Label(card.transform,"Title","STUDENT PROFILE",
+            new Vector2(0,175),new Vector2(640,60),33,Gold);
+        Label(card.transform,"Caption","Your locally saved CHEMQUEST account",
+            new Vector2(0,131),new Vector2(630,36),17,Color.white);
+        Panel(card.transform,"DetailsBackground",new Vector2(0,7),
+            new Vector2(630,182),MidNavy);
+        Label(card.transform,"NameLabel","NAME",
+            new Vector2(-236,72),new Vector2(125,35),17,Gold);
+        Label(card.transform,"NameValue","",
+            new Vector2(54,72),new Vector2(420,44),22,Color.white);
+        Label(card.transform,"SchoolLabel","SCHOOL",
+            new Vector2(-236,8),new Vector2(125,35),17,Gold);
+        Label(card.transform,"SchoolValue","",
+            new Vector2(54,8),new Vector2(420,48),21,Color.white);
+        Label(card.transform,"SectionLabel","SECTION",
+            new Vector2(-236,-56),new Vector2(125,35),17,Gold);
+        Label(card.transform,"SectionValue","",
+            new Vector2(54,-56),new Vector2(420,44),21,Color.white);
+        Label(card.transform,"LogoutInfo",
+            "Logging out keeps your saved levels, scores, energy and certificate.",
+            new Vector2(0,-135),new Vector2(640,45),16,Color.white);
+        AddButton(card.transform,"ProfileCloseButton","BACK",
+            new Vector2(-153,-199),new Vector2(270,58),MidNavy);
+        AddButton(card.transform,"ProfileLogoutButton","LOG OUT",
+            new Vector2(153,-199),new Vector2(270,58),Teal);
+        return overlay.gameObject;
+    }
+
+    private static void ShowProfileValue(Transform card,string field,string value)
+    {
+        var label=card?.Find(field)?.GetComponent<TMP_Text>();
+        if(label!=null)label.text=string.IsNullOrWhiteSpace(value)?"NOT PROVIDED":value;
+    }
+
+    private void Profile(bool visible)
+    {
+        if(profilePanel==null)return;
+        if(visible)
+        {
+            var card=profilePanel.transform.Find("ProfileCard");
+            ShowProfileValue(card,"NameValue",PlayerPrefs.GetString("StudentName",""));
+            ShowProfileValue(card,"SchoolValue",PlayerPrefs.GetString("StudentSchool",""));
+            ShowProfileValue(card,"SectionValue",PlayerPrefs.GetString("StudentSection",""));
+            profilePanel.transform.SetAsLastSibling();
+        }
+        profilePanel.SetActive(visible);
+    }
+
+    private void LogOut()
+    {
+        // Save the live energy clock before archiving this student's progress.
+        if(EnergyManager.Instance!=null)EnergyManager.Instance.RefreshEnergy();
+        ChemQuestStudentProgress.LogOutActiveProfile();
+        Open("StudentProfile");
+    }
+
     private static void EnsureMuteStatus(Transform card)
     {
         if(card==null || card.Find("MuteStatus")!=null)return;
