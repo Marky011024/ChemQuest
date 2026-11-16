@@ -42,3 +42,7 @@ UpgradeLog.htm
 
 # Unity temporary files
 .utmp/
+
+# Unity Android IL2CPP-generated backup (not game source)
+*_BackUpThisFolder_ButDontShipItWithYourGame/
+*_BurstDebugInformation_DoNotShip/
