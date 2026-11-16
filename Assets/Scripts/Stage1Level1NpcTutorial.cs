@@ -222,18 +222,20 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
             DrawScientist(portrait);
             Debug.LogWarning("CHEMQUEST: ProfAtom sprite missing from Resources/ChemQuestTutorial.");
         }
-        Caption(speech, "ProfAtomLabel", "PROF. ATOM", 18, Gold,
-            TextAnchor.MiddleLeft, new Vector2(0, 1), new Vector2(190, -24),
-            new Vector2(240, 30), FontStyle.Bold);
-        heading = Caption(speech, "StepHeading", "", 23, Gold,
-            TextAnchor.MiddleLeft, new Vector2(0, 1), new Vector2(440, -24),
-            new Vector2(485, 32), FontStyle.Bold);
-        dialogue = Caption(speech, "Speech", "", 22, Color.white,
-            TextAnchor.UpperLeft, new Vector2(0, 1), new Vector2(425, -98),
-            new Vector2(750, 78));
-        progress = Caption(speech, "StepNumber", "", 17, new Color(.72f, .92f, .95f, 1),
-            TextAnchor.MiddleLeft, new Vector2(0, 0), new Vector2(270, 20),
-            new Vector2(240, 28));
+        // Separate portrait, heading, and body into non-overlapping columns.
+        // All positions are relative to the 1180-wide dialogue bar.
+        Caption(speech, "ProfAtomLabel", "PROF. ATOM", 17, Gold,
+            TextAnchor.MiddleCenter, new Vector2(0, 1), new Vector2(91, -19),
+            new Vector2(172, 28), FontStyle.Bold);
+        heading = Caption(speech, "StepHeading", "", 22, Gold,
+            TextAnchor.MiddleLeft, new Vector2(0, 1), new Vector2(515, -26),
+            new Vector2(590, 34), FontStyle.Bold);
+        dialogue = Caption(speech, "Speech", "", 20, Color.white,
+            TextAnchor.UpperLeft, new Vector2(0, 1), new Vector2(550, -100),
+            new Vector2(670, 82));
+        progress = Caption(speech, "StepNumber", "", 16, new Color(.72f, .92f, .95f, 1),
+            TextAnchor.MiddleLeft, new Vector2(0, 0), new Vector2(302, 20),
+            new Vector2(180, 28));
         MakeButton(speech, "Skip", "SKIP", new Color(.35f, .39f, .46f, 1),
             new Vector2(1, 1), new Vector2(-197, -33), new Vector2(122, 44), FinishGuide);
         nextButton = MakeButton(speech, "Next", "NEXT", Teal,
@@ -370,7 +372,24 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
 
     private void Update()
     {
-        if (!activeGuide || guideRoot == null) return;
+        if (guideRoot == null) return;
+
+        // The BOW assessment is a separate full-screen interaction. Never let
+        // the guide sit above its answers or leave the animated hand floating
+        // over a question. The regular replay button returns afterwards.
+        bool bowVisible = GameObject.Find("Stage1BowLearningCheck") != null;
+        if (bowVisible)
+        {
+            if (activeGuide) FinishGuide();
+            if (guideButton != null) guideButton.SetActive(false);
+            return;
+        }
+        if (!activeGuide)
+        {
+            if (guideButton != null && !guideButton.activeSelf)
+                guideButton.SetActive(true);
+            return;
+        }
         animationClock += Time.unscaledDeltaTime;
         // Tutorial stays synchronized with real student interactions; never automates them.
         if (step == 1 && flask != null && flask.zincAdded) { step = 2; ShowStep(); }
