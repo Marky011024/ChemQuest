@@ -188,12 +188,22 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
         Label(npcArea, "NpcName", "PROF. ATOM", 24, Gold, TextAnchor.MiddleCenter,
             new Vector2(.5f, 0), new Vector2(0, 23), new Vector2(240, 40), FontStyle.Bold);
 
-        headingText = Label(modal, "Heading", "", 28, Gold, TextAnchor.MiddleLeft,
-            new Vector2(0, 1), new Vector2(680, -77), new Vector2(685, 75), FontStyle.Bold);
-        bodyText = Label(modal, "Instruction", "", 25, Color.white, TextAnchor.UpperLeft,
-            new Vector2(0, 1), new Vector2(680, -155), new Vector2(680, 190));
-        progressText = Label(modal, "Progress", "", 20, new Color(.66f, .88f, .94f),
-            TextAnchor.MiddleLeft, new Vector2(0, 0), new Vector2(440, 47), new Vector2(260, 40));
+        // Use a consistent top-left pivot so the heading and dialogue never
+        // intersect at different game-view resolutions / Android aspect ratios.
+        headingText = Label(modal, "Heading", "", 27, Gold, TextAnchor.UpperLeft,
+            new Vector2(0, 1), new Vector2(310, -36), new Vector2(675, 62), FontStyle.Bold);
+        var headingRect = (RectTransform)headingText.transform;
+        headingRect.pivot = new Vector2(0, 1);
+
+        bodyText = Label(modal, "Instruction", "", 24, Color.white, TextAnchor.UpperLeft,
+            new Vector2(0, 1), new Vector2(310, -128), new Vector2(675, 195));
+        var bodyRect = (RectTransform)bodyText.transform;
+        bodyRect.pivot = new Vector2(0, 1);
+        bodyText.lineSpacing = 1.12f;
+
+        progressText = Label(modal, "Progress", "", 19, new Color(.66f, .88f, .94f),
+            TextAnchor.MiddleLeft, new Vector2(0, 0), new Vector2(310, 34), new Vector2(280, 32));
+        ((RectTransform)progressText.transform).pivot = new Vector2(0, 0);
 
         backButton = ActionButton(modal, "BackButton", "BACK",
             new Color(.28f, .38f, .54f), new Vector2(1, 0),
