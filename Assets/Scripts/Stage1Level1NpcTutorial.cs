@@ -418,6 +418,18 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
         PlayerPrefs.Save();
     }
 
+    // Called by the score manager after the BOW check succeeds. Hide ALL
+    // tutorial graphics, including the replay button, on the victory screen.
+    public void HideForLevelCompletion()
+    {
+        draggingHydrogen = null;
+        hydrogenDropTarget = null;
+        activeGuide = false;
+        if (guideRoot != null) guideRoot.SetActive(false);
+        if (guideButton != null) guideButton.SetActive(false);
+        enabled = false;
+    }
+
     private Vector2 LocalPosition(RectTransform target)
     {
         if (target == null) return Vector2.zero;
