@@ -203,11 +203,11 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
 
         // Compact, bottom-anchored speech bar keeps the central chemistry puzzle visible.
         var speech = Box(guideRoot.transform, "ProfAtomDialogueBar", Navy,
-            new Vector2(.5f, 0), new Vector2(0, 122), new Vector2(1180, 192));
+            new Vector2(.5f, 0), new Vector2(0, 104), new Vector2(1180, 174));
         Box(speech, "GoldLine", Gold, new Vector2(.5f, 1), new Vector2(0, -4),
-            new Vector2(1180, 8), false);
+            new Vector2(1180, 6), false);
         var portrait = Box(speech, "ProfAtomPortrait", new Color(.08f, .31f, .39f, 1),
-            new Vector2(0, .5f), new Vector2(84, 0), new Vector2(148, 152), false);
+            new Vector2(0, .5f), new Vector2(91, 0), new Vector2(172, 164), false);
         Sprite atomSprite = Resources.Load<Sprite>("ChemQuestTutorial/ProfAtom");
         if (atomSprite != null)
         {
@@ -223,21 +223,21 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
             Debug.LogWarning("CHEMQUEST: ProfAtom sprite missing from Resources/ChemQuestTutorial.");
         }
         Caption(speech, "ProfAtomLabel", "PROF. ATOM", 18, Gold,
-            TextAnchor.MiddleLeft, new Vector2(0, 1), new Vector2(176, -28),
-            new Vector2(300, 34), FontStyle.Bold);
+            TextAnchor.MiddleLeft, new Vector2(0, 1), new Vector2(190, -24),
+            new Vector2(240, 30), FontStyle.Bold);
         heading = Caption(speech, "StepHeading", "", 23, Gold,
-            TextAnchor.MiddleLeft, new Vector2(0, 1), new Vector2(600, -28),
-            new Vector2(650, 34), FontStyle.Bold);
+            TextAnchor.MiddleLeft, new Vector2(0, 1), new Vector2(440, -24),
+            new Vector2(485, 32), FontStyle.Bold);
         dialogue = Caption(speech, "Speech", "", 22, Color.white,
-            TextAnchor.UpperLeft, new Vector2(0, 1), new Vector2(600, -103),
-            new Vector2(660, 80));
+            TextAnchor.UpperLeft, new Vector2(0, 1), new Vector2(425, -98),
+            new Vector2(750, 78));
         progress = Caption(speech, "StepNumber", "", 17, new Color(.72f, .92f, .95f, 1),
-            TextAnchor.MiddleLeft, new Vector2(0, 0), new Vector2(260, 24),
-            new Vector2(250, 28));
+            TextAnchor.MiddleLeft, new Vector2(0, 0), new Vector2(270, 20),
+            new Vector2(240, 28));
         MakeButton(speech, "Skip", "SKIP", new Color(.35f, .39f, .46f, 1),
-            new Vector2(1, 1), new Vector2(-199, -36), new Vector2(132, 48), FinishGuide);
+            new Vector2(1, 1), new Vector2(-197, -33), new Vector2(122, 44), FinishGuide);
         nextButton = MakeButton(speech, "Next", "NEXT", Teal,
-            new Vector2(1, 1), new Vector2(-63, -36), new Vector2(120, 48), NextStep);
+            new Vector2(1, 1), new Vector2(-64, -33), new Vector2(118, 44), NextStep);
         nextLabel = nextButton.GetComponentInChildren<Text>();
         guideRoot.SetActive(false);
     }
@@ -312,13 +312,36 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
                 break;
         }
         progress.text = "STEP " + (step + 1) + " / 6";
-        nextLabel.text = step == 5 ? "DONE" : (step == 1 || step == 3 || step == 4 ? "NEXT" : "NEXT");
-        // Controls remain available even if a target could not be found.
-        nextButton.interactable = true;
+        bool needsAction = step == 1 || step == 3 || step == 4;
+        nextLabel.text = step == 5 ? "DONE" : needsAction ? "DO IT!" : "NEXT";
+        // Students advance by performing real game actions, not by skipping
+        // the drag-and-drop and atom interactions with the Next button.
+        nextButton.interactable = !needsAction;
+        if (needsAction && !HasActionTarget())
+        {
+            // Avoid trapping users if a different Unity scene variant has no target.
+            nextButton.interactable = true;
+            nextLabel.text = "NEXT";
+        }
+    }
+
+    private bool HasActionTarget()
+    {
+        if (step == 1) return zincRect != null && flask != null;
+        if (step == 3) return microscopicButtonRect != null;
+        if (step == 4) return bonds != null && bondRect != null;
+        return false;
     }
 
     private void NextStep()
     {
+        if (step == 1 && HasActionTarget() && flask != null && !flask.zincAdded) return;
+        if (step == 3 && HasActionTarget())
+        {
+            var atomPanel = FindNamedRect("SubMicroscopicPanel");
+            if (atomPanel != null && !atomPanel.gameObject.activeInHierarchy) return;
+        }
+        if (step == 4 && HasActionTarget() && bonds != null && !bonds.BothBondsAreBroken) return;
         if (step >= 5) { FinishGuide(); return; }
         step++;
         ShowStep();
