@@ -43,13 +43,29 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
     private bool opened;
     private string completedKey;
 
+    // The game normally starts on TitleScreen/MainMenu, not Stage1Level1.
+    // Register for every scene transition, not just the startup scene.
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-    private static void AttachToLevel()
+    private static void RegisterTutorialSceneHook()
     {
-        if (SceneManager.GetActiveScene().name != SceneName) return;
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+        SceneManager.sceneLoaded += OnSceneLoaded;
+        AttachToLevel(SceneManager.GetActiveScene());
+    }
+
+    private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        AttachToLevel(scene);
+    }
+
+    private static void AttachToLevel(Scene scene)
+    {
+        if (scene.name != SceneName) return;
         if (FindFirstObjectByType<Stage1Level1NpcTutorial>() != null) return;
         var host = new GameObject("ProfAtom_Stage1Level1_Tutorial");
+        SceneManager.MoveGameObjectToScene(host, scene);
         host.AddComponent<Stage1Level1NpcTutorial>();
+        Debug.Log("CHEMQUEST: Prof. Atom tutorial attached to Stage1Level1.");
     }
 
     private void Start()
