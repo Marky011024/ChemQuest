@@ -71,7 +71,9 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
         completionKey = ProfileKey();
         DiscoverTargets();
         BuildInterface();
-        if (PlayerPrefs.GetInt(completionKey, 0) == 0) StartGuide();
+        // Always display on every Stage 1 Level 1 entry, including returning
+        // students. No GUIDE button press or PlayerPrefs reset is needed.
+        StartGuide();
     }
 
     private static string ProfileKey()
@@ -188,8 +190,8 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
         scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
         scaler.matchWidthOrHeight = .5f;
 
-        guideButton = MakeButton(root.transform, "GuideReplayButton", "? GUIDE", Teal,
-            new Vector2(1, 1), new Vector2(-105, -40), new Vector2(180, 46), StartGuide).gameObject;
+        // Replay button intentionally omitted: the guide opens automatically
+        // each time Stage 1 Level 1 starts.
 
         // No fullscreen raycast blocker: the player can still interact with actual zinc,
         // flask, sub-microscopic button and atom bonds behind this overlay.
@@ -303,7 +305,7 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
         activeGuide = true;
         animationClock = 0f;
         guideRoot.SetActive(true);
-        guideButton.SetActive(false);
+        if (guideButton != null) guideButton.SetActive(false);
         ShowStep();
     }
 
@@ -413,7 +415,8 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
         hydrogenDropTarget = null;
         activeGuide = false;
         guideRoot.SetActive(false);
-        guideButton.SetActive(true);
+        // Do not show a manual GUIDE button after Skip / Done.
+        if (guideButton != null) guideButton.SetActive(false);
         PlayerPrefs.SetInt(completionKey, 1);
         PlayerPrefs.Save();
     }
@@ -456,12 +459,7 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
             if (guideButton != null) guideButton.SetActive(false);
             return;
         }
-        if (!activeGuide)
-        {
-            if (guideButton != null && !guideButton.activeSelf)
-                guideButton.SetActive(true);
-            return;
-        }
+        if (!activeGuide) return;
         animationClock += Time.unscaledDeltaTime;
         // Tutorial stays synchronized with real student interactions; never automates them.
         if (step == 1 && flask != null && flask.zincAdded) { step = 2; ShowStep(); }
