@@ -33,7 +33,9 @@ public class ChemQuestCertificate : MonoBehaviour
     }
     public static void RecordIfEligible()
     {
-        if(!AllLevelsComplete() || PlayerPrefs.HasKey(IssuedAtKey))return;
+        // A new certificate is issued only after BOTH assessments and gameplay.
+        if(!AllLevelsComplete() || !ChemQuestAssessmentGate.PreCompleted ||
+           !ChemQuestAssessmentGate.PostCompleted || PlayerPrefs.HasKey(IssuedAtKey))return;
         var now=DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss 'UTC'");
         var name=PlayerPrefs.GetString("StudentName","").Trim();
         var school=PlayerPrefs.GetString("StudentSchool","").Trim();
@@ -79,6 +81,11 @@ public class ChemQuestCertificate : MonoBehaviour
         EnsurePerformanceTable();
         Bind();
         Refresh();
+        // Once all 15 levels are complete, the final BOW/games are finished.
+        // Present the separate unassisted post-test before awarding/exporting.
+        var assessment=GetComponent<ChemQuestAssessmentGate>();
+        if(assessment==null)assessment=gameObject.AddComponent<ChemQuestAssessmentGate>();
+        assessment.OpenPostIfEligible();
     }
     public void BuildEditableUI()
     {
@@ -211,7 +218,7 @@ public class ChemQuestCertificate : MonoBehaviour
         PositionText("RecipientName",new Vector2(-225,61),new Vector2(547,54),31,new Color32(9,36,62,255));
         PositionText("Identity",new Vector2(-225,17),new Vector2(550,62),16,new Color32(33,69,87,255));
         PositionText("Score",new Vector2(373,48),new Vector2(226,100),22,new Color32(247,213,118,255));
-        PositionText("Stages",new Vector2(0,-29),new Vector2(960,33),20,Color.white);
+        PositionText("Stages",new Vector2(0,-29),new Vector2(960,33),16,Color.white);
         PositionText("Transcript",new Vector2(0,-167),new Vector2(984,134),17,new Color32(17,50,73,255));
         PositionText("CertificateMetadata",new Vector2(0,-270),new Vector2(1000,18),12,new Color32(25,68,83,255));
         foreach(var key in new[]{"Brand","DocumentTitle","Achievement","RecipientLabel",
@@ -442,7 +449,9 @@ public class ChemQuestCertificate : MonoBehaviour
         }
         if(!locked)return;
         Set("LockedProgressText",completed+" / 15 LEVELS COMPLETE");
-        Set("LockedGuidance",completed==14?
+        Set("LockedGuidance",completed==15?
+            "Complete the PRE-TEST and POST-TEST to unlock your certificate.":
+            completed==14?
             "Only 1 level remaining! Finish it to unlock your certificate.":
             "Complete the remaining "+(15-completed)+" levels to earn your certificate.");
         var rect=Find("LockedProgressFill")?.GetComponent<RectTransform>();
@@ -521,13 +530,16 @@ public class ChemQuestCertificate : MonoBehaviour
     private void Refresh()
     {
         RecordIfEligible();
-        SetLockedVisuals(!AllLevelsComplete() || !PlayerPrefs.HasKey(IssuedAtKey),CompletedCount());
-        if(!AllLevelsComplete() || !PlayerPrefs.HasKey(IssuedAtKey))
+        bool hasAssessments=ChemQuestAssessmentGate.PreCompleted && ChemQuestAssessmentGate.PostCompleted;
+        bool awardReady=AllLevelsComplete() && hasAssessments && PlayerPrefs.HasKey(IssuedAtKey);
+        SetLockedVisuals(!awardReady,CompletedCount());
+        if(!awardReady)
         {
             Set("DocumentTitle","CERTIFICATE LOCKED");
             Set("RecipientLabel","PROGRESS TOWARDS CHEMICAL MASTERY");
             Set("Identity","Your progress is saved across all five stages.");
-            Set("RecipientName","COMPLETE ALL 15 LEVELS");
+            Set("RecipientName",AllLevelsComplete()?
+                "COMPLETE YOUR ASSESSMENTS":"COMPLETE ALL 15 LEVELS");
             Set("Achievement","Complete all fifteen chemistry puzzle levels to earn your award.");
             Set("Score","");
             Set("Stages","");
@@ -552,7 +564,11 @@ public class ChemQuestCertificate : MonoBehaviour
             if(s>1)stages.Append("     ");
             stages.Append("S").Append(s).Append(": ").Append(StageStars(s));
         }
-        Set("Stages","PERFORMANCE TRANSCRIPT  |  15 LEVEL RESULTS");
+        int pre=PlayerPrefs.GetInt(ChemQuestAssessmentGate.PreScore,0);
+        int post=PlayerPrefs.GetInt(ChemQuestAssessmentGate.PostScore,0);
+        Set("Stages","PRE-TEST  "+pre+"/15 ("+(pre*100f/15f).ToString("0")+"%)"+
+            "     |     POST-TEST  "+post+"/15 ("+(post*100f/15f).ToString("0")+"%)"+
+            "     |     15-LEVEL TRANSCRIPT");
         var transcript=new StringBuilder();
         for(int s=1;s<=5;s++)
         {
@@ -573,7 +589,8 @@ public class ChemQuestCertificate : MonoBehaviour
     }
     private IEnumerator Export(bool pdf)
     {
-        if(!AllLevelsComplete() || !PlayerPrefs.HasKey(IssuedAtKey))yield break;
+        if(!AllLevelsComplete() || !ChemQuestAssessmentGate.PreCompleted ||
+           !ChemQuestAssessmentGate.PostCompleted || !PlayerPrefs.HasKey(IssuedAtKey))yield break;
         // Capture the certificate itself, not the Game View background or buttons.
         yield return new WaitForEndOfFrame();
         var screenshot=ScreenCapture.CaptureScreenshotAsTexture();
