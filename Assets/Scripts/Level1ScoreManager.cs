@@ -83,6 +83,11 @@ public class Level1ScoreManager : MonoBehaviour
         if (experimentPanel != null)
             experimentPanel.SetActive(false);
 
+        // Remove Prof. Atom's ? GUIDE replay button and animated hand
+        // before opening the completion popup. This does not affect scoring.
+        var tutorial = FindFirstObjectByType<Stage1Level1NpcTutorial>();
+        if (tutorial != null) tutorial.HideForLevelCompletion();
+
         // Replace the older tiny inline victory overlay with the
         // Stage 2-style centered completion card.
         if (level1CompletePanel != null)
