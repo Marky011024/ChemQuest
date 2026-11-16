@@ -1106,6 +1106,15 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         if(scoreText!=null)scoreText.text="SCORE\n"+points.ToString("D6");
         if(finalScore!=null)finalScore.text="FINAL SCORE "+points.ToString("D6");
         if(completePanel!=null){completePanel.SetActive(true);completePanel.transform.SetAsLastSibling();}
+        if(Level==3 && ChemQuestCertificate.AllLevelsComplete() &&
+           !ChemQuestAssessmentGate.PostCompleted)
+        {
+            // Immediately after the final chemistry puzzle + BOW, conduct the
+            // post-test. It then opens the newly earned certificate.
+            var assessment=GetComponent<ChemQuestAssessmentGate>();
+            if(assessment==null)assessment=gameObject.AddComponent<ChemQuestAssessmentGate>();
+            assessment.OpenPostIfEligible();
+        }
     }
     private void UpdateEvidence()
     {
