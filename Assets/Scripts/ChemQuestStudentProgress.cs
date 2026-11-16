@@ -13,14 +13,24 @@ public static class ChemQuestStudentProgress
     private static readonly string[] GlobalIntKeys={
         "Stage1Completed","Stage2Completed","Stage3Completed","Stage4Completed","Stage5Completed",
         "Stage2Unlocked","Stage3Unlocked","Stage4Unlocked","Stage5Unlocked",
-        "PlayerEnergy"
+        "PlayerEnergy",
+        "CQ_PreTestDone","CQ_PreTestScore","CQ_PreTestNext",
+        "CQ_PostTestDone","CQ_PostTestScore","CQ_PostTestNext"
     };
     private static readonly string[] GlobalStringKeys={
-        "EnergyLastUpdateUTC","ChemQuestCertificateIssuedUtc","ChemQuestCertificateId"
+        "EnergyLastUpdateUTC","ChemQuestCertificateIssuedUtc","ChemQuestCertificateId",
+        "CQ_PreTestFinishedUtc","CQ_PostTestFinishedUtc"
     };
     private static IEnumerable<string> ProgressIntKeys()
     {
         foreach(var key in GlobalIntKeys)yield return key;
+        // Preserve each submitted response so switching profiles cannot alter
+        // assessment records or allow re-taking previous questions.
+        for(int i=0;i<ChemQuestAssessmentGate.ItemCount;i++)
+        {
+            yield return "CQ_PreTestAnswer"+i;
+            yield return "CQ_PostTestAnswer"+i;
+        }
         for(int stage=1;stage<=5;stage++)
         for(int level=1;level<=3;level++)
         {
