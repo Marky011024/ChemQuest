@@ -141,6 +141,22 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
         return text;
     }
 
+    // Place dialogue relative to the actual top-left corner instead of using
+    // Unity's default centered pivot (which caused drifting/overlapping text).
+    private static Text TopLeftCaption(Transform parent, string name, string value,
+        int fontSize, Color color, float left, float top, float width, float height,
+        FontStyle style = FontStyle.Normal)
+    {
+        var text = Caption(parent, name, value, fontSize, color, TextAnchor.UpperLeft,
+            new Vector2(0, 1), Vector2.zero, new Vector2(width, height), style);
+        var rect = (RectTransform)text.transform;
+        rect.anchorMin = rect.anchorMax = new Vector2(0, 1);
+        rect.pivot = new Vector2(0, 1);
+        rect.anchoredPosition = new Vector2(left, -top);
+        text.resizeTextForBestFit = false;
+        return text;
+    }
+
     private static Button MakeButton(Transform parent, string name, string caption,
         Color color, Vector2 anchor, Vector2 pos, Vector2 size, Action onClick)
     {
@@ -201,13 +217,15 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
             Debug.LogWarning("CHEMQUEST: TutorialHand sprite missing from Resources/ChemQuestTutorial.");
         }
 
-        // Compact, bottom-anchored speech bar keeps the central chemistry puzzle visible.
+        // Bottom HUD strip leaves the zinc/flask and Sub-Microscopic View
+        // button accessible. All labels use fixed top-left coordinates.
         var speech = Box(guideRoot.transform, "ProfAtomDialogueBar", Navy,
-            new Vector2(.5f, 0), new Vector2(0, 104), new Vector2(1180, 174));
-        Box(speech, "GoldLine", Gold, new Vector2(.5f, 1), new Vector2(0, -4),
+            new Vector2(.5f, 0), new Vector2(0, 79), new Vector2(1180, 148));
+        Box(speech, "GoldLine", Gold, new Vector2(.5f, 1), new Vector2(0, -3),
             new Vector2(1180, 6), false);
+
         var portrait = Box(speech, "ProfAtomPortrait", new Color(.08f, .31f, .39f, 1),
-            new Vector2(0, .5f), new Vector2(91, 0), new Vector2(172, 164), false);
+            new Vector2(0, .5f), new Vector2(79, 0), new Vector2(150, 138), false);
         Sprite atomSprite = Resources.Load<Sprite>("ChemQuestTutorial/ProfAtom");
         if (atomSprite != null)
         {
@@ -218,28 +236,30 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
         }
         else
         {
-            // Fallback avatar works even when the art asset is not installed.
             DrawScientist(portrait);
             Debug.LogWarning("CHEMQUEST: ProfAtom sprite missing from Resources/ChemQuestTutorial.");
         }
-        // Separate portrait, heading, and body into non-overlapping columns.
-        // All positions are relative to the 1180-wide dialogue bar.
-        Caption(speech, "ProfAtomLabel", "PROF. ATOM", 17, Gold,
-            TextAnchor.MiddleCenter, new Vector2(0, 1), new Vector2(91, -19),
-            new Vector2(172, 28), FontStyle.Bold);
-        heading = Caption(speech, "StepHeading", "", 22, Gold,
-            TextAnchor.MiddleLeft, new Vector2(0, 1), new Vector2(515, -26),
-            new Vector2(590, 34), FontStyle.Bold);
-        dialogue = Caption(speech, "Speech", "", 20, Color.white,
-            TextAnchor.UpperLeft, new Vector2(0, 1), new Vector2(550, -100),
-            new Vector2(670, 82));
-        progress = Caption(speech, "StepNumber", "", 16, new Color(.72f, .92f, .95f, 1),
-            TextAnchor.MiddleLeft, new Vector2(0, 0), new Vector2(302, 20),
-            new Vector2(180, 28));
+
+        // Name tag stays below the NPC's face, not on top of the dialogue.
+        var nameTag = Box(speech, "NPCNameBackground", new Color(.04f, .13f, .23f, .96f),
+            new Vector2(0, 0), new Vector2(79, 19), new Vector2(150, 28), false);
+        Caption(nameTag, "ProfAtomLabel", "PROF. ATOM", 17, Gold,
+            TextAnchor.MiddleCenter, new Vector2(.5f, .5f), Vector2.zero,
+            new Vector2(146, 26), FontStyle.Bold);
+
+        heading = TopLeftCaption(speech, "StepHeading", "", 22, Gold,
+            180, 13, 705, 36, FontStyle.Bold);
+        dialogue = TopLeftCaption(speech, "Speech", "", 20, Color.white,
+            180, 58, 755, 66);
+        dialogue.lineSpacing = 1.05f;
+        progress = Caption(speech, "StepNumber", "", 16,
+            new Color(.72f, .92f, .95f, 1), TextAnchor.MiddleCenter,
+            new Vector2(0, 0), new Vector2(236, 16), new Vector2(112, 24));
+
         MakeButton(speech, "Skip", "SKIP", new Color(.35f, .39f, .46f, 1),
-            new Vector2(1, 1), new Vector2(-197, -33), new Vector2(122, 44), FinishGuide);
+            new Vector2(1, 1), new Vector2(-198, -31), new Vector2(122, 43), FinishGuide);
         nextButton = MakeButton(speech, "Next", "NEXT", Teal,
-            new Vector2(1, 1), new Vector2(-64, -33), new Vector2(118, 44), NextStep);
+            new Vector2(1, 1), new Vector2(-65, -31), new Vector2(118, 43), NextStep);
         nextLabel = nextButton.GetComponentInChildren<Text>();
         guideRoot.SetActive(false);
     }
