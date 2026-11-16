@@ -24,6 +24,10 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
         Build();
         HideLegacyButtonsForPlay();
         ChemQuestAudioSettings.Apply();
+        // Before any first-time gameplay, require the unassisted baseline test.
+        var assessment=GetComponent<ChemQuestAssessmentGate>();
+        if(assessment==null)assessment=gameObject.AddComponent<ChemQuestAssessmentGate>();
+        assessment.OpenPreIfNeeded();
     }
 
     public void Build()
