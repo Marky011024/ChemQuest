@@ -201,14 +201,14 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
             TextAnchor.MiddleLeft, new Vector2(0, 1), new Vector2(176, -28),
             new Vector2(300, 34), FontStyle.Bold);
         heading = Caption(speech, "StepHeading", "", 23, Gold,
-            TextAnchor.MiddleLeft, new Vector2(0, 1), new Vector2(535, -28),
-            new Vector2(410, 34), FontStyle.Bold);
+            TextAnchor.MiddleLeft, new Vector2(0, 1), new Vector2(600, -28),
+            new Vector2(650, 34), FontStyle.Bold);
         dialogue = Caption(speech, "Speech", "", 22, Color.white,
-            TextAnchor.UpperLeft, new Vector2(0, 1), new Vector2(575, -92),
-            new Vector2(760, 75));
+            TextAnchor.UpperLeft, new Vector2(0, 1), new Vector2(600, -103),
+            new Vector2(660, 80));
         progress = Caption(speech, "StepNumber", "", 17, new Color(.72f, .92f, .95f, 1),
-            TextAnchor.MiddleLeft, new Vector2(0, 0), new Vector2(230, 30),
-            new Vector2(250, 30));
+            TextAnchor.MiddleLeft, new Vector2(0, 0), new Vector2(260, 24),
+            new Vector2(250, 28));
         MakeButton(speech, "Skip", "SKIP", new Color(.35f, .39f, .46f, 1),
             new Vector2(1, 1), new Vector2(-199, -36), new Vector2(132, 48), FinishGuide);
         nextButton = MakeButton(speech, "Next", "NEXT", Teal,
