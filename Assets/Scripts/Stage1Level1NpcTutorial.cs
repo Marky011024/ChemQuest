@@ -173,11 +173,11 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
             new Vector2(.5f, 0), new Vector2(0, 23), new Vector2(240, 40), FontStyle.Bold);
 
         headingText = Label(modal, "Heading", "", 28, Gold, TextAnchor.MiddleLeft,
-            new Vector2(0, 1), new Vector2(318, -77), new Vector2(685, 75), FontStyle.Bold);
+            new Vector2(0, 1), new Vector2(680, -77), new Vector2(685, 75), FontStyle.Bold);
         bodyText = Label(modal, "Instruction", "", 25, Color.white, TextAnchor.UpperLeft,
-            new Vector2(0, 1), new Vector2(320, -155), new Vector2(680, 190));
+            new Vector2(0, 1), new Vector2(680, -155), new Vector2(680, 190));
         progressText = Label(modal, "Progress", "", 20, new Color(.66f, .88f, .94f),
-            TextAnchor.MiddleLeft, new Vector2(0, 0), new Vector2(318, 47), new Vector2(260, 40));
+            TextAnchor.MiddleLeft, new Vector2(0, 0), new Vector2(440, 47), new Vector2(260, 40));
 
         backButton = ActionButton(modal, "BackButton", "BACK",
             new Color(.28f, .38f, .54f), new Vector2(1, 0),
