@@ -40,6 +40,9 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
     private RectTransform microscopicButtonRect;
     private RectTransform bondRect;
     private RectTransform hydrogenRect;
+    private RectTransform hydrogen2Rect;
+    private RectTransform draggingHydrogen;
+    private RectTransform hydrogenDropTarget;
     private RectTransform[] textRefs;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -90,6 +93,7 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
         microscopicButtonRect = FindNamedRect("SubMicroscopicButton");
         bondRect = FindNamedRect("HClBond1");
         hydrogenRect = FindNamedRect("Hydrogen1");
+        hydrogen2Rect = FindNamedRect("Hydrogen2");
     }
 
     // Find named UI even under inactive panels, but only within this scene.
@@ -306,6 +310,8 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
     private void ShowStep()
     {
         animationClock = 0f;
+        draggingHydrogen = null;
+        hydrogenDropTarget = null;
         switch (step)
         {
             case 0:
@@ -329,8 +335,8 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
                 dialogue.text = "Tap both H-Cl bonds as my hand shows, then bring the hydrogen atoms together to form H2.";
                 break;
             default:
-                heading.text = "FINISH THE EXPERIMENT";
-                dialogue.text = "Excellent! Follow the game prompts to finish the reaction and answer the BOW Learning Check. You can replay this guide using ? GUIDE.";
+                heading.text = "BRING THE TWO H ATOMS TOGETHER";
+                dialogue.text = "Touch and hold either H, then drag it toward the other H to form H2. My hand will point at your drop target!";
                 break;
         }
         progress.text = "STEP " + (step + 1) + " / 6";
@@ -369,8 +375,42 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
         ShowStep();
     }
 
+    // Called from the existing DraggableHydrogen script on actual pointer drag.
+    // The target hand is a visual-only overlay, never intercepts input.
+    public void OnHydrogenDragBegin(RectTransform dragged)
+    {
+        if (!activeGuide || dragged == null || bonds == null ||
+            !bonds.BothBondsAreBroken) return;
+        if (step < 5) { step = 5; ShowStep(); }
+        if (step != 5) return;
+        draggingHydrogen = dragged;
+        hydrogenDropTarget = dragged == hydrogenRect ? hydrogen2Rect :
+            dragged == hydrogen2Rect ? hydrogenRect : null;
+        if (hydrogenDropTarget != null && !hydrogenDropTarget.gameObject.activeInHierarchy)
+            hydrogenDropTarget = null;
+        if (hydrogenDropTarget != null)
+        {
+            heading.text = "MOVE H TO THE OTHER H!";
+            dialogue.text = "Keep holding H and drag it toward the highlighted other H. Release when they meet to form H2!";
+        }
+    }
+
+    public void OnHydrogenDragEnd(RectTransform dragged)
+    {
+        if (draggingHydrogen != dragged) return;
+        draggingHydrogen = null;
+        hydrogenDropTarget = null;
+        if (activeGuide && step == 5 && guideRoot != null)
+        {
+            heading.text = "BRING THE HYDROGEN ATOMS TOGETHER";
+            dialogue.text = "Drag one H toward the other H to form H2. Watch where my hand points!";
+        }
+    }
+
     private void FinishGuide()
     {
+        draggingHydrogen = null;
+        hydrogenDropTarget = null;
         activeGuide = false;
         guideRoot.SetActive(false);
         guideButton.SetActive(true);
@@ -440,9 +480,17 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
                     from = FindNamedRect("HClBond2");
                 break;
             case 5:
-                from = hydrogenRect; break;
+                // Before dragging, demonstrate H1 -> H2. During the drag,
+                // keep the hand fixed on the destination so the player knows
+                // exactly where to drop the selected hydrogen atom.
+                from = hydrogenDropTarget != null ? hydrogenDropTarget : hydrogenRect;
+                to = hydrogenDropTarget != null ? null : hydrogen2Rect;
+                drag = draggingHydrogen == null && to != null;
+                break;
         }
         bool show = from != null && from.gameObject.activeInHierarchy;
+        if (step == 5 && draggingHydrogen != null && hydrogenDropTarget == null)
+            show = false;
         halo.gameObject.SetActive(show);
         handMarker.gameObject.SetActive(show);
         trail.gameObject.SetActive(show && drag && to != null);
@@ -453,7 +501,7 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
         var position = Vector2.Lerp(start, end, Mathf.SmoothStep(0, 1, fraction));
         if (!drag) position += new Vector2(0, Mathf.Sin(animationClock * 4f) * 12f);
         ((RectTransform)handMarker.transform).anchoredPosition = position + new Vector2(38, -8);
-        ((RectTransform)halo.transform).anchoredPosition = drag ? start : end;
+        ((RectTransform)halo.transform).anchoredPosition = drag ? end : start;
         halo.color = new Color(1, .84f, .24f, .18f + .17f * Mathf.Abs(Mathf.Sin(animationClock * 3f)));
         if (drag && to != null)
         {
