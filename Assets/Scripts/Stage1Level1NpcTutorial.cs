@@ -5,158 +5,158 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-// Self-contained, scene-specific guide. No scene/prefab edits or inspector hookups required.
-// It appears once for each registered student and can be replayed at any time.
+// Stage 1 Level 1 only: in-game hands-on guide. Does not simulate clicks/drags,
+// modify puzzle progress, scoring, energy, or any other scene.
 public sealed class Stage1Level1NpcTutorial : MonoBehaviour
 {
     private const string SceneName = "Stage1Level1";
-    private const string KeyPrefix = "CQ_Stage1L1_NpcTutorial_v1_";
-    private static readonly string[] Headings =
-    {
-        "WELCOME TO THE CHEMQUEST LAB!",
-        "HOW TO CONTROL THE PUZZLE",
-        "STEP 1 - START THE REACTION",
-        "STEP 2 - LOOK AT THE ATOMS",
-        "STEP 3 - EXPLORE THE BONDS",
-        "FINISH THE LEVEL"
-    };
-    private static readonly string[] Instructions =
-    {
-        "Hello, young chemist! I am Prof. Atom, your lab guide. Let's learn how to play Stage 1, Level 1 together.",
-        "Tap buttons to choose actions. To move a chemical, touch and hold it, then drag it to the correct location and release.",
-        "Find ZINC (Zn), then drag it into the flask containing dilute hydrochloric acid (HCl). Watch for bubbles: they show that gas is forming!",
-        "After the zinc reacts, tap SUB-MICROSCOPIC VIEW to explore what happens to the particles during the reaction.",
-        "Tap each H-Cl bond to break it. Then follow the on-screen directions to bring hydrogen atoms together and form H2.",
-        "Follow the prompts, complete the chemistry puzzle and answer the BOW Learning Check. Wrong answers may affect your score or energy. Good luck!"
-    };
+    // v2 is intentional: players who saw the old static popup get the new walkthrough.
+    private const string KeyPrefix = "CQ_Stage1L1_InteractiveGuide_v2_";
+    private static readonly Color Navy = new Color(.055f, .14f, .24f, .96f);
+    private static readonly Color Teal = new Color(.04f, .52f, .61f, 1);
+    private static readonly Color Gold = new Color(1f, .76f, .30f, 1);
+    private static readonly Color Cream = new Color(1f, .79f, .58f, 1);
 
     private Canvas canvas;
-    private GameObject dimmer;
-    private GameObject replayButtonObject;
-    private Text headingText;
-    private Text bodyText;
-    private Text progressText;
-    private Button backButton;
+    private GameObject guideRoot;
+    private GameObject guideButton;
+    private Image handMarker;
+    private Image halo;
+    private Image trail;
+    private Text heading;
+    private Text dialogue;
+    private Text progress;
     private Button nextButton;
     private Text nextLabel;
-    private int page;
-    private bool opened;
-    private string completedKey;
+    private int step;
+    private float animationClock;
+    private bool activeGuide;
+    private string completionKey;
+    private ReactionFlaskDropZone flask;
+    private SubMicroscopicViewManager microscopic;
+    private BondProgressManager bonds;
+    private RectTransform zincRect;
+    private RectTransform flaskRect;
+    private RectTransform microscopicButtonRect;
+    private RectTransform bondRect;
+    private RectTransform hydrogenRect;
+    private RectTransform[] textRefs;
 
-    // The game normally starts on TitleScreen/MainMenu, not Stage1Level1.
-    // Register for every scene transition, not just the startup scene.
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-    private static void RegisterTutorialSceneHook()
+    private static void RegisterSceneHook()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
         SceneManager.sceneLoaded += OnSceneLoaded;
-        AttachToLevel(SceneManager.GetActiveScene());
+        Attach(SceneManager.GetActiveScene());
     }
 
-    private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-    {
-        AttachToLevel(scene);
-    }
+    private static void OnSceneLoaded(Scene scene, LoadSceneMode mode) { Attach(scene); }
 
-    private static void AttachToLevel(Scene scene)
+    private static void Attach(Scene scene)
     {
         if (scene.name != SceneName) return;
         if (FindFirstObjectByType<Stage1Level1NpcTutorial>() != null) return;
-        var host = new GameObject("ProfAtom_Stage1Level1_Tutorial");
+        var host = new GameObject("ProfAtom_Stage1Level1_InteractiveGuide");
         SceneManager.MoveGameObjectToScene(host, scene);
         host.AddComponent<Stage1Level1NpcTutorial>();
-        Debug.Log("CHEMQUEST: Prof. Atom tutorial attached to Stage1Level1.");
+        Debug.Log("CHEMQUEST: Prof. Atom interactive hand guide attached.");
     }
 
     private void Start()
     {
-        if (SceneManager.GetActiveScene().name != SceneName)
-        {
-            Destroy(gameObject);
-            return;
-        }
-        completedKey = ProfileKey();
-        BuildUI();
-        if (PlayerPrefs.GetInt(completedKey, 0) == 0) OpenTutorial();
+        if (SceneManager.GetActiveScene().name != SceneName) { Destroy(gameObject); return; }
+        completionKey = ProfileKey();
+        DiscoverTargets();
+        BuildInterface();
+        if (PlayerPrefs.GetInt(completionKey, 0) == 0) StartGuide();
     }
 
     private static string ProfileKey()
     {
-        string name = PlayerPrefs.GetString("StudentName", "").Trim();
-        string school = PlayerPrefs.GetString("StudentSchool", "").Trim();
-        string section = PlayerPrefs.GetString("StudentSection", "").Trim();
-        string identity = (name + "|" + school + "|" + section).ToUpperInvariant();
+        var identity = (PlayerPrefs.GetString("StudentName", "").Trim() + "|" +
+                        PlayerPrefs.GetString("StudentSchool", "").Trim() + "|" +
+                        PlayerPrefs.GetString("StudentSection", "").Trim()).ToUpperInvariant();
         using (var sha = SHA256.Create())
-        {
-            byte[] digest = sha.ComputeHash(Encoding.UTF8.GetBytes(identity));
-            return KeyPrefix + BitConverter.ToString(digest, 0, 12).Replace("-", "");
-        }
+            return KeyPrefix + BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(identity)), 0, 12).Replace("-", "");
     }
 
-    private static Image Rectangle(Transform parent, string name, Color color,
-        Vector2 anchorMin, Vector2 anchorMax, Vector2 pos, Vector2 size)
+    private void DiscoverTargets()
     {
-        var obj = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-        obj.transform.SetParent(parent, false);
-        var rt = (RectTransform)obj.transform;
-        rt.anchorMin = anchorMin;
-        rt.anchorMax = anchorMax;
-        rt.anchoredPosition = pos;
-        rt.sizeDelta = size;
-        var image = obj.GetComponent<Image>();
+        flask = FindFirstObjectByType<ReactionFlaskDropZone>();
+        microscopic = FindFirstObjectByType<SubMicroscopicViewManager>();
+        bonds = FindFirstObjectByType<BondProgressManager>();
+        zincRect = FindNamedRect("ZincContainer");
+        flaskRect = FindNamedRect("ReactionFlask");
+        microscopicButtonRect = FindNamedRect("SubMicroscopicButton");
+        bondRect = FindNamedRect("HClBond1");
+        hydrogenRect = FindNamedRect("Hydrogen1");
+    }
+
+    // Find named UI even under inactive panels, but only within this scene.
+    private RectTransform FindNamedRect(string name)
+    {
+        foreach (var root in SceneManager.GetActiveScene().GetRootGameObjects())
+        {
+            foreach (var rect in root.GetComponentsInChildren<RectTransform>(true))
+                if (rect.name == name) return rect;
+        }
+        return null;
+    }
+
+    private static Image Panel(Transform parent, string name, Color color,
+        Vector2 min, Vector2 max, Vector2 pos, Vector2 size, bool blocks = true)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        go.transform.SetParent(parent, false);
+        var rect = (RectTransform)go.transform;
+        rect.anchorMin = min; rect.anchorMax = max;
+        rect.anchoredPosition = pos; rect.sizeDelta = size;
+        var image = go.GetComponent<Image>();
         image.color = color;
+        image.raycastTarget = blocks;
         return image;
     }
 
     private static RectTransform Box(Transform parent, string name, Color color,
-        Vector2 anchor, Vector2 pos, Vector2 size)
+        Vector2 anchor, Vector2 pos, Vector2 size, bool blocks = true)
     {
-        return (RectTransform)Rectangle(parent, name, color, anchor, anchor, pos, size).transform;
+        return (RectTransform)Panel(parent, name, color, anchor, anchor, pos, size, blocks).transform;
     }
 
-    private static Text Label(Transform parent, string name, string value, int fontSize,
+    private static Text Caption(Transform parent, string name, string value, int fontSize,
         Color color, TextAnchor alignment, Vector2 anchor, Vector2 pos, Vector2 size,
-        FontStyle fontStyle = FontStyle.Normal)
+        FontStyle style = FontStyle.Normal)
     {
         var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
         go.transform.SetParent(parent, false);
-        var rt = (RectTransform)go.transform;
-        rt.anchorMin = rt.anchorMax = anchor;
-        rt.anchoredPosition = pos;
-        rt.sizeDelta = size;
-        var t = go.GetComponent<Text>();
-        t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        t.text = value;
-        t.fontSize = fontSize;
-        t.fontStyle = fontStyle;
-        t.color = color;
-        t.alignment = alignment;
-        t.horizontalOverflow = HorizontalWrapMode.Wrap;
-        t.verticalOverflow = VerticalWrapMode.Truncate;
-        t.raycastTarget = false;
-        return t;
+        var r = (RectTransform)go.transform;
+        r.anchorMin = r.anchorMax = anchor; r.anchoredPosition = pos; r.sizeDelta = size;
+        var text = go.GetComponent<Text>();
+        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        text.text = value; text.fontSize = fontSize; text.color = color;
+        text.alignment = alignment; text.fontStyle = style;
+        text.horizontalOverflow = HorizontalWrapMode.Wrap;
+        text.verticalOverflow = VerticalWrapMode.Truncate;
+        text.raycastTarget = false;
+        return text;
     }
 
-    private static Button ActionButton(Transform parent, string name, string caption,
-        Color background, Vector2 anchor, Vector2 pos, Vector2 size, Action onClick)
+    private static Button MakeButton(Transform parent, string name, string caption,
+        Color color, Vector2 anchor, Vector2 pos, Vector2 size, Action onClick)
     {
-        var rect = Box(parent, name, background, anchor, pos, size);
-        var btn = rect.gameObject.AddComponent<Button>();
-        btn.targetGraphic = rect.GetComponent<Image>();
-        btn.onClick.AddListener(() => onClick());
-        Label(rect, "Caption", caption, 22, Color.white, TextAnchor.MiddleCenter,
-            new Vector2(.5f, .5f), Vector2.zero, size);
-        return btn;
+        var panel = Box(parent, name, color, anchor, pos, size);
+        var button = panel.gameObject.AddComponent<Button>();
+        button.targetGraphic = panel.GetComponent<Image>();
+        button.onClick.AddListener(() => onClick());
+        Caption(panel, "Label", caption, 20, Color.white, TextAnchor.MiddleCenter,
+            new Vector2(.5f, .5f), Vector2.zero, size, FontStyle.Bold);
+        return button;
     }
 
-    private static readonly Color Navy = new Color(.055f, .14f, .24f, 1);
-    private static readonly Color Teal = new Color(.04f, .52f, .61f, 1);
-    private static readonly Color Gold = new Color(1f, .74f, .32f, 1);
-
-    private void BuildUI()
+    private void BuildInterface()
     {
-        var root = new GameObject("ProfAtom_TutorialCanvas",
-            typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+        var root = new GameObject("ProfAtomGuideCanvas", typeof(RectTransform),
+            typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
         root.transform.SetParent(transform, false);
         canvas = root.GetComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
@@ -168,113 +168,213 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
         scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
         scaler.matchWidthOrHeight = .5f;
 
-        // Always-available replay access, unobtrusive during gameplay.
-        var replay = ActionButton(root.transform, "ReplayTutorial", "?  GUIDE",
-            Teal, new Vector2(1, 1), new Vector2(-112, -38), new Vector2(185, 48),
-            OpenTutorial);
-        replayButtonObject = replay.gameObject;
+        guideButton = MakeButton(root.transform, "GuideReplayButton", "? GUIDE", Teal,
+            new Vector2(1, 1), new Vector2(-105, -40), new Vector2(180, 46), StartGuide).gameObject;
 
-        dimmer = Rectangle(root.transform, "ModalDimmer",
-            new Color(.008f, .025f, .055f, .77f), Vector2.zero, Vector2.one,
-            Vector2.zero, Vector2.zero).gameObject;
-        var modal = Box(dimmer.transform, "TutorialCard", Navy,
-            new Vector2(.5f, .5f), Vector2.zero, new Vector2(1040, 435));
-        Box(modal, "TopAccent", Gold, new Vector2(.5f, 1), new Vector2(0, -6), new Vector2(1040, 12));
+        // No fullscreen raycast blocker: the player can still interact with actual zinc,
+        // flask, sub-microscopic button and atom bonds behind this overlay.
+        guideRoot = Panel(root.transform, "InGameTutorialLayer",
+            new Color(0, 0, 0, 0), Vector2.zero, Vector2.one,
+            Vector2.zero, Vector2.zero, false).gameObject;
 
-        // Pixel-style friendly scientist NPC composed of simple colored UI shapes.
-        var npcArea = Box(modal, "NPCBackground", new Color(.08f, .32f, .42f),
-            new Vector2(0, .5f), new Vector2(158, 16), new Vector2(265, 355));
-        DrawScientist(npcArea);
-        Label(npcArea, "NpcName", "PROF. ATOM", 24, Gold, TextAnchor.MiddleCenter,
-            new Vector2(.5f, 0), new Vector2(0, 23), new Vector2(240, 40), FontStyle.Bold);
+        // Pale highlight tracks the target. The drawn hand animates between real UI positions.
+        halo = Panel(guideRoot.transform, "TargetGlow",
+            new Color(1f, .84f, .24f, .24f), new Vector2(.5f, .5f),
+            new Vector2(.5f, .5f), Vector2.zero, new Vector2(104, 90), false);
+        trail = Panel(guideRoot.transform, "DragPath",
+            new Color(.98f, .83f, .35f, .66f), new Vector2(.5f, .5f),
+            new Vector2(.5f, .5f), Vector2.zero, new Vector2(8, 8), false);
+        var hand = Box(guideRoot.transform, "AnimatedTutorialHand", new Color(0, 0, 0, 0),
+            new Vector2(.5f, .5f), Vector2.zero, new Vector2(92, 106), false);
+        handMarker = hand.GetComponent<Image>();
+        DrawHand(hand);
 
-        // Use a consistent top-left pivot so the heading and dialogue never
-        // intersect at different game-view resolutions / Android aspect ratios.
-        headingText = Label(modal, "Heading", "", 27, Gold, TextAnchor.UpperLeft,
-            new Vector2(0, 1), new Vector2(310, -36), new Vector2(675, 62), FontStyle.Bold);
-        var headingRect = (RectTransform)headingText.transform;
-        headingRect.pivot = new Vector2(0, 1);
-
-        bodyText = Label(modal, "Instruction", "", 24, Color.white, TextAnchor.UpperLeft,
-            new Vector2(0, 1), new Vector2(310, -128), new Vector2(675, 195));
-        var bodyRect = (RectTransform)bodyText.transform;
-        bodyRect.pivot = new Vector2(0, 1);
-        bodyText.lineSpacing = 1.12f;
-
-        progressText = Label(modal, "Progress", "", 19, new Color(.66f, .88f, .94f),
-            TextAnchor.MiddleLeft, new Vector2(0, 0), new Vector2(310, 34), new Vector2(280, 32));
-        ((RectTransform)progressText.transform).pivot = new Vector2(0, 0);
-
-        backButton = ActionButton(modal, "BackButton", "BACK",
-            new Color(.28f, .38f, .54f), new Vector2(1, 0),
-            new Vector2(-383, 52), new Vector2(150, 54), Previous);
-        ActionButton(modal, "SkipButton", "SKIP",
-            new Color(.3f, .36f, .43f), new Vector2(1, 0),
-            new Vector2(-220, 52), new Vector2(140, 54), CloseTutorial);
-        nextButton = ActionButton(modal, "NextButton", "NEXT",
-            Teal, new Vector2(1, 0), new Vector2(-72, 52), new Vector2(140, 54), Next);
+        // Compact, bottom-anchored speech bar keeps the central chemistry puzzle visible.
+        var speech = Box(guideRoot.transform, "ProfAtomDialogueBar", Navy,
+            new Vector2(.5f, 0), new Vector2(0, 122), new Vector2(1180, 192));
+        Box(speech, "GoldLine", Gold, new Vector2(.5f, 1), new Vector2(0, -4),
+            new Vector2(1180, 8), false);
+        var portrait = Box(speech, "ProfAtomPortrait", new Color(.08f, .31f, .39f, 1),
+            new Vector2(0, .5f), new Vector2(84, 0), new Vector2(148, 152), false);
+        DrawScientist(portrait);
+        Caption(speech, "ProfAtomLabel", "PROF. ATOM", 18, Gold,
+            TextAnchor.MiddleLeft, new Vector2(0, 1), new Vector2(176, -28),
+            new Vector2(300, 34), FontStyle.Bold);
+        heading = Caption(speech, "StepHeading", "", 23, Gold,
+            TextAnchor.MiddleLeft, new Vector2(0, 1), new Vector2(535, -28),
+            new Vector2(410, 34), FontStyle.Bold);
+        dialogue = Caption(speech, "Speech", "", 22, Color.white,
+            TextAnchor.UpperLeft, new Vector2(0, 1), new Vector2(575, -92),
+            new Vector2(760, 75));
+        progress = Caption(speech, "StepNumber", "", 17, new Color(.72f, .92f, .95f, 1),
+            TextAnchor.MiddleLeft, new Vector2(0, 0), new Vector2(230, 30),
+            new Vector2(250, 30));
+        MakeButton(speech, "Skip", "SKIP", new Color(.35f, .39f, .46f, 1),
+            new Vector2(1, 1), new Vector2(-199, -36), new Vector2(132, 48), FinishGuide);
+        nextButton = MakeButton(speech, "Next", "NEXT", Teal,
+            new Vector2(1, 1), new Vector2(-63, -36), new Vector2(120, 48), NextStep);
         nextLabel = nextButton.GetComponentInChildren<Text>();
-        dimmer.SetActive(false);
+        guideRoot.SetActive(false);
     }
 
-    private static void DrawScientist(RectTransform parent)
+    private static void DrawScientist(RectTransform p)
+    {
+        var c = new Vector2(.5f, .5f);
+        Box(p, "Hair", new Color(.14f, .11f, .21f), c, new Vector2(0, 27), new Vector2(62, 58), false);
+        Box(p, "Face", Cream, c, new Vector2(0, 20), new Vector2(52, 47), false);
+        Box(p, "Fringe", new Color(.14f, .11f, .21f), c, new Vector2(0, 45), new Vector2(65, 15), false);
+        Box(p, "LeftEye", Navy, c, new Vector2(-13, 22), new Vector2(6, 7), false);
+        Box(p, "RightEye", Navy, c, new Vector2(13, 22), new Vector2(6, 7), false);
+        Box(p, "Smile", new Color(.6f, .25f, .29f), c, new Vector2(0, 6), new Vector2(16, 4), false);
+        Box(p, "LabCoat", Color.white, c, new Vector2(0, -32), new Vector2(100, 56), false);
+        Box(p, "Shirt", Teal, c, new Vector2(0, -28), new Vector2(28, 48), false);
+        Box(p, "LabBadge", Gold, c, new Vector2(27, -29), new Vector2(12, 12), false);
+    }
+
+    private static void DrawHand(RectTransform hand)
     {
         var center = new Vector2(.5f, .5f);
-        // Hair, face, eyes, coat and atom badge: visible even without sprite assets.
-        Box(parent, "Hair", new Color(.15f, .12f, .22f), center, new Vector2(0, 89), new Vector2(114, 92));
-        Box(parent, "Face", new Color(.98f, .75f, .53f), center, new Vector2(0, 71), new Vector2(92, 88));
-        Box(parent, "Fringe", new Color(.15f, .12f, .22f), center, new Vector2(0, 111), new Vector2(108, 22));
-        Box(parent, "LeftEye", Navy, center, new Vector2(-25, 78), new Vector2(10, 12));
-        Box(parent, "RightEye", Navy, center, new Vector2(25, 78), new Vector2(10, 12));
-        Box(parent, "Smile", new Color(.65f, .28f, .32f), center, new Vector2(0, 51), new Vector2(28, 6));
-        Box(parent, "Coat", Color.white, center, new Vector2(0, -46), new Vector2(154, 136));
-        Box(parent, "Shirt", Teal, center, new Vector2(0, -35), new Vector2(50, 112));
-        Box(parent, "LeftLapel", new Color(.8f, .9f, .95f), center, new Vector2(-48, -25), new Vector2(42, 88));
-        Box(parent, "RightLapel", new Color(.8f, .9f, .95f), center, new Vector2(48, -25), new Vector2(42, 88));
-        Box(parent, "Badge", Gold, center, new Vector2(48, -69), new Vector2(24, 24));
+        // Simple pixel-art pointing hand, no external sprite or font needed.
+        Box(hand, "Shadow", new Color(.11f, .12f, .18f, .9f), center, new Vector2(6, -4),
+            new Vector2(49, 53), false);
+        Box(hand, "Palm", Cream, center, new Vector2(0, -13), new Vector2(48, 53), false);
+        Box(hand, "PointingFinger", Cream, center, new Vector2(-16, 28), new Vector2(17, 62), false);
+        Box(hand, "Thumb", Cream, center, new Vector2(31, -6), new Vector2(19, 26), false);
+        Box(hand, "Cuff", Teal, center, new Vector2(0, -42), new Vector2(55, 16), false);
+        Box(hand, "Sparkle", Gold, center, new Vector2(-30, 60), new Vector2(12, 12), false);
     }
 
-    private void OpenTutorial()
+    private void StartGuide()
     {
-        if (dimmer == null) return;
-        opened = true;
-        page = 0;
-        dimmer.SetActive(true);
-        // Ensure modal appears above the small replay action.
-        dimmer.transform.SetAsLastSibling();
-        Refresh();
+        if (guideRoot == null) return;
+        DiscoverTargets();
+        step = 0;
+        activeGuide = true;
+        animationClock = 0f;
+        guideRoot.SetActive(true);
+        guideButton.SetActive(false);
+        ShowStep();
     }
 
-    private void Refresh()
+    private void ShowStep()
     {
-        headingText.text = Headings[page];
-        bodyText.text = Instructions[page];
-        progressText.text = "TIP " + (page + 1) + " OF " + Headings.Length;
-        backButton.interactable = page > 0;
-        nextLabel.text = page == Headings.Length - 1 ? "LET'S PLAY!" : "NEXT";
+        animationClock = 0f;
+        switch (step)
+        {
+            case 0:
+                heading.text = "WELCOME, CHEMIST!";
+                dialogue.text = "Hi! I'm Prof. Atom. I will show you exactly where to tap and drag. The real game stays visible while I guide you!";
+                break;
+            case 1:
+                heading.text = "DRAG ZINC INTO THE FLASK";
+                dialogue.text = "Touch and hold the zinc (Zn) dish. Follow my moving hand to the HCl flask, then release. Your turn!";
+                break;
+            case 2:
+                heading.text = "OBSERVE THE REACTION";
+                dialogue.text = "Great! See the bubbles? Gas forming is evidence of a chemical change. Let's look closer at the atoms.";
+                break;
+            case 3:
+                heading.text = "OPEN THE ATOM VIEW";
+                dialogue.text = "Tap SUB-MICROSCOPIC VIEW where my hand is pointing. You can see the tiny particles!";
+                break;
+            case 4:
+                heading.text = "BREAK THE H-Cl BONDS";
+                dialogue.text = "Tap both H-Cl bonds as my hand shows, then bring the hydrogen atoms together to form H2.";
+                break;
+            default:
+                heading.text = "FINISH THE EXPERIMENT";
+                dialogue.text = "Excellent! Follow the game prompts to finish the reaction and answer the BOW Learning Check. You can replay this guide using ? GUIDE.";
+                break;
+        }
+        progress.text = "STEP " + (step + 1) + " / 6";
+        nextLabel.text = step == 5 ? "DONE" : (step == 1 || step == 3 || step == 4 ? "NEXT" : "NEXT");
+        // Controls remain available even if a target could not be found.
+        nextButton.interactable = true;
     }
 
-    private void Previous()
+    private void NextStep()
     {
-        if (page > 0) { page--; Refresh(); }
+        if (step >= 5) { FinishGuide(); return; }
+        step++;
+        ShowStep();
     }
 
-    private void Next()
+    private void FinishGuide()
     {
-        if (page < Headings.Length - 1) { page++; Refresh(); }
-        else CloseTutorial();
-    }
-
-    private void CloseTutorial()
-    {
-        opened = false;
-        dimmer.SetActive(false);
-        PlayerPrefs.SetInt(completedKey, 1);
+        activeGuide = false;
+        guideRoot.SetActive(false);
+        guideButton.SetActive(true);
+        PlayerPrefs.SetInt(completionKey, 1);
         PlayerPrefs.Save();
     }
 
-    private void OnDestroy()
+    private Vector2 LocalPosition(RectTransform target)
     {
-        // No global timeScale changes: gameplay and other scenes remain untouched.
+        if (target == null) return Vector2.zero;
+        var sourceCanvas = target.GetComponentInParent<Canvas>();
+        Camera sourceCamera = sourceCanvas != null && sourceCanvas.renderMode != RenderMode.ScreenSpaceOverlay
+            ? sourceCanvas.worldCamera : null;
+        var screen = RectTransformUtility.WorldToScreenPoint(sourceCamera, target.TransformPoint(target.rect.center));
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            (RectTransform)guideRoot.transform, screen, null, out var local);
+        return local;
+    }
+
+    private void Update()
+    {
+        if (!activeGuide || guideRoot == null) return;
+        animationClock += Time.unscaledDeltaTime;
+        // Tutorial stays synchronized with real student interactions; never automates them.
+        if (step == 1 && flask != null && flask.zincAdded) { step = 2; ShowStep(); }
+        if (step == 3 && microscopicButtonRect != null)
+        {
+            var panel = FindNamedRect("SubMicroscopicPanel");
+            if (panel != null && panel.gameObject.activeInHierarchy) { step = 4; ShowStep(); }
+        }
+        if (step == 4 && bonds != null && bonds.BothBondsAreBroken)
+        {
+            step = 5; ShowStep();
+        }
+
+        RectTransform from = null, to = null;
+        bool drag = false;
+        switch (step)
+        {
+            case 1:
+                from = zincRect; to = flaskRect; drag = true;
+                break;
+            case 2:
+                from = flaskRect; break;
+            case 3:
+                from = microscopicButtonRect; break;
+            case 4:
+                from = bondRect;
+                if (from != null && !from.gameObject.activeInHierarchy)
+                    from = FindNamedRect("HClBond2");
+                break;
+            case 5:
+                from = hydrogenRect; break;
+        }
+        bool show = from != null && from.gameObject.activeInHierarchy;
+        halo.gameObject.SetActive(show);
+        handMarker.gameObject.SetActive(show);
+        trail.gameObject.SetActive(show && drag && to != null);
+        if (!show) return;
+        Vector2 start = LocalPosition(from);
+        Vector2 end = drag && to != null ? LocalPosition(to) : start;
+        float fraction = drag ? Mathf.PingPong(animationClock * .65f, 1f) : 0f;
+        var position = Vector2.Lerp(start, end, Mathf.SmoothStep(0, 1, fraction));
+        if (!drag) position += new Vector2(0, Mathf.Sin(animationClock * 4f) * 12f);
+        ((RectTransform)handMarker.transform).anchoredPosition = position + new Vector2(38, -8);
+        ((RectTransform)halo.transform).anchoredPosition = drag ? start : end;
+        halo.color = new Color(1, .84f, .24f, .18f + .17f * Mathf.Abs(Mathf.Sin(animationClock * 3f)));
+        if (drag && to != null)
+        {
+            var segment = (RectTransform)trail.transform;
+            segment.anchoredPosition = (start + end) * .5f;
+            segment.sizeDelta = new Vector2((end - start).magnitude, 6);
+            segment.localEulerAngles = new Vector3(0, 0,
+                Mathf.Atan2(end.y - start.y, end.x - start.x) * Mathf.Rad2Deg);
+        }
     }
 }
