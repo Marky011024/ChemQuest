@@ -187,7 +187,19 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
         var hand = Box(guideRoot.transform, "AnimatedTutorialHand", new Color(0, 0, 0, 0),
             new Vector2(.5f, .5f), Vector2.zero, new Vector2(92, 106), false);
         handMarker = hand.GetComponent<Image>();
-        DrawHand(hand);
+        Sprite handSprite = Resources.Load<Sprite>("ChemQuestTutorial/TutorialHand");
+        if (handSprite != null)
+        {
+            handMarker.sprite = handSprite;
+            handMarker.color = Color.white;
+            handMarker.preserveAspect = true;
+        }
+        else
+        {
+            // Keep the old drawn hand as fallback until the PNG is imported.
+            DrawHand(hand);
+            Debug.LogWarning("CHEMQUEST: TutorialHand sprite missing from Resources/ChemQuestTutorial.");
+        }
 
         // Compact, bottom-anchored speech bar keeps the central chemistry puzzle visible.
         var speech = Box(guideRoot.transform, "ProfAtomDialogueBar", Navy,
@@ -196,7 +208,20 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
             new Vector2(1180, 8), false);
         var portrait = Box(speech, "ProfAtomPortrait", new Color(.08f, .31f, .39f, 1),
             new Vector2(0, .5f), new Vector2(84, 0), new Vector2(148, 152), false);
-        DrawScientist(portrait);
+        Sprite atomSprite = Resources.Load<Sprite>("ChemQuestTutorial/ProfAtom");
+        if (atomSprite != null)
+        {
+            var portraitImage = Panel(portrait, "ProfAtomGeneratedArt", Color.white,
+                new Vector2(0, 0), new Vector2(1, 1), Vector2.zero, Vector2.zero, false);
+            portraitImage.sprite = atomSprite;
+            portraitImage.preserveAspect = true;
+        }
+        else
+        {
+            // Fallback avatar works even when the art asset is not installed.
+            DrawScientist(portrait);
+            Debug.LogWarning("CHEMQUEST: ProfAtom sprite missing from Resources/ChemQuestTutorial.");
+        }
         Caption(speech, "ProfAtomLabel", "PROF. ATOM", 18, Gold,
             TextAnchor.MiddleLeft, new Vector2(0, 1), new Vector2(176, -28),
             new Vector2(300, 34), FontStyle.Bold);
