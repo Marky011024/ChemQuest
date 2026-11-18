@@ -13,6 +13,7 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
     private TMP_Text chosen, resultText, noteA, noteB, noteC, classStatus;
     private Image resultPlate, bulbGlow;
     private Image realBulb, realWire;
+    private Image droppedSample;
     private readonly Image[] sampleCards=new Image[3];
     private readonly Image[] phaseCards=new Image[3];
     private readonly Image[] classCards=new Image[3];
@@ -102,6 +103,12 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
             new Color32(9,109,166,255),Border);
         PanelImage(apparatus,"SolutionLiquid",new Vector2(0,-43),new Vector2(166,63),
             new Color32(4,185,226,220),new Color32(86,220,255,255));
+        // Persistent, independently editable specimen in the actual beaker.
+        // It is hidden until a student has selected/dropped a sample.
+        droppedSample=EnsureImage(apparatus,"SelectedSampleInBeaker");
+        Place(droppedSample.rectTransform,new Vector2(0,-26),new Vector2(51,51));
+        droppedSample.preserveAspect=true;
+        droppedSample.raycastTarget=false;
         PanelImage(apparatus,"BeakerRim",new Vector2(0,29),new Vector2(193,13),
             new Color32(128,222,255,255),Gold);
         var positive=PanelImage(apparatus,"LeftElectrode",
@@ -305,6 +312,23 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
         selected=index;
         if(chosen!=null)chosen.text=index<0?"CHOOSE A SAMPLE":
             "SAMPLE "+(char)('A'+index);
+        if(droppedSample!=null)
+        {
+            var sprite=index>=0 && index<3?
+                Resources.Load<Sprite>("ChemQuestStage5Reference/DragSample"+index):null;
+            if(sprite==null && index>=0 && index<3)
+            {
+                var texture=Resources.Load<Texture2D>(
+                    "ChemQuestStage5Reference/DragSample"+index);
+                if(texture!=null)
+                    sprite=Sprite.Create(texture,
+                        new Rect(0,0,texture.width,texture.height),
+                        new Vector2(.5f,.5f),100f);
+            }
+            droppedSample.sprite=sprite;
+            droppedSample.color=Color.white;
+            droppedSample.gameObject.SetActive(sprite!=null);
+        }
         for(int i=0;i<3;i++)
             HighlightChoice(sampleCards[i],i==index,"sample");
         // Each sample has its own classification. Do not imply that the
