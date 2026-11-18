@@ -574,7 +574,9 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         if(mechanicalCube!=null)
         {
             var rt=mechanicalCube.rectTransform;
-            rt.anchoredPosition=Vector2.Lerp(new Vector2(-12,67),end,ease);
+            Vector2 initial=mechanicalMode==1?
+                new Vector2(-145,-12):new Vector2(150,-12);
+            rt.anchoredPosition=Vector2.Lerp(initial,end,ease);
             if(fractured)
                 rt.localScale=Vector3.one*Mathf.Max(.02f,1f-ease);
             else if(malleable)
@@ -801,6 +803,9 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         animatedHammerPivot=Find(canvas,"AnimatedStrikeHammerPivot") as RectTransform;
         animatedHammerHead=Find(canvas,"AnimatedStrikeHammerHead")?.GetComponent<Image>();
         hammerImpactFlash=Find(canvas,"HammerImpactFlash")?.GetComponent<Image>();
+        // Upgrade an already-baked Level2 scene rather than requiring a new
+        // scene: create missing animated hammer in the saved hierarchy.
+        if(level==2 && animatedHammerPivot==null)BuildAnimatedHammer();
         ResetHammer();
         mechanicalShards=new Image[9];
         for(int i=0;i<mechanicalShards.Length;i++)
@@ -940,6 +945,15 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             if(mechanicalSample!=sample)ShowMechanicalSample(sample);
             mechanicalMode=pressed?2:1;
             mechanicalTime=0f;
+            // Move the specimen to the appropriate testing platform
+            // BEFORE the tool moves, so the hammer strikes a real target.
+            if(mechanicalCube!=null)
+            {
+                mechanicalCube.gameObject.SetActive(true);
+                mechanicalCube.rectTransform.localScale=Vector3.one;
+                mechanicalCube.rectTransform.anchoredPosition=pressed?
+                    new Vector2(150,-12):new Vector2(-145,-12);
+            }
             hammerHasStruck=false;
             ResetHammer();
             if(mechanicalFlattened!=null)mechanicalFlattened.gameObject.SetActive(false);
