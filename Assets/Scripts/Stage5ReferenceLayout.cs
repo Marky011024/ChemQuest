@@ -836,21 +836,31 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         if(!animatedPressHead.gameObject.activeSelf) animatedPressHead.gameObject.SetActive(true);
         if(!animatedPressShaft.gameObject.activeSelf) animatedPressShaft.gameObject.SetActive(true);
         float down;
-        if(progress<impactPoint)
+        // A clear three-phase motion: lift 22px, descend and contact,
+        // then retract. The contact displacement is derived from the
+        // current specimen instead of always forcing a 40px stroke.
+        float offset;
+        if(progress<.18f)
         {
-            float u=Mathf.Clamp01(progress/impactPoint);
-            down=u*u*(3f-2f*u);
+            float u=Mathf.Clamp01(progress/.18f);
+            offset=-22f*u*u*(3f-2f*u);
         }
-        else if(progress<.78f) down=1f;
+        else if(progress<impactPoint)
+        {
+            float u=Mathf.Clamp01((progress-.18f)/(impactPoint-.18f));
+            u=u*u*(3f-2f*u);
+            offset=Mathf.Lerp(-22f,pressTravel,u);
+        }
+        else if(progress<.78f) offset=pressTravel;
         else
         {
             float u=Mathf.Clamp01((progress-.78f)/.22f);
-            down=1f-u*u*(3f-2f*u);
+            offset=Mathf.Lerp(pressTravel,0f,u*u*(3f-2f*u));
         }
         animatedPressHead.anchoredPosition=pressHeadHome+
-            Vector2.down*(pressTravel*down);
+            Vector2.down*offset;
         animatedPressShaft.anchoredPosition=pressShaftHome+
-            Vector2.down*(pressTravel*down);
+            Vector2.down*offset;
         bool contact=progress>=impactPoint&&progress<.80f;
         if(pressImpactGlow!=null)
         {
@@ -1192,8 +1202,20 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         ResetHammer();
         ResetPress();
         mechanicalShards=new Image[9];
+        // Upgrade already-baked scenes from round dots to faceted crystals.
+        var shardSprite=level==2?MakeCrystalShardSprite():null;
         for(int i=0;i<mechanicalShards.Length;i++)
+        {
             mechanicalShards[i]=Find(canvas,"MechanicalFragment"+i)?.GetComponent<Image>();
+            if(level==2 && mechanicalShards[i]!=null)
+            {
+                mechanicalShards[i].sprite=shardSprite;
+                mechanicalShards[i].overrideSprite=null;
+                mechanicalShards[i].color=new Color32(224,211,255,255);
+                mechanicalShards[i].preserveAspect=true;
+                mechanicalShards[i].raycastTarget=false;
+            }
+        }
         moltenPool=Find(canvas,"HeatedSampleLiquidPool")?.GetComponent<Image>();
         moltenHighlight=Find(canvas,"HeatedSampleLiquidShine")?.GetComponent<Image>();
         thermometerFill=Find(canvas,"LiveHeatMercury")?.GetComponent<Image>();
