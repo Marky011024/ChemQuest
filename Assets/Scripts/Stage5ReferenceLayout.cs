@@ -300,7 +300,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         }
         // The three real-material buttons are actual editable UI Images,
         // not part of the background. Touch control remains unchanged.
-        if(level==1)RefreshLevel1MaterialButtons();
+        if(level==1 || level==2)RefreshStage5MaterialButtons();
         // One mapped raycast surface handles both mouse and Android touch.
         // It sits above all artwork and legacy transparent controls.
         var hit=NewImage(canvas,"Stage5MappedTouchSurface",null,Color.clear);
@@ -313,21 +313,22 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         return true;
     }
 
-    private static readonly string[] Level1MaterialNames={
+    private static readonly string[] Stage5MaterialNames={
         "PARAFFIN WAX","SODIUM CHLORIDE","COPPER"
     };
 
-    // Maintain the exact Level 1 sample button hit regions and visual size.
-    // Uses the three separate PNG buttons already installed for Level 3.
-    // Repeated calls (Bake, Play, rebind) reuse the same GameObjects.
-    private void RefreshLevel1MaterialButtons()
+    // Levels 1 and 2 reuse separate editable material button sprites from
+    // Level 3 while preserving the original A/B/C drag and hit targets.
+    // Bake and Play reuse the saved RectTransforms, not fixed coordinates.
+    private void RefreshStage5MaterialButtons()
     {
-        if(level!=1 || canvas==null)return;
-        var row=Find(canvas,"Stage5Level1MaterialButtons") as RectTransform;
+        if((level!=1 && level!=2) || canvas==null)return;
+        string containerName="Stage5Level"+level+"MaterialButtons";
+        var row=Find(canvas,containerName) as RectTransform;
         bool newRow=row==null;
         if(row==null)
         {
-            var root=new GameObject("Stage5Level1MaterialButtons",
+            var root=new GameObject(containerName,
                 typeof(RectTransform));
             root.transform.SetParent(canvas,false);
             row=root.GetComponent<RectTransform>();
@@ -402,7 +403,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             if(sprite!=null)image.sprite=sprite;
             if(image.sprite==null)
             {
-                Debug.LogWarning("Stage 5 Level 1: Missing Sample"+
+                Debug.LogWarning("Stage 5 Level "+level+": Missing Sample"+
                     (char)('A'+i)+" sprite in ChemQuestStage5Modular.");
                 image.gameObject.SetActive(false);
                 continue;
@@ -1183,7 +1184,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         conductivityResultPlate=Find(canvas,"DynamicProbeResult")?.GetComponent<Image>();
         conductivityResultText=Find(canvas,"DynamicProbeResultLabel")?.GetComponent<TMP_Text>();
         if(level==3)PolishLevel3Reference();
-        if(level==1)RefreshLevel1MaterialButtons();
+        if(level==1 || level==2)RefreshStage5MaterialButtons();
         touchController=Find(canvas,"Stage5MappedTouchSurface")?.GetComponent<Stage5ReferenceTouchController>();
         if(touchController!=null)
         {
@@ -1281,8 +1282,8 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         if(!ready)return;
         selected=index;
         if(liveSample!=null)
-            liveSample.text=level==1 && index>=0 && index<3?
-                Level1MaterialNames[index]:"SAMPLE "+(char)('A'+index);
+            liveSample.text=(level==1 || level==2) && index>=0 && index<3?
+                Stage5MaterialNames[index]:"SAMPLE "+(char)('A'+index);
         if(liveStatus!=null)liveStatus.text="SELECT THE TEST ACTION";
         if(preview!=null) preview.gameObject.SetActive(false);
         if(level==1)
