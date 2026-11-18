@@ -69,6 +69,12 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
             visualLab=GetComponent<Stage5VisualLabDemo>();
             if(visualLab==null)visualLab=gameObject.AddComponent<Stage5VisualLabDemo>();
             visualLab.Initialize(Level,station);
+            // The animated bench has its own live state label; hide the two
+            // old centered text overlays so they cannot cover melting,
+            // fragments, probes, or the moving ions. All evidence remains
+            // available in Lab Notebook and the bottom feedback strip.
+            if(selectedLabel!=null)selectedLabel.enabled=false;
+            if(resultLabel!=null)resultLabel.enabled=false;
             if(Level==1 && heat!=null)visualLab.SetHeat(heat.value);
         }
         else Debug.LogWarning("CHEMQUEST Stage 5: TestStation was not found for visual simulation.");
