@@ -781,6 +781,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         if(Level!=3)return;
         selectedBin[sample]=bin;
         RefreshBins();
+        if(exactReference!=null)exactReference.ModularClassificationChanged(sample,bin);
         if(feedback!=null)feedback.text="Placed sample "+samples[sample]+
             " in "+(bin==0?"IONIC":bin==1?"MOLECULAR":"METALLIC")+" bin. Press CHECK to submit.";
     }

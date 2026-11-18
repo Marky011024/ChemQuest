@@ -51,6 +51,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     private Image conductivityResultPlate;
     private TMP_Text conductivityResultText;
     private Stage5ReferenceTouchController touchController;
+    private Stage5Level3ModularUI modularLevel3;
 
     private static readonly Color Navy=new Color32(5,29,57,250);
     private static readonly Color Gold=new Color32(255,207,109,255);
@@ -382,6 +383,12 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             Rect(notebookTitle.transform,new Vector2(0,122),new Vector2(260,32));
             notebookTitle.fontSize=20;
         }
+        // Real Image and TMP objects, serialized when the editor Bake menu runs.
+        // The original scene backdrop remains untouched behind these visuals.
+        modularLevel3=GetComponent<Stage5Level3ModularUI>();
+        if(modularLevel3==null)
+            modularLevel3=gameObject.AddComponent<Stage5Level3ModularUI>();
+        modularLevel3.Build(canvas);
     }
 
     private void PlaceLevel1Controls()
@@ -1053,6 +1060,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     {
         if(!ready||level!=3)return;
         phase=selectedPhase;
+        if(modularLevel3!=null)modularLevel3.SetPhase(selectedPhase);
         if(liveStatus!=null)
             liveStatus.text=(phase==0?"SOLID":phase==1?"MOLTEN":"AQUEOUS")+" SELECTED";
     }
@@ -1081,7 +1089,11 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             if(liveStatus!=null)liveStatus.text="ADJUST HEAT, THEN PRESS APPLY HEAT";
         }
         if(level==2)ShowMechanicalSample(index);
-        if(level==3)SetConductivityVisual(false,false);
+        if(level==3)
+        {
+            SetConductivityVisual(false,false);
+            if(modularLevel3!=null)modularLevel3.SetSelected(index);
+        }
         actionEffect=0;
     }
 
@@ -1147,6 +1159,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     {
         if(!ready)return;
         phase=state;
+        if(modularLevel3!=null)modularLevel3.SetPhase(state);
         if(preview!=null)preview.gameObject.SetActive(false);
         SetConductivityVisual(false,false);
         if(liveStatus!=null)liveStatus.text=
@@ -1169,6 +1182,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     private void SetConductivityVisual(bool tested,bool conducting)
     {
         if(level!=3)return;
+        if(modularLevel3!=null)modularLevel3.SetConductivity(tested,conducting);
         if(conductivityBulbMask!=null)
             conductivityBulbMask.color=conducting&&tested?
                 new Color(0,0,0,0):Navy;
@@ -1199,6 +1213,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         if(!ready||liveNotebook==null)return;
         if(level==3)
         {
+            if(modularLevel3!=null)modularLevel3.SetNotebook(a,b,c);
             // Compress two-line phase data to one readable row per sample,
             // preserving all observations. Aqueous is N/A for A and C.
             string Compact(string observation)
@@ -1217,6 +1232,12 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             "<color=#7ECDEF><b>A</b></color>  "+a+"\n\n"+
             "<color=#D4A5FF><b>B</b></color>  "+b+"\n\n"+
             "<color=#7FF3DC><b>C</b></color>  "+c;
+    }
+
+    public void ModularClassificationChanged(int sample,int bin)
+    {
+        if(level==3 && modularLevel3!=null)
+            modularLevel3.SetClassification(sample,bin);
     }
 
     private void SetResult(string spriteName,string message)
