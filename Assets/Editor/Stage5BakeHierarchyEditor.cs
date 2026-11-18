@@ -45,6 +45,9 @@ public static class Stage5BakeHierarchyEditor
         }
 
         EnsureOriginalSprites();
+        // Stage 5 Level 3 uses full standalone PNG UI sprites, never atlas
+        // fragments nor dynamic Texture2D fallback sprites.
+        if(controller.Level==3)EnsureModularLevel3Sprites();
         AssetDatabase.Refresh();
         var canvas=GameObject.Find("Stage5Level"+controller.Level+"Canvas");
         bool alreadyBaked=canvas!=null && FindChild(canvas.transform,
@@ -145,10 +148,44 @@ public static class Stage5BakeHierarchyEditor
         if(!File.Exists(assetPath))return;
         var importer=AssetImporter.GetAtPath(assetPath) as TextureImporter;
         if(importer==null)return;
-        if(importer.textureType==TextureImporterType.Sprite)return;
+        if(importer.textureType==TextureImporterType.Sprite &&
+           importer.spriteImportMode==SpriteImportMode.Single)return;
         importer.textureType=TextureImporterType.Sprite;
         importer.spriteImportMode=SpriteImportMode.Single;
         importer.SaveAndReimport();
+    }
+
+    private static void EnsureModularLevel3Sprites()
+    {
+        const string directory="Assets/Resources/ChemQuestStage5Modular/";
+        foreach(string filename in new[]{
+            "SampleHeader","SampleA","SampleB","SampleC","TestProbe",
+            "ClassIonic","ClassCovalent","ClassMetallic",
+            "PhaseSolidClean","PhaseMoltenClean","PhaseAqueousClean",
+            "ConductivityConductsGreen","ConductivityDoesNotConductRed"})
+        {
+            var file=directory+filename+".png";
+            if(!File.Exists(file))continue;
+            var importer=AssetImporter.GetAtPath(file) as TextureImporter;
+            if(importer==null)continue;
+            bool changed=false;
+            if(importer.textureType!=TextureImporterType.Sprite)
+            {
+                importer.textureType=TextureImporterType.Sprite;
+                changed=true;
+            }
+            if(importer.spriteImportMode!=SpriteImportMode.Single)
+            {
+                importer.spriteImportMode=SpriteImportMode.Single;
+                changed=true;
+            }
+            if(importer.mipmapEnabled)
+            {
+                importer.mipmapEnabled=false;
+                changed=true;
+            }
+            if(changed)importer.SaveAndReimport();
+        }
     }
 
     // Runtime-created oval and liquid sprites would otherwise disappear
@@ -169,6 +206,17 @@ public static class Stage5BakeHierarchyEditor
             if(!string.IsNullOrEmpty(AssetDatabase.GetAssetPath(image.sprite)))continue;
             var tex=image.sprite.texture;
             if(tex==null)continue;
+            // A Sprite.Create(texture, ...) can have no sprite asset path,
+            // even though the texture is already imported. Never re-encode
+            // an imported Texture2D: its GPU copy may not be CPU-readable.
+            if(!string.IsNullOrEmpty(AssetDatabase.GetAssetPath(tex)))
+                continue;
+            if(!tex.isReadable)
+            {
+                Debug.LogWarning("Stage 5: Skipped transient non-readable sprite "+
+                    image.gameObject.name+". Source PNG remains unchanged.");
+                continue;
+            }
             Texture2D key=tex;
             if(!converted.TryGetValue(key,out var persistent))
             {
