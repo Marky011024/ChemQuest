@@ -426,11 +426,27 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
     {
         var sprite=LoadButtonArt(spriteName);
         if(sprite==null)return; // Keep functional fallback if pack is absent.
+        // Level 3 button images are now pre-sized at ~2x their final UI
+        // resolution (not multi-thousand-pixel source art). Always use a
+        // single, fully fitted sprite rather than preserving stale overrides.
+        face.overrideSprite=null;
         face.sprite=sprite;
         face.color=Color.white;
-        face.preserveAspect=false;
         face.type=Image.Type.Simple;
+        face.preserveAspect=true;
+        face.useSpriteMesh=false;
+        face.pixelsPerUnitMultiplier=1f;
         face.raycastTarget=false; // Touch controller owns the actual clicks.
+        var rect=face.rectTransform;
+        var frame=face.transform.parent as RectTransform;
+        if(frame!=null)
+        {
+            rect.anchorMin=rect.anchorMax=new Vector2(.5f,.5f);
+            rect.pivot=new Vector2(.5f,.5f);
+            rect.anchoredPosition=Vector2.zero;
+            rect.sizeDelta=frame.sizeDelta-new Vector2(4f,4f);
+            rect.localScale=Vector3.one;
+        }
         // The PNG includes its own glossy border and silhouette; keeping the
         // procedurally generated frame caused the ugly gold rectangles.
         var outerFrame=Find(face.transform.parent,"BorderImage");
@@ -446,9 +462,12 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
         var sprite=LoadButtonArt(spriteName);
         if(sprite==null)return;
         var header=EnsureImage(parent,spriteName+"_SeparateSprite");
+        header.overrideSprite=null;
         header.sprite=sprite;
         header.color=Color.white;
-        header.preserveAspect=false;
+        header.type=Image.Type.Simple;
+        header.preserveAspect=true;
+        header.useSpriteMesh=false;
         Place(header.rectTransform,position,size);
         header.transform.SetAsLastSibling();
         var frame=Find(parent,"PanelBackground_Frame");
