@@ -101,16 +101,24 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         Rect(notebook,new Vector2(400,6),new Vector2(282,325));
         // The generated mockups have incorrect pre-filled results.
         // Mask ONLY the notebook entries and replace them with real observations.
-        var ink=NewImage(canvas,"AccurateNotebookPanel",null,Navy);
-        Rect(ink.transform,new Vector2(399,-2),new Vector2(275,314));
+        // Fully opaque notebook mask: the approved reference is a *sample
+        // screenshot* with example answers baked into its pixels. Leaving
+        // those visible underneath the live answers caused the overlaps.
+        var ink=NewImage(canvas,"AccurateNotebookPanel",null,new Color32(5,29,57,255));
+        Rect(ink.transform,new Vector2(399,-2),new Vector2(284,315));
         ink.raycastTarget=false;
         liveNotebook=NewText(ink.transform,"ActualNotebook","A: Not tested\n\nB: Not tested\n\nC: Not tested",
-            18,new Vector2(0,-13),new Vector2(254,223),Color.white);
+            15,new Vector2(0,-12),new Vector2(262,237),Color.white);
         var title=NewText(ink.transform,"ActualNotebookTitle","LAB NOTEBOOK",22,
             new Vector2(0,124),new Vector2(264,35),Gold);
         title.fontStyle=FontStyles.Bold;
         liveNotebook.alignment=TextAlignmentOptions.TopLeft;
-        liveNotebook.margin=new Vector4(8,6,6,3);
+        liveNotebook.margin=new Vector4(9,12,9,4);
+        liveNotebook.enableAutoSizing=true;
+        liveNotebook.fontSizeMin=12;
+        liveNotebook.fontSizeMax=15;
+        liveNotebook.overflowMode=TextOverflowModes.Ellipsis;
+        liveNotebook.lineSpacing=3f;
 
         // Put a transparent drop target on the real picture, not an artificial box.
         if(station!=null)
@@ -155,20 +163,11 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         var menuText=menu?.GetComponentInChildren<TMP_Text>(true);
         if(menuText!=null)menuText.enabled=false;
         var score=Find(sceneRoot,"Score")?.GetComponent<TMP_Text>();
-        if(score!=null)
-        {
-            Rect(score.transform,new Vector2(555,303),new Vector2(128,62));
-            score.fontSize=17;
-            score.color=Gold;
-            score.fontStyle=FontStyles.Bold;
-            score.alignment=TextAlignmentOptions.Center;
-        }
+        // These are drawn in the new live HUD. Disable old labels rather
+        // than moving them on top of the text already present in the art.
+        if(score!=null)score.enabled=false;
         var energyCount=Find(sceneRoot,"EnergyCount")?.GetComponent<TMP_Text>();
-        if(energyCount!=null)
-        {
-            Rect(energyCount.transform,new Vector2(-312,309),new Vector2(78,35));
-            energyCount.fontSize=20;energyCount.fontStyle=FontStyles.Bold;
-        }
+        if(energyCount!=null)energyCount.enabled=false;
         var energyLabel=Find(sceneRoot,"EnergyLabel")?.GetComponent<TMP_Text>();
         if(energyLabel!=null)energyLabel.enabled=false;
         for(int i=1;i<=5;i++)
@@ -177,26 +176,35 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             if(energyImg!=null)energyImg.enabled=false;
         }
         // Live readouts are redrawn above the static reference art.
-        dynamicScore=NewText(canvas,"ReferenceLiveScore","000000",17,
-            new Vector2(562,306),new Vector2(125,24),Gold);
-        dynamicEnergy=NewText(canvas,"ReferenceLiveEnergy","5/5",20,
-            new Vector2(-314,313),new Vector2(72,28),Color.white);
+        // Opaque patches over the numbers baked into Level1/2/3 reference
+        // pictures. There is now only ONE score and ONE energy counter.
+        var scoreMask=NewImage(canvas,"ReferenceScoreMask",null,new Color32(7,29,57,255));
+        Rect(scoreMask.transform,new Vector2(557,310),new Vector2(114,29));
+        dynamicScore=NewText(scoreMask.transform,"ReferenceLiveScore","000000",18,
+            Vector2.zero,new Vector2(113,26),Gold);
+        dynamicScore.fontStyle=FontStyles.Bold;
+
+        var energyMask=NewImage(canvas,"ReferenceEnergyMask",null,new Color32(7,29,57,255));
+        Rect(energyMask.transform,new Vector2(-308,313),new Vector2(77,28));
+        dynamicEnergy=NewText(energyMask.transform,"ReferenceLiveEnergy","5 / 5",18,
+            Vector2.zero,new Vector2(75,26),Color.white);
+        dynamicEnergy.fontStyle=FontStyles.Bold;
         if(level<=2)
         {
-            var progressPanel=NewImage(canvas,"ReferenceProgressPlate",null,Navy);
-            Rect(progressPanel.transform,new Vector2(0,-303),new Vector2(275,34));
+            var progressPanel=NewImage(canvas,"ReferenceProgressPlate",null,new Color32(5,29,57,255));
+            Rect(progressPanel.transform,new Vector2(0,-303),new Vector2(310,36));
             dynamicProgress=NewText(progressPanel.transform,"ReferenceProgress","SAMPLES TESTED 0 / 3",
-                17,Vector2.zero,new Vector2(268,30),Cyan);
+                16,Vector2.zero,new Vector2(302,30),Cyan);
         }
         if(level==1)
         {
             var knob=NewImage(canvas,"ReferenceHeatKnob",null,Gold);
             dynamicHeatKnob=knob;
             Rect(knob.transform,new Vector2(-294,-221),new Vector2(23,34));
-            var heatPlate=NewImage(canvas,"ReferenceHeatReadoutPlate",null,Navy);
-            Rect(heatPlate.transform,new Vector2(458,-222),new Vector2(130,40));
+            var heatPlate=NewImage(canvas,"ReferenceHeatReadoutPlate",null,new Color32(5,29,57,255));
+            Rect(heatPlate.transform,new Vector2(461,-222),new Vector2(155,40));
             dynamicHeatReadout=NewText(heatPlate.transform,"ReferenceHeatReadout","HEAT: 0%",
-                16,Vector2.zero,new Vector2(126,34),Gold);
+                16,Vector2.zero,new Vector2(149,33),Gold);
         }
         if(level==3)
         {
@@ -316,12 +324,11 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         selected=index;
         if(liveSample!=null)liveSample.text="SAMPLE "+(char)('A'+index);
         if(liveStatus!=null)liveStatus.text="SELECT THE TEST ACTION";
-        if(preview!=null)
-        {
-            preview.gameObject.SetActive(false);
-            // Show the solid sample on the heater BEFORE the melting test.
-            if(level==1)SetResult("HeatSolid","ADJUST HEAT, THEN TEST");
-        }
+        if(preview!=null) preview.gameObject.SetActive(false);
+        // HeatSolid.png contains an entire miniature UI screenshot, not an
+        // isolated sample. Never show that resource inside the experiment.
+        if(level==1 && liveStatus!=null)
+            liveStatus.text="ADJUST HEAT, THEN PRESS APPLY HEAT";
         if(level==3)SetConductivityVisual(false,false);
         actionEffect=0;
     }
