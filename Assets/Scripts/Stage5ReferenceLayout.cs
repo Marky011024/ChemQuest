@@ -1167,7 +1167,14 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         moltenHighlight=Find(canvas,"HeatedSampleLiquidShine")?.GetComponent<Image>();
         thermometerFill=Find(canvas,"LiveHeatMercury")?.GetComponent<Image>();
         thermometerValue=Find(canvas,"ThermometerPercent")?.GetComponent<TMP_Text>();
-        dynamicPlateHeat=Find(canvas,"HotplateHeatPercent")?.GetComponent<TMP_Text>();
+        // The editable heater readout is named LiveHotplateHeat in
+        // BuildEmptyHeatingBench(). Older scenes used HotplateHeatPercent.
+        // Resolve both so the hotplate LED mirrors the heat slider.
+        dynamicPlateHeat=Find(canvas,"LiveHotplateHeat")?.GetComponent<TMP_Text>();
+        if(dynamicPlateHeat==null)
+            dynamicPlateHeat=Find(canvas,"HotplateHeatPercent")?.GetComponent<TMP_Text>();
+        if(dynamicPlateHeat==null && level==1)
+            Debug.LogWarning("Stage 5 Level 1: Hotplate heat readout is missing.");
         dynamicHeatReadout=Find(canvas,"ReferenceHeatReadout")?.GetComponent<TMP_Text>();
         dynamicProgress=Find(canvas,"ReferenceProgress")?.GetComponent<TMP_Text>();
         dynamicScore=Find(canvas,"ReferenceLiveScore")?.GetComponent<TMP_Text>();
