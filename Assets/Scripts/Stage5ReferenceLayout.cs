@@ -21,6 +21,11 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     private Image dynamicHeatKnob;
     private Image dynamicHeatFill;
     private Image heatingSample;
+    private Image moltenPool;
+    private Image moltenHighlight;
+    private bool isMelting;
+    private float meltingTime;
+    private static readonly Color WarmLiquid = new Color32(255,183,119,243);
     private Image thermometerFill;
     private TMP_Text thermometerValue;
     private TMP_Text dynamicPlateHeat;
@@ -339,6 +344,17 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         Rect(heatingSample.transform,new Vector2(-24,53),new Vector2(108,100));
         heatingSample.preserveAspect=true;
         heatingSample.gameObject.SetActive(false);
+        // Hidden until the player heats Sample A. These dynamically animated
+        // liquid layers live on the real heater, not in a screenshot preview.
+        var liquidSprite=MakeOvalSprite();
+        moltenPool=NewImage(canvas,"HeatedSampleLiquidPool",liquidSprite,
+            new Color32(255,128,61,0));
+        Rect(moltenPool.transform,new Vector2(-24,17),new Vector2(5,10));
+        moltenPool.gameObject.SetActive(false);
+        moltenHighlight=NewImage(canvas,"HeatedSampleLiquidShine",liquidSprite,
+            new Color32(255,230,189,0));
+        Rect(moltenHighlight.transform,new Vector2(-24,22),new Vector2(5,3));
+        moltenHighlight.gameObject.SetActive(false);
 
         var meter=NewImage(canvas,"HeatThermometerBlank",null,new Color32(7,26,51,255));
         Rect(meter.transform,new Vector2(198,44),new Vector2(88,216));
@@ -383,8 +399,16 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
 
     private void ShowHeatingSample(int index)
     {
+        if(level!=1)return;
+        isMelting=false;
+        meltingTime=0f;
+        if(moltenPool!=null)moltenPool.gameObject.SetActive(false);
+        if(moltenHighlight!=null)moltenHighlight.gameObject.SetActive(false);
         if(heatingSample==null || index<0 || index>2)return;
         heatingSample.sprite=ResourceSprite("DragSample"+index);
+        heatingSample.rectTransform.localScale=Vector3.one;
+        heatingSample.rectTransform.anchoredPosition=new Vector2(-24,53);
+        heatingSample.color=Color.white;
         heatingSample.gameObject.SetActive(heatingSample.sprite!=null);
     }
 
@@ -458,8 +482,17 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         actionEffect=1;
         if(sample==0)
         {
-            if(heatingSample!=null) heatingSample.gameObject.SetActive(false);
-            SetResult("HeatMelt","SAMPLE A MELTS");
+            // Do NOT remove the cube before rendering the result.
+            // Animate the solid shrinking and spreading into a liquid puddle
+            // at the precise heater pad location over ~2 seconds.
+            if(heatingSample!=null && !heatingSample.gameObject.activeSelf)
+                ShowHeatingSample(sample);
+            isMelting=true;
+            meltingTime=0f;
+            if(moltenPool!=null)moltenPool.gameObject.SetActive(true);
+            if(moltenHighlight!=null)moltenHighlight.gameObject.SetActive(true);
+            if(preview!=null)preview.gameObject.SetActive(false);
+            if(liveStatus!=null)liveStatus.text="SAMPLE A IS MELTING";
         }
         else
         {
@@ -553,7 +586,9 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
 
     private void Update()
     {
-        if(!ready || preview==null || !preview.gameObject.activeSelf)return;
+        if(!ready)return;
+        if(isMelting)AnimateMelting();
+        if(preview==null || !preview.gameObject.activeSelf)return;
         effectTime+=Time.deltaTime;
         float t=Mathf.Clamp01(effectTime/(actionEffect==1?1.75f:
             actionEffect==3?1.25f:.65f));
@@ -638,4 +673,38 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             if(t.name==name)return t;
         return null;
     }
+    private void AnimateMelting()
+    {
+        meltingTime+=Time.deltaTime;
+        float t=Mathf.Clamp01(meltingTime/2.4f);
+        float smooth=t*t*(3f-2f*t);
+        if(heatingSample!=null)
+        {
+            var r=heatingSample.rectTransform;
+            r.localScale=new Vector3(1f+.24f*smooth,Mathf.Max(.10f,1f-.90f*smooth),1f);
+            r.anchoredPosition=new Vector2(-24f,53f-30f*smooth);
+            heatingSample.color=Color.Lerp(Color.white,WarmLiquid,smooth);
+            // Keep a tiny softened remnant at the end, surrounded by
+            // the wide visible liquid pool.
+        }
+        if(moltenPool!=null)
+        {
+            var r=moltenPool.rectTransform;
+            Rect(r,new Vector2(-24,16),new Vector2(10+188*smooth,8+37*smooth));
+            moltenPool.color=new Color(1f,.43f,.17f,.18f+.74f*smooth);
+        }
+        if(moltenHighlight!=null)
+        {
+            float shimmer=.84f+.14f*Mathf.Sin(meltingTime*7f);
+            Rect(moltenHighlight.rectTransform,new Vector2(-17,22),
+                new Vector2(10+140*smooth,3+13*smooth));
+            moltenHighlight.color=new Color(1f,.86f,.64f,.10f+.60f*smooth*shimmer);
+        }
+        if(t>=1f)
+        {
+            isMelting=false;
+            if(liveStatus!=null)liveStatus.text="SAMPLE A MELTED INTO LIQUID";
+        }
+    }
+
 }
