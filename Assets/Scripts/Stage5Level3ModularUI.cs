@@ -58,14 +58,15 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
         matte.sprite=null;
         matte.color=Deep;
         matte.type=Image.Type.Simple;
-        Place(matte.rectTransform,new Vector2(0,-70),
-            new Vector2(1124,568));
+        // Cover the entire pre-painted second title but not the top STAGE 5 HUD.
+        Place(matte.rectTransform,new Vector2(0,-53),
+            new Vector2(1124,584));
         matte.rectTransform.SetAsFirstSibling();
         Label(ui,"LevelTitle","SOLUTION & PHASE CONDUCTIVITY",
-            new Vector2(0,183),new Vector2(1010,44),30,Gold);
+            new Vector2(0,177),new Vector2(1010,40),29,Gold);
         Label(ui,"Instructions",
             "Test SOLID and MOLTEN states. Test AQUEOUS when applicable, then classify.",
-            new Vector2(0,147),new Vector2(1030,24),15,Text);
+            new Vector2(0,143),new Vector2(1030,23),15,Text);
 
         var bank=Group(ui,"UnknownSamplesPanel",new Vector2(-421,-41),new Vector2(252,331));
         PanelImage(bank,"PanelBackground",Vector2.zero,new Vector2(252,331),Panel,Border);
@@ -109,19 +110,23 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
             new Color32(89,150,230,255),Gold);
         InstallButtonArt(positive,"ElectrodePositive");
         InstallButtonArt(negative,"ElectrodeNegative");
-        // The cropped wire sprites included neighboring yellow pixels.
-        // Draw the actual circuit as distinct editable Unity Images, each
-        // below the bulb and electrodes. No cropped-sheet dependency.
-        realWire=PanelImage(apparatus,"ConnectingWire",
-            new Vector2(0,75),new Vector2(145,5),Gold,Gold);
-        var oldWireFrame=Find(realWire.transform.parent,"BorderImage");
-        if(oldWireFrame!=null)oldWireFrame.gameObject.SetActive(false);
-        realWire.sprite=RoundedSprite();
-        PanelImage(apparatus,"LeftWireRise",new Vector2(-72,60),
-            new Vector2(6,36),Gold,Gold);
-        PanelImage(apparatus,"RightWireRise",new Vector2(72,60),
-            new Vector2(6,36),Gold,Gold);
-        realWire.transform.parent.SetSiblingIndex(3);
+        // Individually editable circuit segments connect the bulb to both
+        // electrodes. The center is left clear for the bulb itself.
+        // Deactivate the obsolete single wire and legacy vertical strips.
+        foreach(var obsolete in new[]{"ConnectingWire_Frame",
+            "LeftWireRise_Frame","RightWireRise_Frame"})
+        {
+            var item=Find(apparatus,obsolete);
+            if(item!=null)item.gameObject.SetActive(false);
+        }
+        realWire=CircuitSegment(apparatus,"Wire_LeftHorizontal",
+            new Vector2(-40,78),new Vector2(41,5));
+        CircuitSegment(apparatus,"Wire_RightHorizontal",
+            new Vector2(40,78),new Vector2(41,5));
+        CircuitSegment(apparatus,"Wire_LeftVertical",
+            new Vector2(-61,72),new Vector2(5,22));
+        CircuitSegment(apparatus,"Wire_RightVertical",
+            new Vector2(61,72),new Vector2(5,22));
         var bulb=Group(apparatus,"ConductivityBulb",
             new Vector2(0,80),new Vector2(55,59));
         bulbGlow=PanelImage(bulb,"BulbGlow",Vector2.zero,
@@ -219,7 +224,26 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
                 {
                     caption.gameObject.SetActive(true);
                     var textComponent=caption.GetComponent<TMP_Text>();
-                    if(textComponent!=null)textComponent.text="◆ METALLIC ELEMENT";
+                    if(textComponent!=null)
+                    {
+                        textComponent.text="METALLIC ELEMENT";
+                        Place(caption as RectTransform,new Vector2(18,0),new Vector2(190,47));
+                        textComponent.fontSize=15;
+                    }
+                }
+                // Three separately editable metallic blocks replace the
+                // unsupported square-glyph icon.
+                var metalIcon=Group(classRoot,"MetalBlocks",
+                    new Vector2(-87,0),new Vector2(45,38));
+                for(int block=0;block<3;block++)
+                {
+                    var piece=EnsureImage(metalIcon,"MetalBlock_"+block);
+                    piece.sprite=RoundedSprite();
+                    piece.color=new Color32(200,220,239,255);
+                    Place(piece.rectTransform,
+                        block==0?new Vector2(-10,-8):
+                        block==1?new Vector2(10,-8):new Vector2(0,8),
+                        new Vector2(20,15));
                 }
             }
         }
@@ -296,14 +320,8 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
             if(sprite!=null){realBulb.sprite=sprite;realBulb.color=Color.white;}
             realBulb.preserveAspect=true;
         }
-        if(realWire!=null)
-        {
-            // Adjust active circuit tint without swapping in bad sprite crops.
-            realWire.sprite=RoundedSprite();
-            realWire.color=tested&&conducts?
-                new Color32(255,200,66,255):new Color32(138,171,207,255);
-        }
-        foreach(string cable in new[]{"LeftWireRise","RightWireRise"})
+        foreach(string cable in new[]{"Wire_LeftHorizontal","Wire_RightHorizontal",
+            "Wire_LeftVertical","Wire_RightVertical"})
         {
             var wire=Find(ui,cable)?.GetComponent<Image>();
             if(wire!=null)wire.color=tested&&conducts?
@@ -393,6 +411,16 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
         var frame=Find(parent,"PanelBackground_Frame");
         if(frame!=null)frame.gameObject.SetActive(true);
         if(oldHeaderText!=null)oldHeaderText.gameObject.SetActive(false);
+    }
+
+    private static Image CircuitSegment(Transform parent,string name,
+        Vector2 pos,Vector2 size)
+    {
+        var piece=EnsureImage(parent,name);
+        piece.sprite=RoundedSprite();
+        piece.color=new Color32(138,171,207,255);
+        Place(piece.rectTransform,pos,size);
+        return piece;
     }
 
     private static RectTransform Group(Transform parent,string name,Vector2 pos,Vector2 size)
