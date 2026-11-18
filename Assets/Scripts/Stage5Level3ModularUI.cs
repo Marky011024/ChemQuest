@@ -57,14 +57,14 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
         matte.sprite=null;
         matte.color=Deep;
         matte.type=Image.Type.Simple;
-        Place(matte.rectTransform,new Vector2(0,-80),
-            new Vector2(1124,552));
+        Place(matte.rectTransform,new Vector2(0,-70),
+            new Vector2(1124,568));
         matte.rectTransform.SetAsFirstSibling();
         Label(ui,"LevelTitle","SOLUTION & PHASE CONDUCTIVITY",
-            new Vector2(0,169),new Vector2(1010,44),30,Gold);
+            new Vector2(0,183),new Vector2(1010,44),30,Gold);
         Label(ui,"Instructions",
             "Test SOLID and MOLTEN states. Test AQUEOUS when applicable, then classify.",
-            new Vector2(0,136),new Vector2(1030,24),15,Text);
+            new Vector2(0,147),new Vector2(1030,24),15,Text);
 
         var bank=Group(ui,"UnknownSamplesPanel",new Vector2(-421,-41),new Vector2(252,331));
         PanelImage(bank,"PanelBackground",Vector2.zero,new Vector2(252,331),Panel,Border);
@@ -114,13 +114,13 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
         // Keep the connecting wires behind the electrode caps.
         realWire.transform.parent.SetSiblingIndex(3);
         var bulb=Group(apparatus,"ConductivityBulb",
-            new Vector2(0,94),new Vector2(55,70));
+            new Vector2(0,80),new Vector2(55,59));
         bulbGlow=PanelImage(bulb,"BulbGlow",Vector2.zero,
             new Vector2(43,46),Off,Gold);
         var oldBulbSymbol=Label(bulb,"BulbSymbol","*",
             Vector2.zero,new Vector2(35,35),25,Text);
         realBulb=PanelImage(bulb,"BulbStateSprite",Vector2.zero,
-            new Vector2(55,70),Color.white,Gold);
+            new Vector2(55,59),Color.white,Gold);
         InstallButtonArt(realBulb,"BulbOff",
             Find(bulb,"BulbGlow_Frame"),oldBulbSymbol.transform);
         for(int i=0;i<8;i++)
