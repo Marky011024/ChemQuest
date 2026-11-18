@@ -209,43 +209,22 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
                 new Vector2(bx[i],-4),new Vector2(i==2?255:244,61),bins[i],Off);
             classCards[i]=face;
             var classRoot=Find(bottom,"ClassificationButton_"+i);
-            if(i<2)
-                InstallButtonArt(face,i==0?"ClassIonic":"ClassCovalent",
-                    Find(classRoot,"ButtonText"));
-            else
+            // All three category buttons now use individual complete PNG
+            // sprites. The old METALLIC placeholder is used only if PNG is
+            // absent; it is hidden on subsequent scene bakes otherwise.
+            string art=i==0?"ClassIonic":i==1?"ClassCovalent":"ClassMetallic";
+            InstallButtonArt(face,art,Find(classRoot,"ButtonText"));
+            var legacyMetal=Find(classRoot,"MetalBlocks");
+            if(legacyMetal!=null)
+                legacyMetal.gameObject.SetActive(false);
+            if(i==2 && !UsingReferenceArt(face))
             {
-                // The shipped ClassMetallic.png contains neighboring artwork.
-                // Use an independent real Image/text button until a clean sprite
-                // is available. This also works on previously baked scenes.
-                var frame=Find(face.transform.parent,"BorderImage");
-                if(frame!=null)frame.gameObject.SetActive(true);
-                face.sprite=RoundedSprite();
-                face.color=new Color32(10,105,158,255);
                 var caption=Find(classRoot,"ButtonText");
                 if(caption!=null)
                 {
                     caption.gameObject.SetActive(true);
-                    var textComponent=caption.GetComponent<TMP_Text>();
-                    if(textComponent!=null)
-                    {
-                        textComponent.text="METALLIC ELEMENT";
-                        Place(caption as RectTransform,new Vector2(18,0),new Vector2(190,47));
-                        textComponent.fontSize=15;
-                    }
-                }
-                // Three separately editable metallic blocks replace the
-                // unsupported square-glyph icon.
-                var metalIcon=Group(classRoot,"MetalBlocks",
-                    new Vector2(-87,0),new Vector2(45,38));
-                for(int block=0;block<3;block++)
-                {
-                    var piece=EnsureImage(metalIcon,"MetalBlock_"+block);
-                    piece.sprite=RoundedSprite();
-                    piece.color=new Color32(200,220,239,255);
-                    Place(piece.rectTransform,
-                        block==0?new Vector2(-10,-8):
-                        block==1?new Vector2(10,-8):new Vector2(0,8),
-                        new Vector2(20,15));
+                    var txt=caption.GetComponent<TMP_Text>();
+                    if(txt!=null)txt.text="METALLIC ELEMENT";
                 }
             }
         }
@@ -471,6 +450,7 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
         header.color=Color.white;
         header.preserveAspect=false;
         Place(header.rectTransform,position,size);
+        header.transform.SetAsLastSibling();
         var frame=Find(parent,"PanelBackground_Frame");
         if(frame!=null)frame.gameObject.SetActive(true);
         if(oldHeaderText!=null)oldHeaderText.gameObject.SetActive(false);
