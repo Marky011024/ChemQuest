@@ -231,8 +231,16 @@ public sealed class Stage5VisualLabDemo : MonoBehaviour
             new Color(.20f,.72f,.94f,.65f);
         lamp.color=probed&&conducting?Gold:Slate;
         bulbHalo.color=probed&&conducting?new Color(1f,.83f,.18f,.37f):new Color(1f,.83f,.18f,0f);
-        foreach(var ion in ions)
-            ion.gameObject.SetActive(available && probed && conducting && phase!=0 && sample==1);
+        // Ions move in molten / aqueous ionic samples; in metallic samples
+        // the mobile charge carriers are electrons, even while solid.
+        bool showCharges=available && probed && conducting &&
+            ((sample==1 && phase!=0) || (sample==2 && phase!=2));
+        for(int i=0;i<ions.Length;i++)
+        {
+            ions[i].gameObject.SetActive(showCharges);
+            ions[i].color=sample==2 ? new Color(.89f,.94f,1f,1f) :
+                (i%2==0 ? new Color(.36f,1f,.51f,1f) : new Color(.82f,.43f,1f,1f));
+        }
     }
 
     private void Update()
@@ -329,7 +337,7 @@ public sealed class Stage5VisualLabDemo : MonoBehaviour
             bulbHalo.color=new Color(1f,.81f,.12f,.25f+.18f*(.5f+.5f*Mathf.Sin(elapsed*6f)));
             lamp.color=Color.Lerp(Gold,Color.white,.20f+.15f*Mathf.Sin(elapsed*5f));
         }
-        if(probed&&conducting&&sample==1&&phase!=0)
+        if(probed&&conducting&&((sample==1&&phase!=0)||(sample==2&&phase!=2)))
         {
             for(int i=0;i<ions.Length;i++)
             {
