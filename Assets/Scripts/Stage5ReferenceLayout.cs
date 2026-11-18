@@ -395,13 +395,13 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         {
             mechanicalShards[i]=NewImage(canvas,"MechanicalFragment"+i,
                 fragmentSprite,new Color32(207,187,255,255));
-            Rect(mechanicalShards[i].transform,new Vector2(-145,-40),
+            Rect(mechanicalShards[i].transform,new Vector2(-145,-155),
                 new Vector2(22,17));
             mechanicalShards[i].gameObject.SetActive(false);
         }
         mechanicalFlattened=NewImage(canvas,"MechanicalFlattenedMetal",
             fragmentSprite,new Color32(200,231,252,255));
-        Rect(mechanicalFlattened.transform,new Vector2(152,-38),
+        Rect(mechanicalFlattened.transform,new Vector2(152,-157),
             new Vector2(14,10));
         mechanicalFlattened.gameObject.SetActive(false);
         BuildAnimatedHammer();
@@ -411,28 +411,13 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     private void DecorateMechanicalWorkBench()
     {
         if(canvas==null)return;
-        // Keep one set of machine-platform decorations when the editor
-        // Bake menu is run repeatedly (including existing saved scenes).
-        var oval=MakeOvalSprite();
-        var coordinates=new[]{
-            new Vector2(-145,-57),new Vector2(152,-57)};
-        for(int i=0;i<2;i++)
+        // The revised Level2.png already contains both lowered platforms.
+        // Disable the old floating overlays, including in previously baked scenes.
+        foreach(string name in new[]{"StrikeBenchSurface","PressBenchSurface",
+            "StrikeBenchGlow","PressBenchGlow"})
         {
-            string name=i==0?"StrikeBenchSurface":"PressBenchSurface";
-            Image platform=Find(canvas,name)?.GetComponent<Image>();
-            if(platform==null)platform=NewImage(canvas,name,oval,
-                new Color32(70,123,166,255));
-            if(platform.sprite==null)platform.sprite=oval;
-            platform.color=new Color32(70,123,166,255);
-            Rect(platform.transform,coordinates[i],new Vector2(135,21));
-
-            string rimName=i==0?"StrikeBenchGlow":"PressBenchGlow";
-            Image rim=Find(canvas,rimName)?.GetComponent<Image>();
-            if(rim==null)rim=NewImage(canvas,rimName,oval,
-                new Color32(247,165,71,210));
-            if(rim.sprite==null)rim.sprite=oval;
-            rim.color=new Color32(247,165,71,210);
-            Rect(rim.transform,coordinates[i]+new Vector2(0,6),new Vector2(130,8));
+            var old=Find(canvas,name)?.GetComponent<Image>();
+            if(old!=null)old.enabled=false;
         }
     }
 
@@ -457,7 +442,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             typeof(RectTransform));
         pivotObject.transform.SetParent(canvas,false);
         animatedHammerPivot=pivotObject.GetComponent<RectTransform>();
-        Rect(animatedHammerPivot,new Vector2(-238,35),new Vector2(1,1));
+        Rect(animatedHammerPivot,new Vector2(-238,-85),new Vector2(1,1));
 
         // Hammer arm extends from the fixed hinge; the tip travels in an
         // arc when the pivot rotates (instead of sliding a flat illustration).
@@ -479,11 +464,11 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         Rect(band.transform,new Vector2(93,0),new Vector2(5,51));
         var hinge=NewImage(canvas,"AnimatedHammerHinge",MakeOvalSprite(),
             new Color32(217,179,109,255));
-        Rect(hinge.transform,new Vector2(-238,35),new Vector2(24,24));
+        Rect(hinge.transform,new Vector2(-238,-85),new Vector2(24,24));
 
         hammerImpactFlash=NewImage(canvas,"HammerImpactFlash",MakeOvalSprite(),
             new Color32(255,227,126,0));
-        Rect(hammerImpactFlash.transform,new Vector2(-145,-30),new Vector2(88,42));
+        Rect(hammerImpactFlash.transform,new Vector2(-145,-150),new Vector2(88,42));
         hammerImpactFlash.gameObject.SetActive(false);
         ResetHammer();
     }
@@ -552,7 +537,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         var shaft=Find(canvas,"AnimatedPressShaft")?.GetComponent<Image>();
         if(shaft==null)shaft=NewImage(canvas,"AnimatedPressShaft",null,new Color32(145,183,213,255));
         animatedPressShaft=shaft.rectTransform;
-        Rect(animatedPressShaft,new Vector2(152,81),new Vector2(16,47));
+        Rect(animatedPressShaft,new Vector2(152,-49),new Vector2(16,47));
         var shine=Find(animatedPressShaft,"PressShaftHighlight")?.GetComponent<Image>();
         if(shine==null)shine=NewImage(animatedPressShaft,"PressShaftHighlight",null,new Color32(227,241,253,255));
         Rect(shine.transform,new Vector2(-3,0),new Vector2(4,43));
@@ -560,7 +545,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         var head=Find(canvas,"AnimatedPressHead")?.GetComponent<Image>();
         if(head==null)head=NewImage(canvas,"AnimatedPressHead",null,new Color32(103,159,204,255));
         animatedPressHead=head.rectTransform;
-        Rect(animatedPressHead,new Vector2(152,44),new Vector2(99,17));
+        Rect(animatedPressHead,new Vector2(152,-86),new Vector2(99,17));
         var face=Find(animatedPressHead,"AnimatedPressContactPlate")?.GetComponent<Image>();
         if(face==null)face=NewImage(animatedPressHead,"AnimatedPressContactPlate",null,new Color32(217,232,245,255));
         Rect(face.transform,new Vector2(0,-10),new Vector2(103,6));
@@ -571,7 +556,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         pressImpactGlow=Find(canvas,"PressImpactGlow")?.GetComponent<Image>();
         if(pressImpactGlow==null)
             pressImpactGlow=NewImage(canvas,"PressImpactGlow",MakeOvalSprite(),new Color32(255,203,107,0));
-        Rect(pressImpactGlow.transform,new Vector2(152,-22),new Vector2(100,18));
+        Rect(pressImpactGlow.transform,new Vector2(152,-151),new Vector2(100,18));
         ResetPress();
     }
 
@@ -579,12 +564,12 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     {
         if(animatedPressHead!=null)
         {
-            animatedPressHead.anchoredPosition=new Vector2(152,44);
+            animatedPressHead.anchoredPosition=new Vector2(152,-86);
             animatedPressHead.gameObject.SetActive(true);
         }
         if(animatedPressShaft!=null)
         {
-            animatedPressShaft.anchoredPosition=new Vector2(152,81);
+            animatedPressShaft.anchoredPosition=new Vector2(152,-49);
             animatedPressShaft.gameObject.SetActive(true);
         }
         if(pressImpactGlow!=null)pressImpactGlow.gameObject.SetActive(false);
@@ -607,8 +592,8 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             float u=Mathf.Clamp01((progress-.78f)/.22f);
             down=1f-u*u*(3f-2f*u);
         }
-        animatedPressHead.anchoredPosition=new Vector2(152,Mathf.Lerp(44,11,down));
-        animatedPressShaft.anchoredPosition=new Vector2(152,Mathf.Lerp(81,48,down));
+        animatedPressHead.anchoredPosition=new Vector2(152,Mathf.Lerp(-86,-139,down));
+        animatedPressShaft.anchoredPosition=new Vector2(152,Mathf.Lerp(-49,-102,down));
         bool contact=progress>=impactPoint&&progress<.80f;
         if(pressImpactGlow!=null)
         {
@@ -652,13 +637,13 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         float ease=sampleT*sampleT*(3f-2f*sampleT);
         bool fractured=mechanicalSample==1 && mechanicalMode==1;
         bool malleable=mechanicalSample==2 && mechanicalMode==2;
-        Vector2 end=mechanicalMode==1?new Vector2(-145,-34):
-            new Vector2(150,-42);
+        Vector2 end=mechanicalMode==1?new Vector2(-145,-168):
+            new Vector2(150,-170);
         if(mechanicalCube!=null)
         {
             var rt=mechanicalCube.rectTransform;
             Vector2 initial=mechanicalMode==1?
-                new Vector2(-145,-12):new Vector2(150,-28);
+                new Vector2(-145,-143):new Vector2(150,-144);
             rt.anchoredPosition=Vector2.Lerp(initial,end,ease);
             if(fractured)
                 rt.localScale=Vector3.one*Mathf.Max(.02f,1f-ease);
@@ -678,7 +663,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
                 var angle=(float)i/mechanicalShards.Length*Mathf.PI*2f;
                 shard.rectTransform.anchoredPosition=new Vector2(
                     -145f+Mathf.Cos(angle)*75f*spread,
-                    -38f+Mathf.Sin(angle)*28f*spread);
+                    -165f+Mathf.Sin(angle)*28f*spread);
                 shard.rectTransform.localEulerAngles=
                     new Vector3(0,0,angle*Mathf.Rad2Deg+spread*30f);
             }
@@ -687,7 +672,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         {
             float flatten=sampleT;
             mechanicalFlattened.gameObject.SetActive(flatten>.01f);
-            Rect(mechanicalFlattened.transform,new Vector2(150,-42),
+            Rect(mechanicalFlattened.transform,new Vector2(150,-170),
                 new Vector2(20+148*flatten,8+17*flatten));
             if(t>=1f && mechanicalCube!=null)
                 mechanicalCube.gameObject.SetActive(false);
@@ -894,6 +879,14 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         // Upgrade an already-baked Level2 scene rather than requiring a new
         // scene: create missing animated hammer in the saved hierarchy.
         if(level==2 && animatedHammerPivot==null)BuildAnimatedHammer();
+        if(level==2 && animatedHammerPivot!=null)
+        {
+            Rect(animatedHammerPivot,new Vector2(-238,-85),new Vector2(1,1));
+            var oldHinge=Find(canvas,"AnimatedHammerHinge");
+            if(oldHinge!=null)Rect(oldHinge,new Vector2(-238,-85),new Vector2(24,24));
+            if(hammerImpactFlash!=null)
+                Rect(hammerImpactFlash.transform,new Vector2(-145,-150),new Vector2(88,42));
+        }
         if(level==2)BuildAnimatedPress();
         ResetHammer();
         ResetPress();
@@ -1042,7 +1035,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
                 mechanicalCube.gameObject.SetActive(true);
                 mechanicalCube.rectTransform.localScale=Vector3.one;
                 mechanicalCube.rectTransform.anchoredPosition=pressed?
-                    new Vector2(150,-28):new Vector2(-145,-12);
+                    new Vector2(150,-144):new Vector2(-145,-143);
             }
             hammerHasStruck=false;
             ResetHammer();
