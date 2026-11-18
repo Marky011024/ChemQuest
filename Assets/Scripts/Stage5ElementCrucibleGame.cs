@@ -41,6 +41,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
     private int level1BowStep=-1;
     private Slider heat;
     private Stage5VisualLabDemo visualLab;
+    private Stage5ReferenceLayout exactReference;
     private Transform root;
     private float nextEnergyUpdate;
     public bool CanInteract=>!failed&&!completed&&!paused&&Time.timeScale>0&&
@@ -79,6 +80,13 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
             if(Level==1 && heat!=null)visualLab.SetHeat(heat.value);
         }
         else Debug.LogWarning("CHEMQUEST Stage 5: TestStation was not found for visual simulation.");
+        // Match every visible heater, hammer, press, and conductivity object
+        // to the three full reference illustrations. The existing original
+        // controls remain the only elements driving game state.
+        exactReference=GetComponent<Stage5ReferenceLayout>();
+        if(exactReference==null)exactReference=gameObject.AddComponent<Stage5ReferenceLayout>();
+        if(exactReference.Initialize(Level,root,visualLab))
+            exactReference.SyncNotebook(evidenceText==null?"":evidenceText.text);
         if(Level==1)EnsureLevel1BowPanel();
         if(Level==2)EnsureLevel2BowPanel();
         if(Level==3)EnsureLevel3BowPanel();
@@ -785,6 +793,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
     {
         if(!CanInteract)return;
         selected=index;
+        if(exactReference!=null)exactReference.SampleChanged(index);
         // Show a distinct glowing selection border like the reference UI,
         // while retaining the original draggable sample buttons.
         var sampleBank=Find(root,"SampleBank");
@@ -826,6 +835,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         if(amount<60){Info("Increase the heat above 60% to complete this comparison.");return;}
         examined[selected]=true;
         if(visualLab!=null)visualLab.HeatTest(amount);
+        if(exactReference!=null)exactReference.ThermalResult(selected);
         resultLabel.text=thermal[selected];
         ReactionEffect("THERMAL TEST COMPLETE");
         SetIndicator(selected==0?new Color32(255,177,71,255):new Color32(80,180,239,255));
@@ -840,6 +850,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         if(selected<0){Info("Place a sample in the mechanical station first.");return;}
         actions[selected,press?1:0]=true;
         if(visualLab!=null)visualLab.MechanicalTest(press);
+        if(exactReference!=null)exactReference.MechanicalResult(selected,press);
         string response=selected==0?(press?"Soft sample compresses":"Surface is soft"):
             selected==1?(press?"Crystal resists deformation":"Brittle sample breaks into pieces"):
             (press?"Metallic sample flattens":"Metal retains cohesion after impact");
@@ -857,6 +868,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         stateIndex=s;
         stateName=s==0?"SOLID":s==1?"MOLTEN":"AQUEOUS";
         if(visualLab!=null)visualLab.SetPhase(s);
+        if(exactReference!=null)exactReference.PhaseChanged(s);
         Info("Selected state: "+stateName+". Place sample and click TEST PROBE.");
     }
     private void Probe()
@@ -871,6 +883,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         probed[selected,stateIndex]=true;
         bool conducts=selected==1?stateIndex!=0:selected==2;
         if(visualLab!=null)visualLab.ProbeTest(conducts);
+        if(exactReference!=null)exactReference.ProbeResult(selected,conducts);
         if(resultLabel!=null)resultLabel.text="PROBE: "+(conducts?"LAMP ON — CONDUCTS":"LAMP OFF — NO DETECTABLE CONDUCTION");
         SetIndicator(conducts?new Color32(79,231,151,255):new Color32(80,91,119,255));
         ReactionEffect(conducts?"CONDUCTIVITY DETECTED":"NO CONDUCTIVITY");
@@ -1314,6 +1327,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
             }
         }
         evidenceText.text=text;
+        if(exactReference!=null)exactReference.SyncNotebook(text);
         int count=0;
         for(int i=0;i<3;i++)if(examined[i])count++;
         if(progress!=null)
