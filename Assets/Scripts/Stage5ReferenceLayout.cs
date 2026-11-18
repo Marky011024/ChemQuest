@@ -146,9 +146,11 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             // The sample label is baked into the reference picture as
             // "Sample B/C". Cover it completely and redraw the selected one.
             var tag=NewImage(canvas,"ActiveSampleTag",null,new Color32(5,29,57,255));
-            Rect(tag.transform,new Vector2(-11,132),new Vector2(224,37));
-            liveSample=NewText(tag.transform,"ActiveSampleName","CHOOSE A SAMPLE",17,
-                Vector2.zero,new Vector2(214,31),Gold);
+            // Keep the selected-sample caption above the heater masking
+            // artwork instead of letting the new backdrop clip its letters.
+            Rect(tag.transform,new Vector2(-11,155),new Vector2(194,28));
+            liveSample=NewText(tag.transform,"ActiveSampleName","CHOOSE A SAMPLE",15,
+                Vector2.zero,new Vector2(188,26),Gold);
             liveSample.fontStyle=FontStyles.Bold;
             // The earlier status plate covered the illustrated
             // CRACKS/FLATTENS labels and Level3 phase options. Keep its
@@ -234,7 +236,8 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             var heatPlate=NewImage(canvas,"ReferenceHeatReadoutPlate",null,new Color32(5,29,57,255));
             Rect(heatPlate.transform,new Vector2(414,-222),new Vector2(244,39));
             dynamicHeatReadout=NewText(heatPlate.transform,"ReferenceHeatReadout",
-                "HEAT LEVEL: 0%",16,Vector2.zero,new Vector2(233,32),Gold);
+                "0%",17,Vector2.zero,new Vector2(233,32),Gold);
+            dynamicHeatReadout.fontStyle=FontStyles.Bold;
 
             // The 175 C on the hotplate is already replaced by the single
             // HotplateActualHeatMask created in BuildEmptyHeatingBench().
@@ -364,14 +367,18 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         Rect(groove.transform,new Vector2(194,36),new Vector2(9,141));
         thermometerFill=NewImage(canvas,"LiveHeatMercury",null,new Color32(255,131,61,255));
         Rect(thermometerFill.transform,new Vector2(194,-27),new Vector2(8,1));
-        thermometerValue=NewText(canvas,"ThermometerPercent","0%",17,
-            new Vector2(226,111),new Vector2(60,25),Gold);
+        // This earlier top-of-scale percentage overlapped the "100" tick.
+        // Use the hotplate LED and the bottom slider readout for live percent.
+        thermometerValue=null;
         var thermTitle=NewText(canvas,"ThermometerTitle","HEAT",13,
             new Vector2(224,135),new Vector2(60,20),Gold);
         thermTitle.fontStyle=FontStyles.Bold;
         for(int i=0;i<=4;i++)
-            NewText(canvas,"HeatTick"+i,(i*25).ToString(),11,
-                new Vector2(226,-27+i*32),new Vector2(32,19),Color.white);
+        {
+            var tick=NewText(canvas,"HeatTick"+i,(i*25).ToString(),10,
+                new Vector2(225,-27+i*32),new Vector2(32,17),Color.white);
+            tick.alignment=TextAlignmentOptions.Center;
+        }
         // This LED mask covers the baked 175 C and is kept up to date.
         var led=NewImage(canvas,"HotplateActualHeatMask",null,new Color32(12,27,52,255));
         Rect(led.transform,new Vector2(-27,-69),new Vector2(101,36));
@@ -493,7 +500,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         }
         string reading=Mathf.RoundToInt(value)+"%";
         if(dynamicHeatReadout!=null)
-            dynamicHeatReadout.text="HEAT LEVEL: "+reading;
+            dynamicHeatReadout.text=reading;
         if(dynamicPlateHeat!=null) dynamicPlateHeat.text=reading;
         if(thermometerValue!=null) thermometerValue.text=reading;
         if(thermometerFill!=null)
