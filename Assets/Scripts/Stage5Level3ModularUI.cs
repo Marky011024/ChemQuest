@@ -47,18 +47,24 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
         Place(ui,Vector2.zero,new Vector2(1280,720));
         ui.SetAsLastSibling();
 
-        // The original laboratory backdrop is left untouched. These separate
-        // editable image panels obscure the printed mockup controls beneath it.
-        // Preserve the original ChemQuest title and instructions above this
-        // UI. The older modular copy created a duplicate title and borders.
-        var basePanel=PanelImage(ui,"Workbench_CleanBase",
-            new Vector2(0,-105),new Vector2(1120,462),Deep,Deep);
-        basePanel.raycastTarget=false;
-        foreach(var duplicate in new[]{"LevelTitle","Instructions"})
-        {
-            var old=Find(ui,duplicate);
-            if(old!=null)old.gameObject.SetActive(false);
-        }
+        // Keep the laboratory background file completely unchanged.
+        // One opaque clean matte covers only its pre-printed, noninteractive
+        // Level 3 screenshot UI, eliminating duplicate titles, sample labels
+        // and classification buttons. The modular UI sits above this matte.
+        var legacyFrame=Find(ui,"Workbench_CleanBase_Frame");
+        if(legacyFrame!=null)legacyFrame.gameObject.SetActive(false);
+        var matte=EnsureImage(ui,"CleanGameplayMatte");
+        matte.sprite=null;
+        matte.color=Deep;
+        matte.type=Image.Type.Simple;
+        Place(matte.rectTransform,new Vector2(0,-80),
+            new Vector2(1124,552));
+        matte.rectTransform.SetAsFirstSibling();
+        Label(ui,"LevelTitle","SOLUTION & PHASE CONDUCTIVITY",
+            new Vector2(0,169),new Vector2(1010,44),30,Gold);
+        Label(ui,"Instructions",
+            "Test SOLID and MOLTEN states. Test AQUEOUS when applicable, then classify.",
+            new Vector2(0,136),new Vector2(1030,24),15,Text);
 
         var bank=Group(ui,"UnknownSamplesPanel",new Vector2(-421,-41),new Vector2(252,331));
         PanelImage(bank,"PanelBackground",Vector2.zero,new Vector2(252,331),Panel,Border);
@@ -105,6 +111,8 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
         realWire=PanelImage(apparatus,"ConnectingWire",new Vector2(0,75),
             new Vector2(145,32),Color.white,Gold);
         InstallButtonArt(realWire,"WireOff");
+        // Keep the connecting wires behind the electrode caps.
+        realWire.transform.parent.SetSiblingIndex(3);
         var bulb=Group(apparatus,"ConductivityBulb",
             new Vector2(0,94),new Vector2(55,70));
         bulbGlow=PanelImage(bulb,"BulbGlow",Vector2.zero,
@@ -328,6 +336,10 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
         face.preserveAspect=false;
         face.type=Image.Type.Simple;
         face.raycastTarget=false; // Touch controller owns the actual clicks.
+        // The PNG includes its own glossy border and silhouette; keeping the
+        // procedurally generated frame caused the ugly gold rectangles.
+        var outerFrame=Find(face.transform.parent,"BorderImage");
+        if(outerFrame!=null)outerFrame.gameObject.SetActive(false);
         if(oldPlaceholderParts!=null)
             foreach(var part in oldPlaceholderParts)
                 if(part!=null)part.gameObject.SetActive(false);
@@ -343,6 +355,8 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
         header.color=Color.white;
         header.preserveAspect=false;
         Place(header.rectTransform,position,size);
+        var frame=Find(parent,"PanelBackground_Frame");
+        if(frame!=null)frame.gameObject.SetActive(true);
         if(oldHeaderText!=null)oldHeaderText.gameObject.SetActive(false);
     }
 
@@ -355,6 +369,7 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
             obj.transform.SetParent(parent,false);
             old=obj.GetComponent<RectTransform>();
         }
+        old.gameObject.SetActive(true);
         Place(old,pos,size);
         return old;
     }
@@ -365,6 +380,7 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
         // RectTransform. A separate, slightly larger border sits behind it.
         var outer=Group(parent,name+"_Frame",pos,size);
         var frame=EnsureImage(outer,"BorderImage");
+        frame.gameObject.SetActive(true);
         frame.color=border;
         Place(frame.rectTransform,Vector2.zero,size);
         var inner=EnsureImage(outer,name);
