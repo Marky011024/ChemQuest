@@ -49,13 +49,16 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
 
         // The original laboratory backdrop is left untouched. These separate
         // editable image panels obscure the printed mockup controls beneath it.
-        var basePanel=PanelImage(ui,"Workbench_CleanBase",new Vector2(0,-82),
-            new Vector2(1120,503),Deep,Gold);
+        // Preserve the original ChemQuest title and instructions above this
+        // UI. The older modular copy created a duplicate title and borders.
+        var basePanel=PanelImage(ui,"Workbench_CleanBase",
+            new Vector2(0,-105),new Vector2(1120,462),Deep,Deep);
         basePanel.raycastTarget=false;
-        Label(ui,"LevelTitle","SOLUTION & PHASE CONDUCTIVITY",
-            new Vector2(0,142),new Vector2(875,40),29,Gold);
-        Label(ui,"Instructions","Test each sample in SOLID and MOLTEN states. Use AQUEOUS when applicable, then classify.",
-            new Vector2(0,110),new Vector2(1020,28),15,Text);
+        foreach(var duplicate in new[]{"LevelTitle","Instructions"})
+        {
+            var old=Find(ui,duplicate);
+            if(old!=null)old.gameObject.SetActive(false);
+        }
 
         var bank=Group(ui,"UnknownSamplesPanel",new Vector2(-421,-41),new Vector2(252,331));
         PanelImage(bank,"PanelBackground",Vector2.zero,new Vector2(252,331),Panel,Border);
@@ -100,16 +103,16 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
         InstallButtonArt(positive,"ElectrodePositive");
         InstallButtonArt(negative,"ElectrodeNegative");
         realWire=PanelImage(apparatus,"ConnectingWire",new Vector2(0,75),
-            new Vector2(145,38),Color.white,Gold);
+            new Vector2(145,32),Color.white,Gold);
         InstallButtonArt(realWire,"WireOff");
         var bulb=Group(apparatus,"ConductivityBulb",
-            new Vector2(0,85),new Vector2(55,63));
+            new Vector2(0,94),new Vector2(55,70));
         bulbGlow=PanelImage(bulb,"BulbGlow",Vector2.zero,
             new Vector2(43,46),Off,Gold);
         var oldBulbSymbol=Label(bulb,"BulbSymbol","*",
             Vector2.zero,new Vector2(35,35),25,Text);
         realBulb=PanelImage(bulb,"BulbStateSprite",Vector2.zero,
-            new Vector2(55,64),Color.white,Gold);
+            new Vector2(55,70),Color.white,Gold);
         InstallButtonArt(realBulb,"BulbOff",
             Find(bulb,"BulbGlow_Frame"),oldBulbSymbol.transform);
         for(int i=0;i<8;i++)
@@ -168,7 +171,7 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
         noteA=notebooks[0];noteB=notebooks[1];noteC=notebooks[2];
 
         var bottom=Group(ui,"GameplayActionBar",new Vector2(0,-290),new Vector2(1113,89));
-        PanelImage(bottom,"ActionBarPanel",Vector2.zero,new Vector2(1113,89),Panel,Gold);
+        PanelImage(bottom,"ActionBarPanel",Vector2.zero,new Vector2(1113,89),Panel,Border);
         var probe=ButtonFace(bottom,"TestProbeButton",
             new Vector2(-411,-4),new Vector2(255,61),"⚡ TEST PROBE",Teal);
         InstallButtonArt(probe,"TestProbe",
@@ -256,6 +259,7 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
         {
             var sprite=LoadButtonArt(tested&&conducts?"BulbOn":"BulbOff");
             if(sprite!=null){realBulb.sprite=sprite;realBulb.color=Color.white;}
+            realBulb.preserveAspect=true;
         }
         if(realWire!=null)
         {
