@@ -401,24 +401,8 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         Rect(mechanicalFlattened.transform,new Vector2(152,-38),
             new Vector2(14,10));
         mechanicalFlattened.gameObject.SetActive(false);
-        HideDuplicateMechanicalTools();
-    }
-
-    // The reference image already contains a hammer and hydraulic press.
-    // Deactivate duplicate foreground tools, including previously baked ones.
-    private void HideDuplicateMechanicalTools()
-    {
-        if(level!=2 || canvas==null)return;
-        foreach(string name in new[]
-        {
-            "AnimatedStrikeHammerPivot", "AnimatedHammerHinge",
-            "HammerImpactFlash", "AnimatedPressShaft",
-            "AnimatedPressHead", "PressImpactGlow"
-        })
-        {
-            var item=Find(canvas,name);
-            if(item!=null)item.gameObject.SetActive(false);
-        }
+        BuildAnimatedHammer();
+        BuildAnimatedPress();
     }
 
     private void DecorateMechanicalWorkBench()
@@ -506,7 +490,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         hammerHasStruck=false;
         if(animatedHammerPivot!=null)
         {
-            animatedHammerPivot.gameObject.SetActive(false);
+            animatedHammerPivot.gameObject.SetActive(level==2);
             animatedHammerPivot.localRotation=Quaternion.Euler(0,0,53f);
         }
         if(hammerImpactFlash!=null)hammerImpactFlash.gameObject.SetActive(false);
@@ -593,12 +577,12 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         if(animatedPressHead!=null)
         {
             animatedPressHead.anchoredPosition=new Vector2(152,44);
-            animatedPressHead.gameObject.SetActive(false);
+            animatedPressHead.gameObject.SetActive(true);
         }
         if(animatedPressShaft!=null)
         {
             animatedPressShaft.anchoredPosition=new Vector2(152,81);
-            animatedPressShaft.gameObject.SetActive(false);
+            animatedPressShaft.gameObject.SetActive(true);
         }
         if(pressImpactGlow!=null)pressImpactGlow.gameObject.SetActive(false);
     }
@@ -658,7 +642,9 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         // Delaying the fracture until impact avoids pieces appearing while
         // the hammer is still in the air.
         float impactPoint=.55f;
-        // Foreground machine duplicates are disabled; animate the sample only.
+        // Preserve the moving hammer and hydraulic press during each test.
+        if(mechanicalMode==1)AnimateHammer(t,impactPoint);
+        if(mechanicalMode==2)AnimatePress(t,impactPoint);
         float sampleT=Mathf.Clamp01((t-impactPoint)/(1f-impactPoint));
         float ease=sampleT*sampleT*(3f-2f*sampleT);
         bool fractured=mechanicalSample==1 && mechanicalMode==1;
@@ -902,9 +888,10 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         hammerImpactFlash=Find(canvas,"HammerImpactFlash")?.GetComponent<Image>();
         // Upgrade an already-baked Level2 scene rather than requiring a new
         // scene: create missing animated hammer in the saved hierarchy.
+        if(level==2 && animatedHammerPivot==null)BuildAnimatedHammer();
+        if(level==2)BuildAnimatedPress();
         ResetHammer();
         ResetPress();
-        HideDuplicateMechanicalTools();
         mechanicalShards=new Image[9];
         for(int i=0;i<mechanicalShards.Length;i++)
             mechanicalShards[i]=Find(canvas,"MechanicalFragment"+i)?.GetComponent<Image>();
