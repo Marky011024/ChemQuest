@@ -346,13 +346,13 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         heatingSample.gameObject.SetActive(false);
         // Hidden until the player heats Sample A. These dynamically animated
         // liquid layers live on the real heater, not in a screenshot preview.
-        var liquidSprite=MakeOvalSprite();
+        var liquidSprite=CreateLiquidPuddleSprite();
         moltenPool=NewImage(canvas,"HeatedSampleLiquidPool",liquidSprite,
-            new Color32(255,128,61,0));
+            new Color32(255,255,255,0));
         Rect(moltenPool.transform,new Vector2(-24,17),new Vector2(5,10));
         moltenPool.gameObject.SetActive(false);
-        moltenHighlight=NewImage(canvas,"HeatedSampleLiquidShine",liquidSprite,
-            new Color32(255,230,189,0));
+        moltenHighlight=NewImage(canvas,"HeatedSampleLiquidShine",MakeOvalSprite(),
+            new Color32(255,236,210,0));
         Rect(moltenHighlight.transform,new Vector2(-24,22),new Vector2(5,3));
         moltenHighlight.gameObject.SetActive(false);
 
@@ -397,6 +397,57 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             new Vector2(.5f,.5f),100f);
     }
 
+    // Transparent irregular liquid illustration, created at runtime.
+    // No additional sprite import or scene edits required.
+    private static Sprite CreateLiquidPuddleSprite()
+    {
+        const int w=256,h=112;
+        var tex=new Texture2D(w,h,TextureFormat.RGBA32,false);
+        tex.filterMode=FilterMode.Bilinear;
+        for(int y=0;y<h;y++)
+        for(int x=0;x<w;x++)
+        {
+            float nx=(x-w*.5f)/(w*.48f), ny=(y-h*.5f)/(h*.44f);
+            float angle=Mathf.Atan2(ny,nx);
+            // Asymmetric molten edge with three subtle drips/lobes.
+            float edge=1f+.070f*Mathf.Sin(angle*5f+.4f)+
+                .047f*Mathf.Sin(angle*9f+1.3f)+.035f*Mathf.Sin(angle*13f);
+            float radius=Mathf.Sqrt(nx*nx+ny*ny);
+            float alpha=Mathf.Clamp01((edge-radius)*22f);
+            float bottom=Mathf.Clamp01((ny+1f)*.5f);
+            float rim=Mathf.Clamp01(1f-Mathf.Abs(radius-edge+.065f)*13f);
+            float glaze=Mathf.Exp(-((nx+.27f)*(nx+.27f)/.13f+
+                (ny-.37f)*(ny-.37f)/.025f));
+            float shine2=Mathf.Exp(-((nx-.38f)*(nx-.38f)/.075f+
+                (ny+.03f)*(ny+.03f)/.013f));
+            Color baseColor=Color.Lerp(new Color(.91f,.35f,.12f,1f),
+                new Color(1f,.78f,.58f,1f),Mathf.Clamp01(.20f+.38f*bottom+
+                .35f*glaze+.2f*shine2+.32f*rim));
+            tex.SetPixel(x,y,new Color(baseColor.r,baseColor.g,baseColor.b,alpha));
+        }
+        tex.Apply();
+        return Sprite.Create(tex,new Rect(0,0,w,h),new Vector2(.5f,.5f),100f);
+    }
+
+    private static Sprite CreateFallbackSampleSprite(int index)
+    {
+        const int w=96,h=96;
+        var tex=new Texture2D(w,h,TextureFormat.RGBA32,false);
+        Color baseColor=index==0?new Color(.65f,.89f,1f,1f):
+            index==1?new Color(.77f,.63f,.97f,1f):new Color(.61f,.95f,.82f,1f);
+        for(int y=0;y<h;y++)
+        for(int x=0;x<w;x++)
+        {
+            float edge=Mathf.Min(Mathf.Min(x,w-1-x),Mathf.Min(y,h-1-y));
+            float light=.68f+.27f*(x+y)/(w+h);
+            float alpha=Mathf.Clamp01(edge/4f);
+            var c=baseColor*light;
+            tex.SetPixel(x,y,new Color(c.r,c.g,c.b,alpha));
+        }
+        tex.Apply();
+        return Sprite.Create(tex,new Rect(0,0,w,h),new Vector2(.5f,.5f),100f);
+    }
+
     private void ShowHeatingSample(int index)
     {
         if(level!=1)return;
@@ -406,6 +457,10 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         if(moltenHighlight!=null)moltenHighlight.gameObject.SetActive(false);
         if(heatingSample==null || index<0 || index>2)return;
         heatingSample.sprite=ResourceSprite("DragSample"+index);
+        // Keep a visible specimen even if a particular optional sample PNG
+        // is missing from Resources.
+        if(heatingSample.sprite==null)
+            heatingSample.sprite=CreateFallbackSampleSprite(index);
         heatingSample.rectTransform.localScale=Vector3.one;
         heatingSample.rectTransform.anchoredPosition=new Vector2(-24,53);
         heatingSample.color=Color.white;
@@ -684,21 +739,25 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             r.localScale=new Vector3(1f+.24f*smooth,Mathf.Max(.10f,1f-.90f*smooth),1f);
             r.anchoredPosition=new Vector2(-24f,53f-30f*smooth);
             heatingSample.color=Color.Lerp(Color.white,WarmLiquid,smooth);
-            // Keep a tiny softened remnant at the end, surrounded by
-            // the wide visible liquid pool.
+            // The remnant disappears at the end, leaving an unmistakable
+            // irregular glossy liquid puddle on the heating surface.
+            if(t>=1f)heatingSample.gameObject.SetActive(false);
         }
         if(moltenPool!=null)
         {
             var r=moltenPool.rectTransform;
-            Rect(r,new Vector2(-24,16),new Vector2(10+188*smooth,8+37*smooth));
-            moltenPool.color=new Color(1f,.43f,.17f,.18f+.74f*smooth);
+            // Keep the irregular, glossy liquid visible ABOVE the dark
+            // heater, not just a flat orange ellipse indistinguishable
+            // from the already glowing heating ring.
+            Rect(r,new Vector2(-24,23),new Vector2(24+183*smooth,9+47*smooth));
+            moltenPool.color=new Color(1f,1f,1f,.10f+.90f*smooth);
         }
         if(moltenHighlight!=null)
         {
             float shimmer=.84f+.14f*Mathf.Sin(meltingTime*7f);
-            Rect(moltenHighlight.rectTransform,new Vector2(-17,22),
-                new Vector2(10+140*smooth,3+13*smooth));
-            moltenHighlight.color=new Color(1f,.86f,.64f,.10f+.60f*smooth*shimmer);
+            Rect(moltenHighlight.rectTransform,new Vector2(-42,33),
+                new Vector2(5+90*smooth,2+6*smooth));
+            moltenHighlight.color=new Color(1f,.97f,.87f,.04f+.56f*smooth*shimmer);
         }
         if(t>=1f)
         {
