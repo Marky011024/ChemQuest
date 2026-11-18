@@ -15,6 +15,7 @@ public sealed class Stage5VisualLabDemo : MonoBehaviour
     private Image sampleSolid, sampleLiquid, burner, flame, tool, lamp, bulbHalo, beaker, liquid, leftProbe, rightProbe;
     private Image[] shards, ions, waves;
     private Image pictureResult;
+    private float pictureReveal;
     private TMP_Text status;
     private Sprite disc;
     private static readonly Color Cyan = new Color(.25f,.83f,1f,1f);
@@ -158,7 +159,9 @@ public sealed class Stage5VisualLabDemo : MonoBehaviour
         }
         if(sprite==null) { pictureResult.gameObject.SetActive(false); return; }
         pictureResult.sprite=sprite;
-        pictureResult.color=Color.white;
+        pictureReveal=0f;
+        pictureResult.color=new Color(1,1,1,0);
+        pictureResult.rectTransform.localScale=Vector3.one*.82f;
         pictureResult.gameObject.SetActive(true);
         status.transform.SetAsLastSibling();
     }
@@ -282,6 +285,13 @@ public sealed class Stage5VisualLabDemo : MonoBehaviour
         if(!ready||station==null||sample<0)return;
         elapsed+=Time.deltaTime;
         animation+=Time.deltaTime;
+        if(pictureResult!=null && pictureResult.gameObject.activeSelf)
+        {
+            pictureReveal=Mathf.Clamp01(pictureReveal+Time.deltaTime*1.55f);
+            float eased=Mathf.SmoothStep(0f,1f,pictureReveal);
+            pictureResult.color=new Color(1,1,1,eased);
+            pictureResult.rectTransform.localScale=Vector3.one*Mathf.Lerp(.82f,1f,eased);
+        }
         if(level==1)AnimateThermal();
         else if(level==2)AnimateMechanical();
         else AnimateElectric();
