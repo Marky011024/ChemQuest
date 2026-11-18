@@ -19,6 +19,8 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     private float effectTime;
     private Vector2 previewHome;
     private Image dynamicHeatKnob;
+    private Image dynamicHeatFill;
+    private TMP_Text dynamicPlateHeat;
     private TMP_Text dynamicHeatReadout;
     private TMP_Text dynamicProgress;
     private TMP_Text dynamicScore;
@@ -203,13 +205,32 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         }
         if(level==1)
         {
+            // Entire slider art is rebuilt on top of the STATIC screenshot:
+            // the reference thumb was baked at 175 C and caused two knobs.
+            // This overlay is a display only; the mapped touch controller
+            // still owns the real slider interaction.
+            var heatTrack=NewImage(canvas,"CleanHeatTrack",null,new Color32(13,53,83,255));
+            Rect(heatTrack.transform,new Vector2(-9,-221),new Vector2(580,18));
+            var fill=NewImage(canvas,"CleanHeatFill",null,new Color32(235,139,36,255));
+            dynamicHeatFill=fill;
+            Rect(fill.transform,new Vector2(-289,-221),new Vector2(0,12));
             var knob=NewImage(canvas,"ReferenceHeatKnob",null,Gold);
             dynamicHeatKnob=knob;
-            Rect(knob.transform,new Vector2(-294,-221),new Vector2(23,34));
+            Rect(knob.transform,new Vector2(-294,-221),new Vector2(21,28));
+
+            // Mask both the pre-painted value and old live readout before
+            // showing one unambiguous percentage reading.
             var heatPlate=NewImage(canvas,"ReferenceHeatReadoutPlate",null,new Color32(5,29,57,255));
-            Rect(heatPlate.transform,new Vector2(461,-222),new Vector2(155,40));
-            dynamicHeatReadout=NewText(heatPlate.transform,"ReferenceHeatReadout","HEAT: 0%",
-                16,Vector2.zero,new Vector2(149,33),Gold);
+            Rect(heatPlate.transform,new Vector2(414,-222),new Vector2(244,39));
+            dynamicHeatReadout=NewText(heatPlate.transform,"ReferenceHeatReadout",
+                "HEAT LEVEL: 0%",16,Vector2.zero,new Vector2(233,32),Gold);
+
+            // The mockup shows a baked-in "175" on the instrument. Mask that
+            // static number and display the game's actual control percentage.
+            var plateMask=NewImage(canvas,"LiveHotPlateMeter",null,new Color32(12,27,52,255));
+            Rect(plateMask.transform,new Vector2(-32,-70),new Vector2(70,29));
+            dynamicPlateHeat=NewText(plateMask.transform,"LiveHotPlateValue","0%",
+                16,Vector2.zero,new Vector2(67,24),Gold);
         }
         if(level==3)
         {
@@ -294,14 +315,24 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     public void ReferenceHeatChanged(float value)
     {
         if(!ready||level!=1)return;
+        float fraction=Mathf.Clamp01(value/100f);
         if(dynamicHeatKnob!=null)
         {
             var pos=dynamicHeatKnob.rectTransform.anchoredPosition;
-            pos.x=Mathf.Lerp(-294f,261f,Mathf.Clamp01(value/100f));
+            pos.x=Mathf.Lerp(-294f,276f,fraction);
             dynamicHeatKnob.rectTransform.anchoredPosition=pos;
         }
+        if(dynamicHeatFill!=null)
+        {
+            float width=570f*fraction;
+            Rect(dynamicHeatFill.transform,new Vector2(-294f+width*.5f,-221f),
+                new Vector2(width,12f));
+        }
+        string reading=Mathf.RoundToInt(value)+"%";
         if(dynamicHeatReadout!=null)
-            dynamicHeatReadout.text="HEAT: "+Mathf.RoundToInt(value)+"%";
+            dynamicHeatReadout.text="HEAT LEVEL: "+reading;
+        if(dynamicPlateHeat!=null)
+            dynamicPlateHeat.text=reading;
     }
 
     public void ReferencePhaseSelected(int selectedPhase)
