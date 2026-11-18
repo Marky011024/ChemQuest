@@ -370,9 +370,12 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         mechanicalFragmentsMask=NewImage(canvas,"MechanicalShatteredResultMask",null,
             new Color32(5,29,57,255));
         Rect(mechanicalFragmentsMask.transform,new Vector2(-145,-52),new Vector2(118,26));
+        // The cleaned Level2.png contains no prepainted test results.
+        mechanicalFragmentsMask.enabled=false;
         mechanicalPressMask=NewImage(canvas,"MechanicalPressedResultMask",null,
             new Color32(5,29,57,255));
         Rect(mechanicalPressMask.transform,new Vector2(152,-52),new Vector2(118,26));
+        mechanicalPressMask.enabled=false;
         // Cover the shattered/flattened examples already painted into the
         // reference PNG. Real results stay hidden until STRIKE/PRESS is used.
         // Redraw clean empty testing platforms above the masks.
@@ -878,6 +881,8 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             Rect(mechanicalTopMask.transform,new Vector2(-12,75),new Vector2(112,73));
             Rect(mechanicalFragmentsMask?.transform,new Vector2(-145,-52),new Vector2(118,26));
             Rect(mechanicalPressMask?.transform,new Vector2(152,-52),new Vector2(118,26));
+            if(mechanicalFragmentsMask!=null)mechanicalFragmentsMask.enabled=false;
+            if(mechanicalPressMask!=null)mechanicalPressMask.enabled=false;
             // Existing scenes need the enlarged covers too; bake upgrades
             // the same objects without creating duplicate mask panels.
             DecorateMechanicalWorkBench();
