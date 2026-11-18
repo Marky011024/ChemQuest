@@ -750,15 +750,10 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             float u=Mathf.Clamp01((progress-.82f)/.18f);
             angle=Mathf.Lerp(28f,53f,u);
         }
-        // Solve for the actual current strike target, so manual pivot edits
-        // do not leave the moving head striking empty space.
-        Vector2 pivot=animatedHammerPivot.anchoredPosition;
-        Vector2 impactTarget=strikeSampleStart+new Vector2(0,-8);
-        Vector2 toTarget=impactTarget-pivot;
-        float strikeAngle=Mathf.Atan2(toTarget.y,toTarget.x)*Mathf.Rad2Deg;
-        float baselineShift=strikeAngle-(-39f);
-        animatedHammerPivot.localRotation=Quaternion.Euler(
-            0,0,angle+baselineShift);
+        // The hammer pivot is already aligned to the strike platform in
+        // the saved scene. Do not add a target-angle offset: that rotation
+        // can swing the head away from the sample.
+        animatedHammerPivot.localRotation=Quaternion.Euler(0,0,angle);
         bool hit=progress>=impactPoint && progress<impactPoint+.13f;
         if(hammerImpactFlash!=null)
         {
@@ -1389,20 +1384,12 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             mechanicalTime=0f;
             // Move the specimen to the appropriate testing platform
             // BEFORE the tool moves, so the hammer strikes a real target.
-            // Use saved test-bench positions instead of hardcoded animation
-            // coordinates. The tester can still move the platforms in Edit.
-            var home=mechanicalCube!=null?
-                mechanicalCube.rectTransform.anchoredPosition:
-                new Vector2(-12,67);
-            // Strike/press lanes retain their current saved horizontal
-            // spacing, offset from the original load position.
-            if(pressed)
-                pressSampleStart=new Vector2(pressHeadHome.x,home.y-117f);
-            else
-                strikeSampleStart=new Vector2(
-                    animatedHammerPivot!=null?
-                    animatedHammerPivot.anchoredPosition.x+93f:-145f,
-                    home.y-117f);
+            // Match the actual two fixed platform locations in the Level 2
+            // reference artwork. NEVER derive test Y from the cube's
+            // previous animated position: each test would subtract 117
+            // again and eventually send the cube below the buttons.
+            strikeSampleStart=new Vector2(-145f,-50f);
+            pressSampleStart=new Vector2(150f,-50f);
             if(mechanicalCube!=null)
             {
                 var start=pressed?pressSampleStart:strikeSampleStart;
@@ -1416,7 +1403,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
                 // meet the top of the specimen when the cycle reaches impact.
                 float sampleTop=pressSampleStart.y+30f;
                 pressTravel=Mathf.Clamp(
-                    pressHeadHome.y-14f-sampleTop,12f,110f);
+                    pressHeadHome.y-14f-sampleTop,12f,65f);
             }
             hammerHasStruck=false;
             ResetHammer();
