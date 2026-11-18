@@ -34,6 +34,9 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     private Vector2 pressShaftHome=new Vector2(152,42);
     private Image pressImpactGlow;
     private bool hammerHasStruck;
+    private Vector2 strikeSampleStart=new Vector2(-145,-50);
+    private Vector2 pressSampleStart=new Vector2(150,-50);
+    private float pressTravel=40f;
     private int mechanicalMode; // 0=loaded, 1=strike, 2=press
     private float mechanicalTime;
     private int mechanicalSample=-1;
@@ -594,16 +597,15 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         mechanicalCube.preserveAspect=true;
         mechanicalCube.gameObject.SetActive(false);
 
-        // Separate movable pieces make brittle fracture distinguishable from
-        // the fixed illustrated hammer. All are non-interactive UI images.
+        // Angular fractured crystal fragments, not rounded purple circles.
         mechanicalShards=new Image[9];
-        var fragmentSprite=MakeOvalSprite();
+        var fragmentSprite=MakeCrystalShardSprite();
         for(int i=0;i<mechanicalShards.Length;i++)
         {
             mechanicalShards[i]=NewImage(canvas,"MechanicalFragment"+i,
                 fragmentSprite,new Color32(207,187,255,255));
             Rect(mechanicalShards[i].transform,new Vector2(-145,-99),
-                new Vector2(22,17));
+                new Vector2(18+(i%3)*4,16+((i+1)%3)*4));
             mechanicalShards[i].gameObject.SetActive(false);
         }
         mechanicalFlattened=NewImage(canvas,"MechanicalFlattenedMetal",
@@ -626,6 +628,36 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             var old=Find(canvas,name)?.GetComponent<Image>();
             if(old!=null)old.enabled=false;
         }
+    }
+
+    // Generate a faceted, transparent polygon that resembles fractured salt.
+    // Works without extra PNG files and remains a separate editable Image.
+    private static Sprite MakeCrystalShardSprite()
+    {
+        const int size=64;
+        var texture=new Texture2D(size,size,TextureFormat.RGBA32,false);
+        texture.filterMode=FilterMode.Bilinear;
+        var clear=new Color(0,0,0,0);
+        var border=new Color32(122,99,177,255);
+        var facet=new Color32(229,221,255,255);
+        var shadow=new Color32(159,139,215,255);
+        for(int y=0;y<size;y++)
+        for(int x=0;x<size;x++)
+        {
+            float u=x/(float)(size-1), v=y/(float)(size-1);
+            // A chipped six-sided crystal with a slanted top face.
+            bool inside=u>.08f && u<.91f && v>.09f && v<.91f &&
+                (u+v)>.32f && (u+v)<1.68f &&
+                (u-v)<.58f && (v-u)<.64f;
+            if(!inside){texture.SetPixel(x,y,clear);continue;}
+            bool rim=u<.13f || u>.85f || v<.15f || v>.85f ||
+                (u+v)<.39f || (u+v)>1.61f;
+            var color=rim?border:(u+v>.97f?shadow:facet);
+            texture.SetPixel(x,y,color);
+        }
+        texture.Apply();
+        return Sprite.Create(texture,new Rect(0,0,size,size),
+            new Vector2(.5f,.5f),100f);
     }
 
     // A real articulated hammer, saved as regular Unity UI objects by the
@@ -718,7 +750,15 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             float u=Mathf.Clamp01((progress-.82f)/.18f);
             angle=Mathf.Lerp(28f,53f,u);
         }
-        animatedHammerPivot.localRotation=Quaternion.Euler(0,0,angle);
+        // Solve for the actual current strike target, so manual pivot edits
+        // do not leave the moving head striking empty space.
+        Vector2 pivot=animatedHammerPivot.anchoredPosition;
+        Vector2 impactTarget=strikeSampleStart+new Vector2(0,-8);
+        Vector2 toTarget=impactTarget-pivot;
+        float strikeAngle=Mathf.Atan2(toTarget.y,toTarget.x)*Mathf.Rad2Deg;
+        float baselineShift=strikeAngle-(-39f);
+        animatedHammerPivot.localRotation=Quaternion.Euler(
+            0,0,angle+baselineShift);
         bool hit=progress>=impactPoint && progress<impactPoint+.13f;
         if(hammerImpactFlash!=null)
         {
@@ -807,8 +847,10 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             float u=Mathf.Clamp01((progress-.78f)/.22f);
             down=1f-u*u*(3f-2f*u);
         }
-        animatedPressHead.anchoredPosition=pressHeadHome+Vector2.down*(40f*down);
-        animatedPressShaft.anchoredPosition=pressShaftHome+Vector2.down*(40f*down);
+        animatedPressHead.anchoredPosition=pressHeadHome+
+            Vector2.down*(pressTravel*down);
+        animatedPressShaft.anchoredPosition=pressShaftHome+
+            Vector2.down*(pressTravel*down);
         bool contact=progress>=impactPoint&&progress<.80f;
         if(pressImpactGlow!=null)
         {
@@ -852,14 +894,12 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         float ease=sampleT*sampleT*(3f-2f*sampleT);
         bool fractured=mechanicalSample==1 && mechanicalMode==1;
         bool malleable=mechanicalSample==2 && mechanicalMode==2;
-        Vector2 end=mechanicalMode==1?new Vector2(-145,-92):
-            new Vector2(150,-93);
+        Vector2 origin=mechanicalMode==1?strikeSampleStart:pressSampleStart;
+        Vector2 end=origin+new Vector2(0,-43);
         if(mechanicalCube!=null)
         {
             var rt=mechanicalCube.rectTransform;
-            Vector2 initial=mechanicalMode==1?
-                new Vector2(-145,-50):new Vector2(150,-50);
-            rt.anchoredPosition=Vector2.Lerp(initial,end,ease);
+            rt.anchoredPosition=Vector2.Lerp(origin,end,ease);
             if(fractured)
                 rt.localScale=Vector3.one*Mathf.Max(.02f,1f-ease);
             else if(malleable)
@@ -877,8 +917,8 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
                 shard.gameObject.SetActive(spread>.01f);
                 var angle=(float)i/mechanicalShards.Length*Mathf.PI*2f;
                 shard.rectTransform.anchoredPosition=new Vector2(
-                    -145f+Mathf.Cos(angle)*75f*spread,
-                    -98f+Mathf.Sin(angle)*13f*spread);
+                    strikeSampleStart.x+Mathf.Cos(angle)*57f*spread,
+                    strikeSampleStart.y-43f+Mathf.Sin(angle)*15f*spread);
                 shard.rectTransform.localEulerAngles=
                     new Vector3(0,0,angle*Mathf.Rad2Deg+spread*30f);
             }
@@ -887,8 +927,9 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         {
             float flatten=sampleT;
             mechanicalFlattened.gameObject.SetActive(flatten>.01f);
-            Rect(mechanicalFlattened.transform,new Vector2(150,-99),
-                new Vector2(20+148*flatten,8+17*flatten));
+            Rect(mechanicalFlattened.transform,
+                pressSampleStart+new Vector2(0,-49),
+                new Vector2(20+120*flatten,8+15*flatten));
             if(t>=1f && mechanicalCube!=null)
                 mechanicalCube.gameObject.SetActive(false);
         }
@@ -1326,15 +1367,34 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             mechanicalTime=0f;
             // Move the specimen to the appropriate testing platform
             // BEFORE the tool moves, so the hammer strikes a real target.
+            // Use saved test-bench positions instead of hardcoded animation
+            // coordinates. The tester can still move the platforms in Edit.
+            var home=mechanicalCube!=null?
+                mechanicalCube.rectTransform.anchoredPosition:
+                new Vector2(-12,67);
+            // Strike/press lanes retain their current saved horizontal
+            // spacing, offset from the original load position.
+            if(pressed)
+                pressSampleStart=new Vector2(pressHeadHome.x,home.y-117f);
+            else
+                strikeSampleStart=new Vector2(
+                    animatedHammerPivot!=null?
+                    animatedHammerPivot.anchoredPosition.x+93f:-145f,
+                    home.y-117f);
             if(mechanicalCube!=null)
             {
-                Rect(mechanicalCube.transform,
-                    pressed?new Vector2(150,-50):new Vector2(-145,-50),
-                    new Vector2(66,60));
-                mechanicalCube.gameObject.SetActive(true);
+                var start=pressed?pressSampleStart:strikeSampleStart;
+                mechanicalCube.rectTransform.anchoredPosition=start;
                 mechanicalCube.rectTransform.localScale=Vector3.one;
-                mechanicalCube.rectTransform.anchoredPosition=pressed?
-                    new Vector2(150,-50):new Vector2(-145,-50);
+                mechanicalCube.gameObject.SetActive(true);
+            }
+            if(pressed)
+            {
+                // The press front edge (roughly head Y minus 14) should
+                // meet the top of the specimen when the cycle reaches impact.
+                float sampleTop=pressSampleStart.y+30f;
+                pressTravel=Mathf.Clamp(
+                    pressHeadHome.y-14f-sampleTop,12f,110f);
             }
             hammerHasStruck=false;
             ResetHammer();
