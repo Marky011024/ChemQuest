@@ -20,6 +20,9 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
     private int selected=-1,phase=0;
     private int selectedClassification=-1;
     private int classificationSample=-1;
+    // One permanent placement for each material; values 0/1/2 are
+    // ionic/covalent/metallic, and -1 means never placed.
+    private readonly int[] materialBin={-1,-1,-1};
     private bool tested, conducts;
     private static readonly Color Deep=new Color32(5,24,52,255);
     private static readonly Color Panel=new Color32(9,37,72,255);
@@ -256,6 +259,7 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
         // the legacy floating label overlaid Notebook C.
         classStatus.gameObject.SetActive(false);
 
+        RefreshPlacementIndicators();
         SetSelected(selected);
         SetPhase(phase);
         SetConductivity(tested,conducts);
@@ -352,6 +356,7 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
         }
         for(int i=0;i<3;i++)
             HighlightChoice(sampleCards[i],i==index,"sample");
+        RefreshPlacementIndicators();
         // Each sample has its own classification. Do not imply that the
         // previous sample's bin choice also applies to the newly selected one.
         if(classificationSample!=index)
@@ -374,6 +379,63 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
     {
         for(int i=0;i<3;i++)
             HighlightChoice(classCards[i],selectedClassification==i,"class");
+    }
+
+    // All indicators are independent, non-raycasting UI children and are
+    // re-created/repositioned by Bake. Never cover the original glossy text.
+    private void RefreshPlacementIndicators()
+    {
+        for(int sample=0;sample<3;sample++)
+        {
+            if(sampleCards[sample]==null)continue;
+            var row=sampleCards[sample].transform.parent.parent;
+            var status=Find(row,"PlacedStatus") as RectTransform;
+            if(status==null)
+            {
+                status=Group(row,"PlacedStatus",Vector2.zero,new Vector2(80,17));
+                var pill=EnsureImage(status,"PlacedPill");
+                pill.sprite=RoundedSprite();
+                pill.color=new Color32(17,117,68,255);
+                Place(pill.rectTransform,Vector2.zero,new Vector2(80,17));
+            }
+            Place(status,new Vector2(-56,38),new Vector2(80,17));
+            var label=Label(status,"PlacedLabel","PLACED",
+                Vector2.zero,new Vector2(75,15),10,Color.white);
+            label.fontStyle=FontStyles.Bold;
+            status.gameObject.SetActive(materialBin[sample]>=0);
+            status.SetAsLastSibling();
+        }
+        for(int bin=0;bin<3;bin++)
+        {
+            if(classCards[bin]==null)continue;
+            var row=classCards[bin].transform.parent.parent;
+            var chip=Find(row,"DropConfirmation") as RectTransform;
+            if(chip==null)
+                chip=Group(row,"DropConfirmation",Vector2.zero,new Vector2(225,17));
+            // Small confirmation ribbon INSIDE the lower part of the button,
+            // not above it (the metallic top edge is close to CHECK).
+            Place(chip,new Vector2(0,-22),new Vector2(225,17));
+            var plate=EnsureImage(chip,"ConfirmationPlate");
+            plate.sprite=RoundedSprite();
+            plate.color=new Color32(10,83,54,245);
+            Place(plate.rectTransform,Vector2.zero,new Vector2(225,17));
+            string names="";
+            int total=0;
+            for(int sample=0;sample<3;sample++)
+                if(materialBin[sample]==bin)
+                {
+                    if(total>0)names+=" + ";
+                    names+=MaterialNames[sample];
+                    total++;
+                }
+            var text=Label(chip,"PlacedMaterials",
+                total>0?"PLACED: "+names:"",
+                Vector2.zero,new Vector2(218,16),total>1?9:10,
+                new Color32(225,255,220,255));
+            text.fontStyle=FontStyles.Bold;
+            chip.gameObject.SetActive(total>0);
+            chip.SetAsLastSibling();
+        }
     }
 
     public void SetConductivity(bool hasTested,bool doesConduct)
@@ -438,6 +500,10 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
     }
     public void SetClassification(int sample,int bin)
     {
+        if(sample<0 || sample>=materialBin.Length || bin<0 || bin>=3)return;
+        // Reassigning a material immediately removes its old placement
+        // indicator. Other materials retain their independent assignments.
+        materialBin[sample]=bin;
         classificationSample=sample;
         selectedClassification=bin;
         if(classStatus!=null)
@@ -447,6 +513,7 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
             classStatus.gameObject.SetActive(false);
         }
         RefreshClassificationHighlight();
+        RefreshPlacementIndicators();
     }
     private static string Condense(string s)
     {
