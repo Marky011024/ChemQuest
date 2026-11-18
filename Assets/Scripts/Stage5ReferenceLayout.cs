@@ -57,6 +57,16 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             return false;
         }
 
+        // Editor-baked objects survive stopping Play Mode and can be
+        // inspected/edited in the Hierarchy. Rebind their references instead
+        // of layering another set of UI objects over the saved scene.
+        if(Find(canvas,"ExactStage5ReferenceBackdrop")!=null &&
+           Find(canvas,"Stage5MappedTouchSurface")!=null)
+        {
+            RebindBakedHierarchy();
+            return true;
+        }
+
         var board=Find(sceneRoot,"LabBoard");
         if(board==null)return false;
         // Backdrop is behind ALL functional UI objects and does not intercept touches.
@@ -486,6 +496,47 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         heatingSample.rectTransform.anchoredPosition=new Vector2(-24,34);
         heatingSample.color=Color.white;
         heatingSample.gameObject.SetActive(heatingSample.sprite!=null);
+    }
+
+    private void RebindBakedHierarchy()
+    {
+        station=Find(canvas,"TestStation") as RectTransform;
+        liveSample=Find(canvas,"ActiveSampleName")?.GetComponent<TMP_Text>();
+        liveNotebook=Find(canvas,"ActualNotebook")?.GetComponent<TMP_Text>();
+        liveStatus=Find(canvas,"RealExperimentStatus")?.GetComponent<TMP_Text>();
+        preview=Find(canvas,"ActiveExperimentCloseup")?.GetComponent<Image>();
+        if(preview!=null)previewHome=preview.rectTransform.anchoredPosition;
+        dynamicHeatKnob=Find(canvas,"ReferenceHeatKnob")?.GetComponent<Image>();
+        dynamicHeatFill=Find(canvas,"CleanHeatFill")?.GetComponent<Image>();
+        heatingSample=Find(canvas,"ActualSampleOnHeater")?.GetComponent<Image>();
+        moltenPool=Find(canvas,"HeatedSampleLiquidPool")?.GetComponent<Image>();
+        moltenHighlight=Find(canvas,"HeatedSampleLiquidShine")?.GetComponent<Image>();
+        thermometerFill=Find(canvas,"LiveHeatMercury")?.GetComponent<Image>();
+        thermometerValue=Find(canvas,"ThermometerPercent")?.GetComponent<TMP_Text>();
+        dynamicPlateHeat=Find(canvas,"HotplateHeatPercent")?.GetComponent<TMP_Text>();
+        dynamicHeatReadout=Find(canvas,"ReferenceHeatReadout")?.GetComponent<TMP_Text>();
+        dynamicProgress=Find(canvas,"ReferenceProgress")?.GetComponent<TMP_Text>();
+        dynamicScore=Find(canvas,"ReferenceLiveScore")?.GetComponent<TMP_Text>();
+        dynamicEnergy=Find(canvas,"ReferenceLiveEnergy")?.GetComponent<TMP_Text>();
+        conductivityBulbMask=Find(canvas,"DynamicLampMask")?.GetComponent<Image>();
+        conductivityResultPlate=Find(canvas,"DynamicProbeResult")?.GetComponent<Image>();
+        conductivityResultText=Find(canvas,"DynamicProbeResultLabel")?.GetComponent<TMP_Text>();
+        touchController=Find(canvas,"Stage5MappedTouchSurface")?.GetComponent<Stage5ReferenceTouchController>();
+        if(touchController!=null)
+        {
+            touchController.Setup(GetComponent<Stage5ElementCrucibleGame>(),this,level);
+        }
+        if(previous!=null)previous.HideForReferenceArt();
+        if(preview!=null)preview.gameObject.SetActive(false);
+        if(heatingSample!=null)heatingSample.gameObject.SetActive(false);
+        if(moltenPool!=null)moltenPool.gameObject.SetActive(false);
+        if(moltenHighlight!=null)moltenHighlight.gameObject.SetActive(false);
+        isMelting=false;
+        meltingTime=0f;
+        ready=true;
+        if(level==1)ReferenceHeatChanged(0f);
+        if(level==3)SetConductivityVisual(false,false);
+        Debug.Log("CHEMQUEST Stage 5: Reused saved, editable hierarchy (Level "+level+").");
     }
 
     public void ReferenceHeatChanged(float value)
