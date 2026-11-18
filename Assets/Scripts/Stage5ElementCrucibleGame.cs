@@ -60,6 +60,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         if(GameObject.Find("Stage5Level"+Level+"Canvas")==null)BuildEditableUI();
         root=GameObject.Find("Stage5Level"+Level+"Canvas").transform;
         if(Level==1)PolishStage5Level1Layout();
+        PolishStage5ReferenceLayout();
         Bind();
         // Add actual animated experiments inside the existing drop station.
         // All overlays are non-raycasting so drag/drop controls keep working.
@@ -447,6 +448,132 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
             feedbackText.fontSizeMax=16;
             feedbackText.textWrappingMode=TextWrappingModes.NoWrap;
         }
+    }
+
+    // Reference-matched styling shared by all three Stage 5 workbenches.
+    // All original interactable components, sample-drag scripts, listeners,
+    // and data collectors remain unchanged.
+    private void PolishStage5ReferenceLayout()
+    {
+        var canvas=GameObject.Find("Stage5Level"+Level+"Canvas")?.transform;
+        if(canvas==null)return;
+        Transform board=Find(canvas,"LabBoard");
+        if(board==null)return;
+
+        foreach(var name in new[]{"StageText","LevelTitle","Instructions"})
+        {
+            var duplicate=Find(canvas,name);
+            if(duplicate!=null)duplicate.gameObject.SetActive(false);
+        }
+
+        SetRect(board,new Vector2(0,-24),new Vector2(1100,486));
+        var boardImage=board.GetComponent<Image>();
+        if(boardImage!=null)
+        {
+            boardImage.color=new Color32(7,31,63,251);
+            boardImage.raycastTarget=false;
+            AddGlowBorder(boardImage,new Color32(65,198,245,230),new Vector2(2,2));
+        }
+        var title=Find(board,"BoardTitle")?.GetComponent<TMP_Text>();
+        if(title!=null)
+        {
+            title.text=Header;
+            title.fontSize=27;
+            title.color=Gold;
+            title.fontStyle=FontStyles.Bold;
+            SetRect(title.transform,new Vector2(0,205),new Vector2(1020,43));
+        }
+
+        var prompt=Find(board,"Stage5ReferencePrompt");
+        if(prompt==null)
+            prompt=Txt(board,"Stage5ReferencePrompt",Instructions,15,
+                new Vector2(0,168),new Vector2(1020,32),Color.white).transform;
+        var promptLabel=prompt.GetComponent<TMP_Text>();
+        if(promptLabel!=null)promptLabel.text=Instructions;
+        SetRect(prompt,new Vector2(0,168),new Vector2(1020,32));
+
+        // Retire the old Level 1 prompt so the reference-style text is not doubled.
+        var previousPrompt=Find(board,"Stage5Level1Prompt");
+        if(previousPrompt!=null)previousPrompt.gameObject.SetActive(false);
+
+        Transform bank=Find(board,"SampleBank");
+        Transform station=Find(board,"TestStation");
+        Transform notebook=Find(board,"EvidenceBoard");
+        SetRect(bank,new Vector2(-391,5),new Vector2(262,245));
+        SetRect(station,new Vector2(-11,5),new Vector2(475,245));
+        SetRect(notebook,new Vector2(392,5),new Vector2(234,245));
+        DecoratePanel(bank);
+        DecoratePanel(station);
+        DecoratePanel(notebook);
+        SetRect(Find(bank,"BankLabel"),new Vector2(0,99),new Vector2(252,31));
+        SetRect(Find(notebook,"EvidenceTitle"),new Vector2(0,99),new Vector2(224,31));
+        for(int i=0;i<3;i++)
+        {
+            var token=Find(bank,"Sample"+i);
+            SetRect(token,new Vector2(0,47-i*67),new Vector2(228,56));
+            var background=token?.GetComponent<Image>();
+            if(background!=null)
+            {
+                background.color=i==0?new Color32(33,117,192,255):
+                    i==1?new Color32(110,57,161,255):new Color32(12,151,153,255);
+                AddGlowBorder(background,new Color32(77,196,244,190),new Vector2(1.4f,1.4f));
+            }
+            var text=token?.GetComponentInChildren<TMP_Text>(true);
+            if(text!=null){text.fontSize=19;text.fontStyle=FontStyles.Bold;}
+        }
+        var notebookText=Find(notebook,"EvidenceText")?.GetComponent<TMP_Text>();
+        if(notebookText!=null)
+        {
+            SetRect(notebookText.transform,new Vector2(0,-9),new Vector2(216,172));
+            notebookText.fontSize=14;
+            notebookText.enableAutoSizing=true;
+            notebookText.fontSizeMin=11;
+            notebookText.fontSizeMax=14;
+            notebookText.color=new Color32(225,240,251,255);
+        }
+        // The new demo owns this text. Leaving the original label active
+        // caused the unreadable orange-over-orange collision in screenshots.
+        var stationLabel=Find(station,"StationLabel");
+        if(stationLabel!=null)stationLabel.gameObject.SetActive(false);
+        var testIndicator=Find(station,"TestIndicator");
+        if(testIndicator!=null)testIndicator.gameObject.SetActive(false);
+
+        // Keep the original controls clickable; decorate rather than replace.
+        var buttonNames=new[]{"TestButton","StrikeButton","PressButton",
+            "ProbeButton","SubmitButton","SolidButton","MoltenButton",
+            "AqueousButton"};
+        foreach(var name in buttonNames)
+        {
+            var action=Find(canvas,name);
+            var img=action?.GetComponent<Image>();
+            if(img!=null)AddGlowBorder(img,new Color32(77,202,239,220),new Vector2(1.3f,1.3f));
+            var text=action?.GetComponentInChildren<TMP_Text>(true);
+            if(text!=null) {text.fontStyle=FontStyles.Bold; text.enableAutoSizing=true;
+                text.fontSizeMin=11; text.fontSizeMax=19;}
+        }
+        var progressLabel=Find(canvas,"Progress")?.GetComponent<TMP_Text>();
+        if(progressLabel!=null)
+        {
+            progressLabel.color=Cyan;
+            progressLabel.fontStyle=FontStyles.Bold;
+        }
+    }
+
+    private static void DecoratePanel(Transform obj)
+    {
+        var image=obj?.GetComponent<Image>();
+        if(image==null)return;
+        image.color=new Color32(5,30,59,252);
+        // Station is a functional drop target, so preserve its raycasting state.
+        AddGlowBorder(image,new Color32(46,169,231,217),new Vector2(1.4f,1.4f));
+    }
+
+    private static void AddGlowBorder(Image target,Color color,Vector2 distance)
+    {
+        var existing=target.GetComponent<Outline>();
+        if(existing==null)existing=target.gameObject.AddComponent<Outline>();
+        existing.effectColor=color;existing.effectDistance=distance;
+        existing.useGraphicAlpha=false;
     }
 
     private static void SetRect(Transform target,Vector2 position,Vector2 size)
