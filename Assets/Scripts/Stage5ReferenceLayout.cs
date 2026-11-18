@@ -20,6 +20,9 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     private Vector2 previewHome;
     private Image dynamicHeatKnob;
     private Image dynamicHeatFill;
+    private Image heatingSample;
+    private Image thermometerFill;
+    private TMP_Text thermometerValue;
     private TMP_Text dynamicPlateHeat;
     private TMP_Text dynamicHeatReadout;
     private TMP_Text dynamicProgress;
@@ -205,11 +208,14 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         }
         if(level==1)
         {
+            BuildEmptyHeatingBench();
             // Entire slider art is rebuilt on top of the STATIC screenshot:
             // the reference thumb was baked at 175 C and caused two knobs.
             // This overlay is a display only; the mapped touch controller
             // still owns the real slider interaction.
-            var heatTrack=NewImage(canvas,"CleanHeatTrack",null,new Color32(13,53,83,255));
+            var sliderMask=NewImage(canvas,"CleanSliderBackground",null,new Color32(5,29,57,255));
+            Rect(sliderMask.transform,new Vector2(-9,-221),new Vector2(602,48));
+            var heatTrack=NewImage(canvas,"CleanHeatTrack",null,new Color32(34,91,133,255));
             Rect(heatTrack.transform,new Vector2(-9,-221),new Vector2(580,18));
             var fill=NewImage(canvas,"CleanHeatFill",null,new Color32(235,139,36,255));
             dynamicHeatFill=fill;
@@ -312,6 +318,54 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         if(text!=null){text.enabled=true;text.text="CHECK CLASSIFICATION";text.fontSize=14;}
     }
 
+
+    // The original reference screenshot has a permanently melted cube and
+    // 175 C already drawn into its pixels. Cover those objects and replace
+    // them with a live empty heater, sample sprite, and 0-100% thermometer.
+    private void BuildEmptyHeatingBench()
+    {
+        if(level!=1 || canvas==null)return;
+        var cover=NewImage(canvas,"EmptyHeaterCover",null,new Color32(5,27,52,255));
+        Rect(cover.transform,new Vector2(-24,65),new Vector2(298,142));
+        var ring=NewImage(canvas,"EmptyHotPlateRim",null,new Color32(232,101,33,255));
+        Rect(ring.transform,new Vector2(-24,-6),new Vector2(250,25));
+        var surface=NewImage(canvas,"EmptyHotPlateSurface",null,new Color32(57,77,98,255));
+        Rect(surface.transform,new Vector2(-24,5),new Vector2(242,33));
+        heatingSample=NewImage(canvas,"ActualSampleOnHeater",null,Color.white);
+        Rect(heatingSample.transform,new Vector2(-24,53),new Vector2(108,100));
+        heatingSample.preserveAspect=true;
+        heatingSample.gameObject.SetActive(false);
+
+        var meter=NewImage(canvas,"HeatThermometerBlank",null,new Color32(7,26,51,255));
+        Rect(meter.transform,new Vector2(198,44),new Vector2(88,216));
+        var rim=NewImage(canvas,"HeatThermometerTrack",null,new Color32(47,129,176,255));
+        Rect(rim.transform,new Vector2(194,36),new Vector2(15,149));
+        var groove=NewImage(canvas,"HeatThermometerGroove",null,new Color32(10,20,39,255));
+        Rect(groove.transform,new Vector2(194,36),new Vector2(9,141));
+        thermometerFill=NewImage(canvas,"LiveHeatMercury",null,new Color32(255,131,61,255));
+        Rect(thermometerFill.transform,new Vector2(194,-27),new Vector2(8,1));
+        thermometerValue=NewText(canvas,"ThermometerPercent","0%",17,
+            new Vector2(226,111),new Vector2(60,25),Gold);
+        var thermTitle=NewText(canvas,"ThermometerTitle","HEAT",13,
+            new Vector2(224,135),new Vector2(60,20),Gold);
+        thermTitle.fontStyle=FontStyles.Bold;
+        for(int i=0;i<=4;i++)
+            NewText(canvas,"HeatTick"+i,(i*25).ToString(),11,
+                new Vector2(226,-27+i*32),new Vector2(32,19),Color.white);
+        // This LED mask covers the baked 175 C and is kept up to date.
+        var led=NewImage(canvas,"HotplateActualHeatMask",null,new Color32(12,27,52,255));
+        Rect(led.transform,new Vector2(-27,-69),new Vector2(101,36));
+        dynamicPlateHeat=NewText(led.transform,"LiveHotplateHeat","0%",17,
+            Vector2.zero,new Vector2(95,29),Gold);
+    }
+
+    private void ShowHeatingSample(int index)
+    {
+        if(heatingSample==null || index<0 || index>2)return;
+        heatingSample.sprite=ResourceSprite("DragSample"+index);
+        heatingSample.gameObject.SetActive(heatingSample.sprite!=null);
+    }
+
     public void ReferenceHeatChanged(float value)
     {
         if(!ready||level!=1)return;
@@ -331,8 +385,14 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         string reading=Mathf.RoundToInt(value)+"%";
         if(dynamicHeatReadout!=null)
             dynamicHeatReadout.text="HEAT LEVEL: "+reading;
-        if(dynamicPlateHeat!=null)
-            dynamicPlateHeat.text=reading;
+        if(dynamicPlateHeat!=null) dynamicPlateHeat.text=reading;
+        if(thermometerValue!=null) thermometerValue.text=reading;
+        if(thermometerFill!=null)
+        {
+            float h=129f*fraction;
+            Rect(thermometerFill.transform,new Vector2(194f,-27f+h*.5f),
+                new Vector2(8f,Mathf.Max(1f,h)));
+        }
     }
 
     public void ReferencePhaseSelected(int selectedPhase)
@@ -361,10 +421,11 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         if(liveSample!=null)liveSample.text="SAMPLE "+(char)('A'+index);
         if(liveStatus!=null)liveStatus.text="SELECT THE TEST ACTION";
         if(preview!=null) preview.gameObject.SetActive(false);
-        // HeatSolid.png contains an entire miniature UI screenshot, not an
-        // isolated sample. Never show that resource inside the experiment.
-        if(level==1 && liveStatus!=null)
-            liveStatus.text="ADJUST HEAT, THEN PRESS APPLY HEAT";
+        if(level==1)
+        {
+            ShowHeatingSample(index);
+            if(liveStatus!=null)liveStatus.text="ADJUST HEAT, THEN PRESS APPLY HEAT";
+        }
         if(level==3)SetConductivityVisual(false,false);
         actionEffect=0;
     }
@@ -373,8 +434,16 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     {
         if(!ready)return;
         actionEffect=1;
-        SetResult(sample==0?"HeatMelt":null,sample==0?
-            "SAMPLE A MELTS":"SOLID AFTER HEATING");
+        if(sample==0)
+        {
+            if(heatingSample!=null) heatingSample.gameObject.SetActive(false);
+            SetResult("HeatMelt","SAMPLE A MELTS");
+        }
+        else
+        {
+            ShowHeatingSample(sample);
+            SetResult(null,"SOLID AFTER HEATING");
+        }
     }
 
     public void MechanicalResult(int sample,bool pressed)
