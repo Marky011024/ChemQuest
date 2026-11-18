@@ -78,6 +78,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         if(Find(canvas,"ExactStage5ReferenceBackdrop")!=null &&
            Find(canvas,"Stage5MappedTouchSurface")!=null)
         {
+            RestoreStage5Backdrop(imageSprite);
             RebindBakedHierarchy();
             return true;
         }
@@ -94,6 +95,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         // dark rectangles. Input now belongs solely to the transparent touch
         // controller added after the art.
         skin.transform.SetAsLastSibling();
+        RestoreStage5Backdrop(imageSprite);
 
         // Hide the old procedural text boxes / panels, not their controls.
         foreach(var name in new[]{"LabBoard","SampleBank","TestStation","EvidenceBoard"})
@@ -924,6 +926,54 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         heatingSample.rectTransform.anchoredPosition=new Vector2(-24,34);
         heatingSample.color=Color.white;
         heatingSample.gameObject.SetActive(heatingSample.sprite!=null);
+    }
+
+    // A baked scene can retain the Image GameObject after its generated
+    // Sprite reference is invalidated by reimporting assets. Restore from the
+    // real Level3 PNG on every Bake/Initialize instead of trusting the scene's
+    // serialized sprite. Keep it BEHIND modular interactive UI.
+    private void RestoreStage5Backdrop(Sprite reference)
+    {
+        if(canvas==null || reference==null)return;
+        var backdrop=Find(canvas,"ExactStage5ReferenceBackdrop") as RectTransform;
+        if(backdrop==null)return;
+        backdrop.gameObject.SetActive(true);
+        var image=backdrop.GetComponent<Image>();
+        if(image==null)image=backdrop.gameObject.AddComponent<Image>();
+        image.enabled=true;
+        image.sprite=reference;
+        image.overrideSprite=null;
+        image.color=Color.white;
+        image.type=Image.Type.Simple;
+        image.preserveAspect=false;
+        image.raycastTarget=false;
+        backdrop.anchorMin=Vector2.zero;
+        backdrop.anchorMax=Vector2.one;
+        backdrop.offsetMin=Vector2.zero;
+        backdrop.offsetMax=Vector2.zero;
+        backdrop.localScale=Vector3.one;
+
+        // Reattach also to the original background Image, as that is what
+        // supplies the Stage5 HUD around the modular workbench. A missing
+        // scene sprite formerly left a solid white canvas.
+        var baseBackground=Find(canvas,"Background")?.GetComponent<Image>();
+        if(baseBackground!=null)
+        {
+            baseBackground.gameObject.SetActive(true);
+            baseBackground.enabled=true;
+            baseBackground.sprite=reference;
+            baseBackground.overrideSprite=null;
+            baseBackground.color=Color.white;
+            baseBackground.raycastTarget=false;
+            baseBackground.transform.SetAsFirstSibling();
+        }
+        // Draw reference over old procedural UI but under the new modular
+        // design. Do not move the modular UI or the touch input layer.
+        var modular=Find(canvas,"Stage5Level3_ModularUI");
+        if(level==3 && modular!=null)
+            backdrop.SetSiblingIndex(Mathf.Max(0,modular.GetSiblingIndex()-1));
+        Debug.Log("CHEMQUEST Stage 5: Restored original Level"+level+
+            " background sprites in saved scene.");
     }
 
     private void RebindBakedHierarchy()
