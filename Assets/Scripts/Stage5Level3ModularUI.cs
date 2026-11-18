@@ -12,6 +12,7 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
     private RectTransform ui;
     private TMP_Text chosen, resultText, noteA, noteB, noteC, classStatus;
     private Image resultPlate, bulbGlow;
+    private Image realBulb, realWire;
     private readonly Image[] sampleCards=new Image[3];
     private readonly Image[] phaseCards=new Image[3];
     private readonly Image[] classCards=new Image[3];
@@ -90,22 +91,37 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
             new Color32(4,185,226,220),new Color32(86,220,255,255));
         PanelImage(apparatus,"BeakerRim",new Vector2(0,29),new Vector2(193,13),
             new Color32(128,222,255,255),Gold);
-        PanelImage(apparatus,"LeftElectrode",new Vector2(-57,26),new Vector2(13,85),
+        var positive=PanelImage(apparatus,"LeftElectrode",
+            new Vector2(-57,26),new Vector2(13,85),
             new Color32(211,113,91,255),Gold);
-        PanelImage(apparatus,"RightElectrode",new Vector2(58,26),new Vector2(13,85),
+        var negative=PanelImage(apparatus,"RightElectrode",
+            new Vector2(58,26),new Vector2(13,85),
             new Color32(89,150,230,255),Gold);
-        PanelImage(apparatus,"ConnectingWire",new Vector2(0,76),new Vector2(120,6),
-            new Color32(243,171,73,255),Gold);
-        var bulb=Group(apparatus,"ConductivityBulb",new Vector2(0,78),new Vector2(41,42));
-        bulbGlow=PanelImage(bulb,"BulbGlow",Vector2.zero,new Vector2(39,38),Off,Gold);
-        Label(bulb,"BulbSymbol","✦",Vector2.zero,new Vector2(35,35),25,Text);
+        InstallButtonArt(positive,"ElectrodePositive");
+        InstallButtonArt(negative,"ElectrodeNegative");
+        realWire=PanelImage(apparatus,"ConnectingWire",new Vector2(0,75),
+            new Vector2(145,38),Color.white,Gold);
+        InstallButtonArt(realWire,"WireOff");
+        var bulb=Group(apparatus,"ConductivityBulb",
+            new Vector2(0,85),new Vector2(55,63));
+        bulbGlow=PanelImage(bulb,"BulbGlow",Vector2.zero,
+            new Vector2(43,46),Off,Gold);
+        var oldBulbSymbol=Label(bulb,"BulbSymbol","*",
+            Vector2.zero,new Vector2(35,35),25,Text);
+        realBulb=PanelImage(bulb,"BulbStateSprite",Vector2.zero,
+            new Vector2(55,64),Color.white,Gold);
+        InstallButtonArt(realBulb,"BulbOff",
+            Find(bulb,"BulbGlow_Frame"),oldBulbSymbol.transform);
         for(int i=0;i<8;i++)
         {
             var ion=Group(apparatus,"Ion_"+(i+1),
                 new Vector2(-66+(i%4)*42,-21-(i/4)*36),new Vector2(27,27));
-            PanelImage(ion,"IonDisc",Vector2.zero,new Vector2(27,27),
+            var disc=PanelImage(ion,"IonDisc",Vector2.zero,new Vector2(27,27),
                 i%2==0?new Color32(36,193,89,255):new Color32(146,55,206,255),Text);
-            Label(ion,"ChargeLabel",i%2==0?"+":"−",Vector2.zero,new Vector2(25,25),19,Text);
+            var charge=Label(ion,"ChargeLabel",i%2==0?"+":"-",
+                Vector2.zero,new Vector2(25,25),19,Text);
+            InstallButtonArt(disc,i%2==0?"IonPositive":"IonNegative",
+                charge.transform);
         }
 
         var status=Group(center,"ConductivityResultPanel",new Vector2(177,50),new Vector2(118,80));
@@ -115,6 +131,7 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
             new Vector2(109,38),Off,Border);
         resultText=Label(status,"ConductivityResultText","NOT TESTED",
             new Vector2(0,-15),new Vector2(105,35),12,Text);
+        InstallButtonArt(resultPlate,"ConductivityNotTested",resultText.transform);
 
         var phases=Group(center,"PhaseSelectionButtons",new Vector2(0,-115),new Vector2(494,80));
         string[] names={"SOLID","MOLTEN","AQUEOUS"};
@@ -170,9 +187,11 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
         }
         var classify=Group(ui,"CheckClassificationButton",new Vector2(418,-222),
             new Vector2(249,46));
-        PanelImage(classify,"ButtonImage",Vector2.zero,new Vector2(249,46),Teal,Gold);
-        Label(classify,"ButtonText","CHECK CLASSIFICATION",Vector2.zero,
-            new Vector2(243,39),15,Text);
+        var classifyFace=PanelImage(classify,"ButtonImage",
+            Vector2.zero,new Vector2(249,46),Teal,Gold);
+        var classifyLabel=Label(classify,"ButtonText",
+            "CHECK CLASSIFICATION",Vector2.zero,new Vector2(243,39),15,Text);
+        InstallButtonArt(classifyFace,"CheckClassification",classifyLabel.transform);
         classStatus=Label(ui,"ClassificationFeedback","",
             new Vector2(405,-185),new Vector2(260,23),12,Gold);
 
@@ -215,12 +234,37 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
     public void SetConductivity(bool hasTested,bool doesConduct)
     {
         tested=hasTested;conducts=doesConduct;
-        if(resultPlate!=null)resultPlate.color=!tested?Off:
-            conducts?new Color32(19,139,78,255):new Color32(126,66,92,255);
-        if(resultText!=null)resultText.text=!tested?"NOT TESTED":
-            conducts?"CONDUCTS":"NO CONDUCTION";
-        if(bulbGlow!=null)bulbGlow.color=tested&&conducts?
-            new Color32(255,220,62,255):Off;
+        if(resultPlate!=null)
+        {
+            string asset=!tested?"ConductivityNotTested":
+                conducts?"ConductivityConducts":"ConductivityNo";
+            var sprite=LoadButtonArt(asset);
+            if(sprite!=null)
+            {
+                resultPlate.sprite=sprite;
+                resultPlate.color=Color.white;
+                if(resultText!=null)resultText.gameObject.SetActive(false);
+            }
+            else resultPlate.color=!tested?Off:
+                conducts?new Color32(19,139,78,255):
+                    new Color32(126,66,92,255);
+        }
+        if(resultText!=null && resultText.gameObject.activeSelf)
+            resultText.text=!tested?"NOT TESTED":
+                conducts?"CONDUCTS":"NO CONDUCTION";
+        if(realBulb!=null)
+        {
+            var sprite=LoadButtonArt(tested&&conducts?"BulbOn":"BulbOff");
+            if(sprite!=null){realBulb.sprite=sprite;realBulb.color=Color.white;}
+        }
+        if(realWire!=null)
+        {
+            var sprite=LoadButtonArt(tested&&conducts?"WireOn":"WireOff");
+            if(sprite!=null){realWire.sprite=sprite;realWire.color=Color.white;}
+        }
+        if(bulbGlow!=null && !UsingReferenceArt(realBulb))
+            bulbGlow.color=tested&&conducts?
+                new Color32(255,220,62,255):Off;
     }
     public void SetNotebook(string a,string b,string c)
     {
