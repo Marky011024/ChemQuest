@@ -406,6 +406,14 @@ public sealed class Stage5VisualLabDemo : MonoBehaviour
         }
     }
 
+    // Called when the exact illustrated reference screen is installed.
+    // Keeps the full realistic heater/hammer/circuit art unobstructed.
+    public void HideForReferenceArt()
+    {
+        ready=false;
+        if(layer!=null)layer.gameObject.SetActive(false);
+    }
+
     private void OnDestroy()
     {
         if(disc!=null&&disc.texture!=null)Destroy(disc.texture);
