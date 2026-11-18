@@ -615,6 +615,10 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
 
     private void RebindBakedHierarchy()
     {
+        // Older saved scenes predate the new Level 2 physical demonstration.
+        // Upgrade them in place rather than creating a second full UI.
+        if(level==2 && Find(canvas,"MechanicalEmptySampleMask")==null)
+            BuildMechanicalWorkbench();
         station=Find(canvas,"TestStation") as RectTransform;
         liveSample=Find(canvas,"ActiveSampleName")?.GetComponent<TMP_Text>();
         liveNotebook=Find(canvas,"ActualNotebook")?.GetComponent<TMP_Text>();
