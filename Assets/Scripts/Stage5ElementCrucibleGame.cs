@@ -472,7 +472,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
     // Reference-matched styling shared by all three Stage 5 workbenches.
     // All original interactable components, sample-drag scripts, listeners,
     // and data collectors remain unchanged.
-    private void PolishStage5ReferenceLayout()
+    public void PolishStage5ReferenceLayout()
     {
         var canvas=GameObject.Find("Stage5Level"+Level+"Canvas")?.transform;
         if(canvas==null)return;
