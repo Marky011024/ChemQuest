@@ -99,17 +99,17 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
             Vector2.zero,new Vector2(174,29),16,Text);
 
         var apparatus=Group(center,"ConductivityApparatus",new Vector2(-38,20),new Vector2(285,191));
-        PanelImage(apparatus,"BeakerBody",new Vector2(0,-26),new Vector2(182,106),
+        PanelImage(apparatus,"BeakerBody",new Vector2(0,-26),new Vector2(198,116),
             new Color32(9,109,166,255),Border);
-        PanelImage(apparatus,"SolutionLiquid",new Vector2(0,-43),new Vector2(166,63),
+        PanelImage(apparatus,"SolutionLiquid",new Vector2(0,-43),new Vector2(179,69),
             new Color32(4,185,226,220),new Color32(86,220,255,255));
         // Persistent, independently editable specimen in the actual beaker.
         // It is hidden until a student has selected/dropped a sample.
         droppedSample=EnsureImage(apparatus,"SelectedSampleInBeaker");
-        Place(droppedSample.rectTransform,new Vector2(0,-26),new Vector2(51,51));
+        Place(droppedSample.rectTransform,new Vector2(0,-23),new Vector2(66,66));
         droppedSample.preserveAspect=true;
         droppedSample.raycastTarget=false;
-        PanelImage(apparatus,"BeakerRim",new Vector2(0,29),new Vector2(193,13),
+        PanelImage(apparatus,"BeakerRim",new Vector2(0,29),new Vector2(205,13),
             new Color32(128,222,255,255),Gold);
         var positive=PanelImage(apparatus,"LeftElectrode",
             new Vector2(-57,26),new Vector2(13,85),
@@ -129,13 +129,13 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
             if(item!=null)item.gameObject.SetActive(false);
         }
         realWire=CircuitSegment(apparatus,"Wire_LeftHorizontal",
-            new Vector2(-40,78),new Vector2(41,5));
+            new Vector2(-40,78),new Vector2(43,5));
         CircuitSegment(apparatus,"Wire_RightHorizontal",
-            new Vector2(40,78),new Vector2(41,5));
+            new Vector2(40,78),new Vector2(43,5));
         CircuitSegment(apparatus,"Wire_LeftVertical",
-            new Vector2(-61,72),new Vector2(5,22));
+            new Vector2(-61,71),new Vector2(5,26));
         CircuitSegment(apparatus,"Wire_RightVertical",
-            new Vector2(61,72),new Vector2(5,22));
+            new Vector2(61,71),new Vector2(5,26));
         var bulb=Group(apparatus,"ConductivityBulb",
             new Vector2(0,80),new Vector2(55,59));
         bulbGlow=PanelImage(bulb,"BulbGlow",Vector2.zero,
@@ -165,7 +165,9 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
             new Vector2(112,38),Off,Border);
         resultText=Label(status,"ConductivityResultText","NOT TESTED",
             new Vector2(0,-15),new Vector2(105,35),12,Text);
-        InstallButtonArt(resultPlate,"ConductivityNotTested",resultText.transform);
+        // An explicit readable initial state is preferable to an empty
+        // generated sprite. SetConductivity will switch to ON/OFF art later.
+        SetConductivity(false,false);
 
         var phases=Group(center,"PhaseSelectionButtons",new Vector2(0,-115),new Vector2(494,80));
         string[] names={"SOLID","MOLTEN","AQUEOUS"};
@@ -196,8 +198,9 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
             Label(item,"SampleLetter",((char)('A'+i)).ToString(),
                 new Vector2(-94,0),new Vector2(26,52),19,Gold);
             notebooks[i]=Label(item,"ObservationText","S: --   M: --\nAq: N/A",
-                new Vector2(17,0),new Vector2(180,69),14,Text);
+                new Vector2(17,0),new Vector2(180,70),16,Text);
             notebooks[i].alignment=TextAlignmentOptions.MidlineLeft;
+            notebooks[i].textWrappingMode=TextWrappingModes.Normal;
         }
         noteA=notebooks[0];noteB=notebooks[1];noteC=notebooks[2];
 
@@ -243,7 +246,10 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
             "CHECK CLASSIFICATION",Vector2.zero,new Vector2(243,39),15,Text);
         InstallButtonArt(classifyFace,"CheckClassification",classifyLabel.transform);
         classStatus=Label(ui,"ClassificationFeedback","",
-            new Vector2(405,-185),new Vector2(260,23),12,Gold);
+            new Vector2(400,-185),new Vector2(260,23),12,Gold);
+        // Classification is shown by the chosen button's highlighted border;
+        // the legacy floating label overlaid Notebook C.
+        classStatus.gameObject.SetActive(false);
 
         SetSelected(selected);
         SetPhase(phase);
@@ -292,15 +298,24 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
             go.transform.SetParent(card,false);
             badge=go.GetComponent<RectTransform>();
         }
-        Place(badge,new Vector2(card.sizeDelta.x*.5f-29f,
-            card.sizeDelta.y*.5f-11f),new Vector2(53,20));
+        // Put SAMPLE badge in the small gap ABOVE the button, never over
+        // its text or icon. Classification relies on the gold outline to
+        // avoid interfering with the CHECK CLASSIFICATION button.
+        if(kind=="class")
+        {
+            var old=Find(card,"SelectionIndicator");
+            if(old!=null)old.gameObject.SetActive(false);
+            return;
+        }
+        Place(badge,new Vector2(card.sizeDelta.x*.5f-33f,
+            card.sizeDelta.y*.5f+4f),new Vector2(58,18));
         var badgeImage=badge.GetComponent<Image>();
         badgeImage.sprite=RoundedSprite();
         badgeImage.color=new Color32(255,212,72,255);
         badgeImage.raycastTarget=false;
         var badgeText=Label(badge,"SelectionIndicatorText",
-            kind=="sample"?"SELECTED":kind=="phase"?"ACTIVE":"CHOSEN",
-            Vector2.zero,new Vector2(52,18),10,Deep);
+            "SELECTED",
+            Vector2.zero,new Vector2(56,16),9,Deep);
         badgeText.fontStyle=FontStyles.Bold;
         badge.gameObject.SetActive(active);
         // Put indicator over the complete reference PNG button.
@@ -365,26 +380,31 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
             var sprite=LoadButtonArt(asset);
             if(sprite==null && tested)
                 sprite=LoadButtonArt(conducts?"ConductivityConducts":"ConductivityNo");
-            if(sprite!=null)
+            if(!tested || sprite==null)
             {
+                // Always display NOT TESTED, even if an optional initial
+                // image is missing/blank. Label is above the result plate.
+                resultPlate.overrideSprite=null;
+                resultPlate.sprite=RoundedSprite();
+                resultPlate.color=Off;
+                resultPlate.preserveAspect=false;
+            }
+            else
+            {
+                resultPlate.overrideSprite=null;
                 resultPlate.sprite=sprite;
                 resultPlate.color=Color.white;
                 resultPlate.type=Image.Type.Simple;
                 resultPlate.preserveAspect=true;
             }
-            else
-            {
-                resultPlate.sprite=RoundedSprite();
-                resultPlate.color=!tested?Off:
-                    conducts?new Color32(19,139,78,255):
-                        new Color32(126,66,92,255);
-            }
-            // No duplicate text over the branded image.
             if(resultText!=null)
             {
-                resultText.gameObject.SetActive(sprite==null);
+                resultText.gameObject.SetActive(!tested || sprite==null);
                 resultText.text=!tested?"NOT TESTED":
                     conducts?"CONDUCTS":"DOES NOT CONDUCT";
+                resultText.fontSize=12;
+                resultText.color=Text;
+                resultText.transform.SetAsLastSibling();
             }
         }
         if(realBulb!=null)
@@ -415,8 +435,11 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
         classificationSample=sample;
         selectedClassification=bin;
         if(classStatus!=null)
-            classStatus.text="SAMPLE "+(char)('A'+sample)+" CHOSEN: "+
-                (bin==0?"IONIC":bin==1?"COVALENT":"METALLIC");
+        {
+            // No floating text on top of the notebook.
+            classStatus.text="";
+            classStatus.gameObject.SetActive(false);
+        }
         RefreshClassificationHighlight();
     }
     private static string Condense(string s)
