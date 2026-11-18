@@ -357,13 +357,12 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
         for(int i=0;i<3;i++)
             HighlightChoice(sampleCards[i],i==index,"sample");
         RefreshPlacementIndicators();
-        // Each sample has its own classification. Do not imply that the
-        // previous sample's bin choice also applies to the newly selected one.
-        if(classificationSample!=index)
-        {
-            selectedClassification=-1;
-            if(classStatus!=null)classStatus.text="";
-        }
+        // Restore the current material's own previously chosen category,
+        // rather than carrying the last material's highlighted button.
+        classificationSample=index;
+        selectedClassification=index>=0 && index<materialBin.Length?
+            materialBin[index]:-1;
+        if(classStatus!=null)classStatus.text="";
         RefreshClassificationHighlight();
     }
 
