@@ -231,12 +231,8 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             dynamicHeatReadout=NewText(heatPlate.transform,"ReferenceHeatReadout",
                 "HEAT LEVEL: 0%",16,Vector2.zero,new Vector2(233,32),Gold);
 
-            // The mockup shows a baked-in "175" on the instrument. Mask that
-            // static number and display the game's actual control percentage.
-            var plateMask=NewImage(canvas,"LiveHotPlateMeter",null,new Color32(12,27,52,255));
-            Rect(plateMask.transform,new Vector2(-32,-70),new Vector2(70,29));
-            dynamicPlateHeat=NewText(plateMask.transform,"LiveHotPlateValue","0%",
-                16,Vector2.zero,new Vector2(67,24),Gold);
+            // The 175 C on the hotplate is already replaced by the single
+            // HotplateActualHeatMask created in BuildEmptyHeatingBench().
         }
         if(level==3)
         {
