@@ -320,7 +320,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         {
             // Cover both the static painted caption and the stale prompt.
             // The background shows SAMPLE C above the dynamic SAMPLE A.
-            Rect(tag,new Vector2(-11,135),new Vector2(204,87));
+            Rect(tag,new Vector2(-11,149),new Vector2(204,53));
             var image=tag.GetComponent<Image>();
             if(image!=null)image.color=new Color32(5,29,57,255);
         }
@@ -328,7 +328,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             liveSample=Find(canvas,"ActiveSampleName")?.GetComponent<TMP_Text>();
         if(liveSample!=null)
         {
-            Rect(liveSample.transform,new Vector2(0,13),new Vector2(196,29));
+            Rect(liveSample.transform,new Vector2(0,0),new Vector2(196,28));
             liveSample.fontSize=17;
             liveSample.alignment=TextAlignmentOptions.Center;
         }
@@ -368,10 +368,10 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             liveNotebook=Find(canvas,"ActualNotebook")?.GetComponent<TMP_Text>();
         if(liveNotebook!=null)
         {
-            Rect(liveNotebook.transform,new Vector2(0,-23),new Vector2(263,227));
+            Rect(liveNotebook.transform,new Vector2(0,-22),new Vector2(263,232));
             liveNotebook.enableAutoSizing=false;
-            liveNotebook.fontSize=16;
-            liveNotebook.lineSpacing=3;
+            liveNotebook.fontSize=17;
+            liveNotebook.lineSpacing=4;
             liveNotebook.margin=new Vector4(7,8,7,3);
             liveNotebook.alignment=TextAlignmentOptions.TopLeft;
             liveNotebook.overflowMode=TextOverflowModes.Ellipsis;
@@ -1203,13 +1203,13 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             // preserving all observations. Aqueous is N/A for A and C.
             string Compact(string observation)
             {
-                return observation.Replace("SOLID ","S: ")
-                    .Replace("  MOLTEN ","  M: ")
-                    .Replace("\n     AQ ","  Aq: ");
+                return observation.Replace("SOLID ","S:")
+                    .Replace("  MOLTEN ","  M:")
+                    .Replace("\n     AQ ","\n       Aq:");
             }
             liveNotebook.text=
-                "<color=#7ECDEF><b>A</b></color>  "+Compact(a)+"\n\n"+
-                "<color=#D4A5FF><b>B</b></color>  "+Compact(b)+"\n\n"+
+                "<color=#7ECDEF><b>A</b></color>  "+Compact(a)+"\n"+
+                "<color=#D4A5FF><b>B</b></color>  "+Compact(b)+"\n"+
                 "<color=#7FF3DC><b>C</b></color>  "+Compact(c);
             return;
         }
