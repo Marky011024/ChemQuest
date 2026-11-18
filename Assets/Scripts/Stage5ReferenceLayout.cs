@@ -324,6 +324,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     {
         if(level!=1 || canvas==null)return;
         var row=Find(canvas,"Stage5Level1MaterialButtons") as RectTransform;
+        bool newRow=row==null;
         if(row==null)
         {
             var root=new GameObject("Stage5Level1MaterialButtons",
@@ -331,7 +332,8 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             root.transform.SetParent(canvas,false);
             row=root.GetComponent<RectTransform>();
         }
-        Rect(row,Vector2.zero,new Vector2(1280,720));
+        // Once saved by Bake, respect user changes to the entire container.
+        if(newRow)Rect(row,Vector2.zero,new Vector2(1280,720));
         row.gameObject.SetActive(true);
         // Level 1's full reference screenshot has the ORIGINAL three button
         // borders baked into the pixels. Small per-button covers left their
@@ -339,7 +341,8 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         // hides ALL three original buttons and halos without masking the
         // UNKNOWN SAMPLES header or the outer panel outline.
         var innerMaskTransform=Find(row,"OriginalSampleBankCover");
-        var innerMask=innerMaskTransform==null?
+        bool newInnerMask=innerMaskTransform==null;
+        var innerMask=newInnerMask?
             NewImage(row,"OriginalSampleBankCover",null,new Color32(5,29,57,255)):
             innerMaskTransform.GetComponent<Image>();
         if(innerMask!=null)
@@ -350,8 +353,9 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             innerMask.type=Image.Type.Simple;
             innerMask.raycastTarget=false;
             innerMask.gameObject.SetActive(true);
-            Rect(innerMask.rectTransform,new Vector2(-404,-16),
-                new Vector2(270,246));
+            if(newInnerMask)
+                Rect(innerMask.rectTransform,new Vector2(-404,-16),
+                    new Vector2(270,246));
             innerMask.transform.SetAsFirstSibling();
         }
         // Existing small masks remain in the saved editable Hierarchy, but
@@ -360,7 +364,8 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         {
             var coverName="OriginalSampleCover_"+(char)('A'+i);
             var coverTransform=Find(row,coverName);
-            Image cover=coverTransform==null?
+            bool newCover=coverTransform==null;
+            Image cover=newCover?
                 NewImage(row,coverName,null,new Color32(5,29,57,255)):
                 coverTransform.GetComponent<Image>();
             if(cover!=null)
@@ -371,8 +376,11 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
                 cover.type=Image.Type.Simple;
                 cover.color=new Color32(5,29,57,255);
                 cover.raycastTarget=false;
-                Rect(cover.rectTransform,new Vector2(-404,64-i*79),
-                    new Vector2(264,80));
+                // Do not undo inspector RectTransform edits when entering
+                // Play Mode. Defaults apply only on first construction.
+                if(newCover)
+                    Rect(cover.rectTransform,new Vector2(-404,64-i*79),
+                        new Vector2(264,80));
                 // The covers must render behind all final material buttons.
                 cover.transform.SetAsFirstSibling();
             }
@@ -381,8 +389,9 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         {
             var name="MaterialButton_"+(char)('A'+i);
             var objectTransform=Find(row,name);
+            bool newButton=objectTransform==null;
             Image image;
-            if(objectTransform==null)
+            if(newButton)
                 image=NewImage(row,name,null,Color.white);
             else
                 image=objectTransform.GetComponent<Image>();
@@ -405,8 +414,12 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             image.raycastTarget=false;
             // Level 1 artwork uses narrower cards than Level 3. Never
             // stretch the source sprite or cover neighbouring elements.
-            Rect(image.transform,new Vector2(-404,64-i*79),
-                new Vector2(232,64));
+            // Keep exactly the size/position saved in the Unity scene.
+            // Reapplying the defaults each Play caused the old artwork to
+            // peek out after the student manually aligned these buttons.
+            if(newButton)
+                Rect(image.transform,new Vector2(-404,64-i*79),
+                    new Vector2(232,64));
         }
         // These images cover the old reference-art SAMPLE A/B/C buttons,
         // but do not intercept mapped dragging/clicking.
