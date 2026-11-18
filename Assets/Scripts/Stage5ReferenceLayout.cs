@@ -70,6 +70,8 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         {
             var sample=Find(sampleBank,"Sample"+i);
             Rect(sample,new Vector2(0,64-i*79),new Vector2(234,65));
+            var draggable=sample?.GetComponent<Stage5SampleDrag>();
+            if(draggable!=null)draggable.RefreshHome();
             Transparent(sample,true);
             var label=sample?.GetComponentInChildren<TMP_Text>(true);
             if(label!=null)label.enabled=false;
