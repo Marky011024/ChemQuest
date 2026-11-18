@@ -167,6 +167,7 @@ public sealed class Stage5ReferenceTouchController : MonoBehaviour,
         {
             if(source>=0)
             {
+                Debug.Log("CHEMQUEST Stage5 touch: sample "+(char)('A'+source)+" released at "+p);
                 int bin=BinAt(p);
                 if(bin>=0)
                     game.DropSample(source,bin);
@@ -179,6 +180,7 @@ public sealed class Stage5ReferenceTouchController : MonoBehaviour,
                 var action=ActionAt(p);
                 if(action>=0 && action==downAction)
                 {
+                    Debug.Log("CHEMQUEST Stage5 touch: action "+action+" pressed");
                     if(action>=10&&action<=12)
                         game.ReferencePlaceSelectedInBin(action-10);
                     else if(action>=20&&action<=22)
