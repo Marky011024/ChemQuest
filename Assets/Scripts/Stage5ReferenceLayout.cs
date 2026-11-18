@@ -23,6 +23,9 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     private TMP_Text dynamicProgress;
     private TMP_Text dynamicScore;
     private TMP_Text dynamicEnergy;
+    private Image conductivityBulbMask;
+    private Image conductivityResultPlate;
+    private TMP_Text conductivityResultText;
     private Stage5ReferenceTouchController touchController;
 
     private static readonly Color Navy=new Color32(5,29,57,250);
@@ -197,6 +200,16 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         }
         if(level==3)
         {
+            // The illustration shows a lit bulb as an example. Cover the
+            // baked-in ON state until the player's real probe result is known.
+            conductivityBulbMask=NewImage(canvas,"DynamicLampMask",null,Navy);
+            Rect(conductivityBulbMask.transform,new Vector2(-13,107),new Vector2(82,80));
+            conductivityResultPlate=NewImage(canvas,"DynamicProbeResult",null,Navy);
+            Rect(conductivityResultPlate.transform,new Vector2(219,91),new Vector2(151,70));
+            conductivityResultText=NewText(conductivityResultPlate.transform,
+                "DynamicProbeResultLabel","NOT TESTED",15,Vector2.zero,
+                new Vector2(146,60),Gold);
+            conductivityResultText.fontStyle=FontStyles.Bold;
             // The mockup omits the game's final validation control.
             // Draw a visible one above the art, mapped to action #4.
             var classify=NewImage(canvas,"ReferenceCheckClassification",null,
@@ -303,7 +316,13 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         selected=index;
         if(liveSample!=null)liveSample.text="SAMPLE "+(char)('A'+index);
         if(liveStatus!=null)liveStatus.text="SELECT THE TEST ACTION";
-        if(preview!=null)preview.gameObject.SetActive(false);
+        if(preview!=null)
+        {
+            preview.gameObject.SetActive(false);
+            // Show the solid sample on the heater BEFORE the melting test.
+            if(level==1)SetResult("HeatSolid","ADJUST HEAT, THEN TEST");
+        }
+        if(level==3)SetConductivityVisual(false,false);
         actionEffect=0;
     }
 
@@ -331,6 +350,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         if(!ready)return;
         phase=state;
         if(preview!=null)preview.gameObject.SetActive(false);
+        SetConductivityVisual(false,false);
         if(liveStatus!=null)liveStatus.text=
             (state==0?"SOLID":state==1?"MOLTEN":"AQUEOUS")+" - USE TEST PROBE";
     }
@@ -340,8 +360,27 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         if(!ready)return;
         // The illustration with mobile ions depicts IONIC sample B only.
         actionEffect=4;
+        SetConductivityVisual(true,conducting);
         SetResult(sample==1&&conducting?"ConductivityOn":null,
             conducting?"BULB ON - CONDUCTS":"BULB OFF - DOES NOT CONDUCT");
+    }
+
+    private void SetConductivityVisual(bool tested,bool conducting)
+    {
+        if(level!=3)return;
+        if(conductivityBulbMask!=null)
+            conductivityBulbMask.color=conducting&&tested?
+                new Color(0,0,0,0):Navy;
+        if(conductivityResultPlate!=null)
+            conductivityResultPlate.color=conducting&&tested?
+                new Color32(10,94,54,245):Navy;
+        if(conductivityResultText!=null)
+        {
+            conductivityResultText.text=!tested?"NOT TESTED":
+                conducting?"CONDUCTS":"NO CONDUCTION";
+            conductivityResultText.color=conducting&&tested?
+                new Color32(167,255,190,255):Gold;
+        }
     }
 
     public void SyncNotebook(string actual)
