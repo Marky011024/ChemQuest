@@ -30,6 +30,8 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     private Image hammerImpactFlash;
     private RectTransform animatedPressHead;
     private RectTransform animatedPressShaft;
+    private Vector2 pressHeadHome=new Vector2(152,5);
+    private Vector2 pressShaftHome=new Vector2(152,42);
     private Image pressImpactGlow;
     private bool hammerHasStruck;
     private int mechanicalMode; // 0=loaded, 1=strike, 2=press
@@ -740,28 +742,36 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     {
         if(level!=2||canvas==null)return;
         var shaft=Find(canvas,"AnimatedPressShaft")?.GetComponent<Image>();
-        if(shaft==null)shaft=NewImage(canvas,"AnimatedPressShaft",null,new Color32(145,183,213,255));
+        bool newShaft=shaft==null;
+        if(newShaft)shaft=NewImage(canvas,"AnimatedPressShaft",null,new Color32(145,183,213,255));
         animatedPressShaft=shaft.rectTransform;
-        Rect(animatedPressShaft,new Vector2(152,42),new Vector2(16,47));
+        if(newShaft)Rect(animatedPressShaft,new Vector2(152,42),new Vector2(16,47));
         var shine=Find(animatedPressShaft,"PressShaftHighlight")?.GetComponent<Image>();
-        if(shine==null)shine=NewImage(animatedPressShaft,"PressShaftHighlight",null,new Color32(227,241,253,255));
-        Rect(shine.transform,new Vector2(-3,0),new Vector2(4,43));
+        bool newShine=shine==null;
+        if(newShine)shine=NewImage(animatedPressShaft,"PressShaftHighlight",null,new Color32(227,241,253,255));
+        if(newShine)Rect(shine.transform,new Vector2(-3,0),new Vector2(4,43));
 
         var head=Find(canvas,"AnimatedPressHead")?.GetComponent<Image>();
-        if(head==null)head=NewImage(canvas,"AnimatedPressHead",null,new Color32(103,159,204,255));
+        bool newHead=head==null;
+        if(newHead)head=NewImage(canvas,"AnimatedPressHead",null,new Color32(103,159,204,255));
         animatedPressHead=head.rectTransform;
-        Rect(animatedPressHead,new Vector2(152,5),new Vector2(99,17));
+        if(newHead)Rect(animatedPressHead,new Vector2(152,5),new Vector2(99,17));
         var face=Find(animatedPressHead,"AnimatedPressContactPlate")?.GetComponent<Image>();
-        if(face==null)face=NewImage(animatedPressHead,"AnimatedPressContactPlate",null,new Color32(217,232,245,255));
-        Rect(face.transform,new Vector2(0,-10),new Vector2(103,6));
+        bool newFace=face==null;
+        if(newFace)face=NewImage(animatedPressHead,"AnimatedPressContactPlate",null,new Color32(217,232,245,255));
+        if(newFace)Rect(face.transform,new Vector2(0,-10),new Vector2(103,6));
         var rim=Find(animatedPressHead,"AnimatedPressHeadRim")?.GetComponent<Image>();
-        if(rim==null)rim=NewImage(animatedPressHead,"AnimatedPressHeadRim",null,new Color32(249,179,89,255));
-        Rect(rim.transform,new Vector2(0,9),new Vector2(96,4));
+        bool newRim=rim==null;
+        if(newRim)rim=NewImage(animatedPressHead,"AnimatedPressHeadRim",null,new Color32(249,179,89,255));
+        if(newRim)Rect(rim.transform,new Vector2(0,9),new Vector2(96,4));
 
         pressImpactGlow=Find(canvas,"PressImpactGlow")?.GetComponent<Image>();
-        if(pressImpactGlow==null)
+        bool newGlow=pressImpactGlow==null;
+        if(newGlow)
             pressImpactGlow=NewImage(canvas,"PressImpactGlow",MakeOvalSprite(),new Color32(255,203,107,0));
-        Rect(pressImpactGlow.transform,new Vector2(152,-87),new Vector2(100,18));
+        if(newGlow)Rect(pressImpactGlow.transform,new Vector2(152,-87),new Vector2(100,18));
+        pressHeadHome=animatedPressHead.anchoredPosition;
+        pressShaftHome=animatedPressShaft.anchoredPosition;
         ResetPress();
     }
 
@@ -769,12 +779,12 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     {
         if(animatedPressHead!=null)
         {
-            animatedPressHead.anchoredPosition=new Vector2(152,5);
+            animatedPressHead.anchoredPosition=pressHeadHome;
             animatedPressHead.gameObject.SetActive(true);
         }
         if(animatedPressShaft!=null)
         {
-            animatedPressShaft.anchoredPosition=new Vector2(152,42);
+            animatedPressShaft.anchoredPosition=pressShaftHome;
             animatedPressShaft.gameObject.SetActive(true);
         }
         if(pressImpactGlow!=null)pressImpactGlow.gameObject.SetActive(false);
@@ -797,8 +807,8 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             float u=Mathf.Clamp01((progress-.78f)/.22f);
             down=1f-u*u*(3f-2f*u);
         }
-        animatedPressHead.anchoredPosition=new Vector2(152,Mathf.Lerp(5,-35,down));
-        animatedPressShaft.anchoredPosition=new Vector2(152,Mathf.Lerp(42,2,down));
+        animatedPressHead.anchoredPosition=pressHeadHome+Vector2.down*(40f*down);
+        animatedPressShaft.anchoredPosition=pressShaftHome+Vector2.down*(40f*down);
         bool contact=progress>=impactPoint&&progress<.80f;
         if(pressImpactGlow!=null)
         {
@@ -1118,46 +1128,25 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         mechanicalTopMask=Find(canvas,"MechanicalEmptySampleMask")?.GetComponent<Image>();
         mechanicalFragmentsMask=Find(canvas,"MechanicalShatteredResultMask")?.GetComponent<Image>();
         mechanicalPressMask=Find(canvas,"MechanicalPressedResultMask")?.GetComponent<Image>();
-        // Apply the corrected geometry when upgrading already-baked scenes.
-        if(level==2 && mechanicalTopMask!=null)
+        // Do not reapply template RectTransforms to baked Level 2 masks:
+        // the user may already have adjusted them in Edit Mode.
+        if(level==2)
         {
-            Rect(mechanicalTopMask.transform,new Vector2(-12,75),new Vector2(112,73));
-            Rect(mechanicalFragmentsMask?.transform,new Vector2(-145,-52),new Vector2(118,26));
-            Rect(mechanicalPressMask?.transform,new Vector2(152,-52),new Vector2(118,26));
             if(mechanicalFragmentsMask!=null)mechanicalFragmentsMask.enabled=false;
             if(mechanicalPressMask!=null)mechanicalPressMask.enabled=false;
-            // Existing scenes need the enlarged covers too; bake upgrades
-            // the same objects without creating duplicate mask panels.
             DecorateMechanicalWorkBench();
         }
         mechanicalFlattened=Find(canvas,"MechanicalFlattenedMetal")?.GetComponent<Image>();
-        // Upgrade previously baked effects to the corrected test-platform coordinates.
-        if(level==2)
-        {
-            if(mechanicalCube!=null)
-                Rect(mechanicalCube.transform,new Vector2(-12,67),new Vector2(66,60));
-            if(mechanicalFlattened!=null)
-                Rect(mechanicalFlattened.transform,new Vector2(152,-102),new Vector2(14,10));
-            for(int i=0;i<9;i++)
-            {
-                var fragment=Find(canvas,"MechanicalFragment"+i);
-                if(fragment!=null)Rect(fragment,new Vector2(-145,-99),new Vector2(22,17));
-            }
-        }
+        // The sample, flattened sprite and fragment positions remain as
+        // serialized. Only the actual STRIKE/PRESS animation moves them.
         animatedHammerPivot=Find(canvas,"AnimatedStrikeHammerPivot") as RectTransform;
         animatedHammerHead=Find(canvas,"AnimatedStrikeHammerHead")?.GetComponent<Image>();
         hammerImpactFlash=Find(canvas,"HammerImpactFlash")?.GetComponent<Image>();
         // Upgrade an already-baked Level2 scene rather than requiring a new
         // scene: create missing animated hammer in the saved hierarchy.
         if(level==2 && animatedHammerPivot==null)BuildAnimatedHammer();
-        if(level==2 && animatedHammerPivot!=null)
-        {
-            Rect(animatedHammerPivot,new Vector2(-238,-25),new Vector2(1,1));
-            var oldHinge=Find(canvas,"AnimatedHammerHinge");
-            if(oldHinge!=null)Rect(oldHinge,new Vector2(-238,-25),new Vector2(24,24));
-            if(hammerImpactFlash!=null)
-                Rect(hammerImpactFlash.transform,new Vector2(-145,-94),new Vector2(78,30));
-        }
+        // Existing hammer pivot/hinge/flash positions are user-editable:
+        // keep their saved geometry instead of resetting on Play.
         if(level==2)BuildAnimatedPress();
         ResetHammer();
         ResetPress();
