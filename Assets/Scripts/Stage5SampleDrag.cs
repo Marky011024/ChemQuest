@@ -91,13 +91,28 @@ public class Stage5SampleDrag : MonoBehaviour, IBeginDragHandler, IDragHandler, 
         }
         else img.color = new Color32(65, 130, 175, 255);
 
+        // With the exact reference-screen skin, the sample buttons are
+        // transparent hitboxes; show the actual illustrated cube when dragging.
+        var special=Resources.Load<Sprite>("ChemQuestStage5Reference/DragSample"+SampleIndex);
+        if(special==null)
+        {
+            var texture=Resources.Load<Texture2D>("ChemQuestStage5Reference/DragSample"+SampleIndex);
+            if(texture!=null)special=Sprite.Create(texture,
+                new Rect(0,0,texture.width,texture.height),new Vector2(.5f,.5f),100f);
+        }
+        if(special!=null)
+        {
+            img.sprite=special;img.color=Color.white;img.preserveAspect=true;
+            preview.sizeDelta=new Vector2(86,86);
+        }
+
         var cg = go.GetComponent<CanvasGroup>();
         cg.blocksRaycasts = false;
         cg.interactable = false;
         cg.alpha = .88f;
 
         var originalLabel = GetComponentInChildren<TMP_Text>(true);
-        if (originalLabel != null)
+        if (originalLabel != null && special==null)
         {
             var labelGo = new GameObject("Caption", typeof(RectTransform),
                 typeof(TextMeshProUGUI));
