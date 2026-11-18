@@ -333,6 +333,31 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         }
         Rect(row,Vector2.zero,new Vector2(1280,720));
         row.gameObject.SetActive(true);
+        // The reference screenshot already has SAMPLE A/B/C buttons painted
+        // into it. A smaller glossy PNG alone cannot hide those pixels.
+        // Cover each old printed button first, then draw the material sprite.
+        // The masks and new sprites are all independent, saved scene Images.
+        for(int i=0;i<3;i++)
+        {
+            var coverName="OriginalSampleCover_"+(char)('A'+i);
+            var coverTransform=Find(row,coverName);
+            Image cover=coverTransform==null?
+                NewImage(row,coverName,null,new Color32(5,29,57,255)):
+                coverTransform.GetComponent<Image>();
+            if(cover!=null)
+            {
+                cover.gameObject.SetActive(true);
+                cover.sprite=null;
+                cover.overrideSprite=null;
+                cover.type=Image.Type.Simple;
+                cover.color=new Color32(5,29,57,255);
+                cover.raycastTarget=false;
+                Rect(cover.rectTransform,new Vector2(-404,64-i*79),
+                    new Vector2(242,72));
+                // The covers must render behind all final material buttons.
+                cover.transform.SetAsFirstSibling();
+            }
+        }
         for(int i=0;i<3;i++)
         {
             var name="MaterialButton_"+(char)('A'+i);
