@@ -155,7 +155,7 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
         PanelImage(status,"ResultBorder",Vector2.zero,new Vector2(118,80),Deep,Gold);
         Label(status,"ResultTitle","CONDUCTIVITY",new Vector2(0,23),new Vector2(112,22),12,Gold);
         resultPlate=PanelImage(status,"ConductivityResultImage",new Vector2(0,-15),
-            new Vector2(109,38),Off,Border);
+            new Vector2(112,38),Off,Border);
         resultText=Label(status,"ConductivityResultText","NOT TESTED",
             new Vector2(0,-15),new Vector2(105,35),12,Text);
         InstallButtonArt(resultPlate,"ConductivityNotTested",resultText.transform);
@@ -358,21 +358,32 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
         if(resultPlate!=null)
         {
             string asset=!tested?"ConductivityNotTested":
-                conducts?"ConductivityConducts":"ConductivityNo";
+                conducts?"ConductivityConductsGreen":"ConductivityDoesNotConductRed";
             var sprite=LoadButtonArt(asset);
+            if(sprite==null && tested)
+                sprite=LoadButtonArt(conducts?"ConductivityConducts":"ConductivityNo");
             if(sprite!=null)
             {
                 resultPlate.sprite=sprite;
                 resultPlate.color=Color.white;
-                if(resultText!=null)resultText.gameObject.SetActive(false);
+                resultPlate.type=Image.Type.Simple;
+                resultPlate.preserveAspect=true;
             }
-            else resultPlate.color=!tested?Off:
-                conducts?new Color32(19,139,78,255):
-                    new Color32(126,66,92,255);
+            else
+            {
+                resultPlate.sprite=RoundedSprite();
+                resultPlate.color=!tested?Off:
+                    conducts?new Color32(19,139,78,255):
+                        new Color32(126,66,92,255);
+            }
+            // No duplicate text over the branded image.
+            if(resultText!=null)
+            {
+                resultText.gameObject.SetActive(sprite==null);
+                resultText.text=!tested?"NOT TESTED":
+                    conducts?"CONDUCTS":"DOES NOT CONDUCT";
+            }
         }
-        if(resultText!=null && resultText.gameObject.activeSelf)
-            resultText.text=!tested?"NOT TESTED":
-                conducts?"CONDUCTS":"NO CONDUCTION";
         if(realBulb!=null)
         {
             var sprite=LoadButtonArt(tested&&conducts?"BulbOn":"BulbOff");
