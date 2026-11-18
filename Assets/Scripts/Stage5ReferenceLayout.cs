@@ -29,6 +29,10 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     private Image copperStrikeDent;
     private Image copperFlattenedShine;
     private Image waxStrikeDent;
+    // Assign valid imported PNGs in Inspector when available. Avoid
+    // Resources.Load on the four WaxDent files: broken Unity VirtualArtifacts
+    // cause native import assertions before the fallback can execute.
+    [SerializeField] private Sprite[] waxDentFrameSprites = new Sprite[4];
     private Sprite[] waxDentFrames;
     private RectTransform animatedHammerPivot;
     private Image animatedHammerHead;
@@ -633,9 +637,11 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         if(level!=2 || canvas==null)return;
         if(waxDentFrames==null || waxDentFrames.Length!=4)
             waxDentFrames=new Sprite[4];
+        // Inspector references are optional. If assets are absent/corrupt,
+        // AnimateMechanicalResult keeps a visible scale deformation instead.
         for(int i=0;i<4;i++)
-            waxDentFrames[i]=Resources.Load<Sprite>(
-                "ChemQuestStage5WaxDent/WaxDent"+(i+1));
+            waxDentFrames[i]=waxDentFrameSprites!=null &&
+                i<waxDentFrameSprites.Length?waxDentFrameSprites[i]:null;
 
         var existing=Find(canvas,"WaxStrikeDentAnimation")?.GetComponent<Image>();
         if(existing==null)
