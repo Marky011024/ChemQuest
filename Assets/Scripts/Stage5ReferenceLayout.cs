@@ -25,6 +25,10 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     private Image mechanicalTopMask, mechanicalFragmentsMask, mechanicalPressMask;
     private Image[] mechanicalShards;
     private Image mechanicalFlattened;
+    private RectTransform animatedHammerPivot;
+    private Image animatedHammerHead;
+    private Image hammerImpactFlash;
+    private bool hammerHasStruck;
     private int mechanicalMode; // 0=loaded, 1=strike, 2=press
     private float mechanicalTime;
     private int mechanicalSample=-1;
@@ -393,6 +397,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         Rect(mechanicalFlattened.transform,new Vector2(152,-38),
             new Vector2(14,10));
         mechanicalFlattened.gameObject.SetActive(false);
+        BuildAnimatedHammer();
     }
 
     private void DecorateMechanicalWorkBench()
@@ -423,12 +428,121 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         }
     }
 
+    // A real articulated hammer, saved as regular Unity UI objects by the
+    // Stage 5 Bake command. The original screenshot contains a decorative
+    // static hammer; this animated foreground hammer visibly performs the
+    // strike rather than showing only a text change.
+    private void BuildAnimatedHammer()
+    {
+        if(level!=2||canvas==null)return;
+        var existing=Find(canvas,"AnimatedStrikeHammerPivot") as RectTransform;
+        if(existing!=null)
+        {
+            animatedHammerPivot=existing;
+            animatedHammerHead=Find(canvas,"AnimatedStrikeHammerHead")?.GetComponent<Image>();
+            hammerImpactFlash=Find(canvas,"HammerImpactFlash")?.GetComponent<Image>();
+            ResetHammer();
+            return;
+        }
+
+        var pivotObject=new GameObject("AnimatedStrikeHammerPivot",
+            typeof(RectTransform));
+        pivotObject.transform.SetParent(canvas,false);
+        animatedHammerPivot=pivotObject.GetComponent<RectTransform>();
+        Rect(animatedHammerPivot,new Vector2(-238,35),new Vector2(1,1));
+
+        // Hammer arm extends from the fixed hinge; the tip travels in an
+        // arc when the pivot rotates (instead of sliding a flat illustration).
+        var arm=NewImage(animatedHammerPivot,"AnimatedHammerHandle",null,
+            new Color32(110,143,170,255));
+        Rect(arm.transform,new Vector2(46,0),new Vector2(99,14));
+        var grip=NewImage(animatedHammerPivot,"AnimatedHammerGrip",null,
+            new Color32(49,73,98,255));
+        Rect(grip.transform,new Vector2(24,0),new Vector2(39,8));
+        var steel=NewImage(animatedHammerPivot,"AnimatedStrikeHammerHead",null,
+            new Color32(197,221,241,255));
+        animatedHammerHead=steel;
+        Rect(steel.transform,new Vector2(101,0),new Vector2(33,59));
+        var face=NewImage(animatedHammerPivot,"HammerStrikeFace",null,
+            new Color32(91,123,158,255));
+        Rect(face.transform,new Vector2(119,0),new Vector2(11,56));
+        var band=NewImage(animatedHammerPivot,"HammerSteelHighlight",null,
+            new Color32(240,249,255,255));
+        Rect(band.transform,new Vector2(93,0),new Vector2(5,51));
+        var hinge=NewImage(canvas,"AnimatedHammerHinge",MakeOvalSprite(),
+            new Color32(217,179,109,255));
+        Rect(hinge.transform,new Vector2(-238,35),new Vector2(24,24));
+
+        hammerImpactFlash=NewImage(canvas,"HammerImpactFlash",MakeOvalSprite(),
+            new Color32(255,227,126,0));
+        Rect(hammerImpactFlash.transform,new Vector2(-145,-30),new Vector2(88,42));
+        hammerImpactFlash.gameObject.SetActive(false);
+        ResetHammer();
+    }
+
+    private void ResetHammer()
+    {
+        hammerHasStruck=false;
+        if(animatedHammerPivot!=null)
+        {
+            animatedHammerPivot.gameObject.SetActive(level==2);
+            animatedHammerPivot.localRotation=Quaternion.Euler(0,0,53f);
+        }
+        if(hammerImpactFlash!=null)hammerImpactFlash.gameObject.SetActive(false);
+    }
+
+    private void AnimateHammer(float progress,float impactPoint)
+    {
+        if(animatedHammerPivot==null)return;
+        float angle;
+        if(progress<.20f)
+        {
+            // Lift farther back before the blow.
+            float u=Mathf.Clamp01(progress/.20f);
+            angle=Mathf.Lerp(53f,78f,u*u*(3f-2f*u));
+        }
+        else if(progress<impactPoint)
+        {
+            // A fast downward swing with a noticeable final acceleration.
+            float u=Mathf.Clamp01((progress-.20f)/(impactPoint-.20f));
+            angle=Mathf.Lerp(78f,-39f,u*u);
+        }
+        else if(progress<.82f)
+        {
+            // Rebound up after contact.
+            float u=Mathf.Clamp01((progress-impactPoint)/(.82f-impactPoint));
+            angle=Mathf.Lerp(-39f,28f,1f-(1f-u)*(1f-u));
+        }
+        else
+        {
+            float u=Mathf.Clamp01((progress-.82f)/.18f);
+            angle=Mathf.Lerp(28f,53f,u);
+        }
+        animatedHammerPivot.localRotation=Quaternion.Euler(0,0,angle);
+        bool hit=progress>=impactPoint && progress<impactPoint+.13f;
+        if(hammerImpactFlash!=null)
+        {
+            hammerImpactFlash.gameObject.SetActive(hit);
+            if(hit)
+            {
+                float fade=1f-Mathf.Clamp01((progress-impactPoint)/.13f);
+                hammerImpactFlash.color=new Color(1f,.92f,.51f,.85f*fade);
+            }
+        }
+        if(progress>=impactPoint && !hammerHasStruck)
+        {
+            hammerHasStruck=true;
+            Debug.Log("CHEMQUEST Stage5 Level2: Hammer contacted the sample.");
+        }
+    }
+
     private void ShowMechanicalSample(int index)
     {
         if(level!=2 || mechanicalCube==null)return;
         mechanicalSample=index;
         mechanicalMode=0;
         mechanicalTime=0f;
+        ResetHammer();
         if(mechanicalShards!=null)foreach(var shard in mechanicalShards)
             if(shard!=null)shard.gameObject.SetActive(false);
         if(mechanicalFlattened!=null)mechanicalFlattened.gameObject.SetActive(false);
@@ -444,8 +558,15 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     private void AnimateMechanicalResult()
     {
         mechanicalTime+=Time.deltaTime;
-        float t=Mathf.Clamp01(mechanicalTime/1.0f);
-        float ease=t*t*(3f-2f*t);
+        float t=Mathf.Clamp01(mechanicalTime/1.25f);
+        // The moving hammer contacts the specimen around 55% of the cycle.
+        // Delaying the fracture until impact avoids pieces appearing while
+        // the hammer is still in the air.
+        float impactPoint=.55f;
+        if(mechanicalMode==1)AnimateHammer(t,impactPoint);
+        float sampleT=mechanicalMode==1?
+            Mathf.Clamp01((t-impactPoint)/(1f-impactPoint)):t;
+        float ease=sampleT*sampleT*(3f-2f*sampleT);
         bool fractured=mechanicalSample==1 && mechanicalMode==1;
         bool malleable=mechanicalSample==2 && mechanicalMode==2;
         Vector2 end=mechanicalMode==1?new Vector2(-145,-34):
@@ -463,7 +584,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         }
         if(fractured && mechanicalShards!=null)
         {
-            float spread=Mathf.Clamp01((t-.45f)/.55f);
+            float spread=Mathf.Clamp01((t-impactPoint)/(1f-impactPoint));
             for(int i=0;i<mechanicalShards.Length;i++)
             {
                 var shard=mechanicalShards[i];
@@ -486,7 +607,11 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             if(t>=1f && mechanicalCube!=null)
                 mechanicalCube.gameObject.SetActive(false);
         }
-        if(t>=1f)mechanicalMode=0;
+        if(t>=1f)
+        {
+            mechanicalMode=0;
+            ResetHammer();
+        }
     }
 
     private void BuildEmptyHeatingBench()
@@ -673,6 +798,10 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             DecorateMechanicalWorkBench();
         }
         mechanicalFlattened=Find(canvas,"MechanicalFlattenedMetal")?.GetComponent<Image>();
+        animatedHammerPivot=Find(canvas,"AnimatedStrikeHammerPivot") as RectTransform;
+        animatedHammerHead=Find(canvas,"AnimatedStrikeHammerHead")?.GetComponent<Image>();
+        hammerImpactFlash=Find(canvas,"HammerImpactFlash")?.GetComponent<Image>();
+        ResetHammer();
         mechanicalShards=new Image[9];
         for(int i=0;i<mechanicalShards.Length;i++)
             mechanicalShards[i]=Find(canvas,"MechanicalFragment"+i)?.GetComponent<Image>();
@@ -811,6 +940,8 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             if(mechanicalSample!=sample)ShowMechanicalSample(sample);
             mechanicalMode=pressed?2:1;
             mechanicalTime=0f;
+            hammerHasStruck=false;
+            ResetHammer();
             if(mechanicalFlattened!=null)mechanicalFlattened.gameObject.SetActive(false);
             if(mechanicalShards!=null)foreach(var shard in mechanicalShards)
                 if(shard!=null)shard.gameObject.SetActive(false);
