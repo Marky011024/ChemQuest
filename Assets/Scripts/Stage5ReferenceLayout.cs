@@ -369,12 +369,13 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         Rect(mechanicalTopMask.transform,new Vector2(-12,75),new Vector2(112,73));
         mechanicalFragmentsMask=NewImage(canvas,"MechanicalShatteredResultMask",null,
             new Color32(5,29,57,255));
-        Rect(mechanicalFragmentsMask.transform,new Vector2(-145,-45),new Vector2(139,52));
+        Rect(mechanicalFragmentsMask.transform,new Vector2(-145,-51),new Vector2(220,106));
         mechanicalPressMask=NewImage(canvas,"MechanicalPressedResultMask",null,
             new Color32(5,29,57,255));
-        Rect(mechanicalPressMask.transform,new Vector2(152,-44),new Vector2(139,52));
-        // Restore visually recognizable test platforms above the masking
-        // patches. Avoid large flat black boxes over the real machine art.
+        Rect(mechanicalPressMask.transform,new Vector2(152,-51),new Vector2(208,94));
+        // Cover the shattered/flattened examples already painted into the
+        // reference PNG. Real results stay hidden until STRIKE/PRESS is used.
+        // Redraw clean empty testing platforms above the masks.
         DecorateMechanicalWorkBench();
 
 
@@ -874,8 +875,10 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         if(level==2 && mechanicalTopMask!=null)
         {
             Rect(mechanicalTopMask.transform,new Vector2(-12,75),new Vector2(112,73));
-            Rect(mechanicalFragmentsMask?.transform,new Vector2(-145,-45),new Vector2(139,52));
-            Rect(mechanicalPressMask?.transform,new Vector2(152,-44),new Vector2(139,52));
+            Rect(mechanicalFragmentsMask?.transform,new Vector2(-145,-51),new Vector2(220,106));
+            Rect(mechanicalPressMask?.transform,new Vector2(152,-51),new Vector2(208,94));
+            // Existing scenes need the enlarged covers too; bake upgrades
+            // the same objects without creating duplicate mask panels.
             DecorateMechanicalWorkBench();
         }
         mechanicalFlattened=Find(canvas,"MechanicalFlattenedMetal")?.GetComponent<Image>();
