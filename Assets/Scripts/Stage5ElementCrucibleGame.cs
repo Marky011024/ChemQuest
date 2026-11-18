@@ -789,6 +789,42 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         }
     }
 
+    // Exact-reference UI actions route back into the original gameplay.
+    // Scoring, retries, energy, BOW and validation remain unchanged.
+    public void ReferenceAction(int action)
+    {
+        if(!CanInteract)return;
+        switch(action)
+        {
+            case 0:ApplyHeat();break;
+            case 1:MechanicalTest(false);break;
+            case 2:MechanicalTest(true);break;
+            case 3:Probe();break;
+            case 4:Submit();break;
+            case 50:Pause();break;
+        }
+    }
+
+    public void ReferenceSetHeat(float setting)
+    {
+        if(!CanInteract||Level!=1||heat==null)return;
+        heat.value=Mathf.Clamp(setting,0f,100f);
+    }
+
+    public void ReferenceChoosePhase(int state)
+    {
+        if(CanInteract&&Level==3)SelectState(state);
+    }
+
+    public void ReferencePlaceSelectedInBin(int bin)
+    {
+        if(CanInteract&&Level==3)
+        {
+            if(selected<0){Info("Choose a sample first, then its classification bin.");return;}
+            DropSample(selected,bin);
+        }
+    }
+
     private void LoadSample(int index)
     {
         if(!CanInteract)return;
