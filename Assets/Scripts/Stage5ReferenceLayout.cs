@@ -195,6 +195,17 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             dynamicHeatReadout=NewText(heatPlate.transform,"ReferenceHeatReadout","HEAT: 0%",
                 16,Vector2.zero,new Vector2(126,34),Gold);
         }
+        if(level==3)
+        {
+            // The mockup omits the game's final validation control.
+            // Draw a visible one above the art, mapped to action #4.
+            var classify=NewImage(canvas,"ReferenceCheckClassification",null,
+                new Color32(7,135,148,250));
+            Rect(classify.transform,new Vector2(412,-223),new Vector2(236,48));
+            var checkCaption=NewText(classify.transform,"CheckCaption",
+                "CHECK CLASSIFICATION",15,Vector2.zero,new Vector2(226,42),Color.white);
+            checkCaption.fontStyle=FontStyles.Bold;
+        }
         // One mapped raycast surface handles both mouse and Android touch.
         // It sits above all artwork and legacy transparent controls.
         var hit=NewImage(canvas,"Stage5MappedTouchSurface",null,Color.clear);
