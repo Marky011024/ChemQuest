@@ -45,6 +45,7 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
         else ui=existing as RectTransform;
         if(ui==null)return;
         Place(ui,Vector2.zero,new Vector2(1280,720));
+        ui.gameObject.SetActive(true);
         ui.SetAsLastSibling();
 
         // Keep the laboratory background file completely unchanged.
@@ -108,10 +109,18 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
             new Color32(89,150,230,255),Gold);
         InstallButtonArt(positive,"ElectrodePositive");
         InstallButtonArt(negative,"ElectrodeNegative");
-        realWire=PanelImage(apparatus,"ConnectingWire",new Vector2(0,75),
-            new Vector2(145,32),Color.white,Gold);
-        InstallButtonArt(realWire,"WireOff");
-        // Keep the connecting wires behind the electrode caps.
+        // The cropped wire sprites included neighboring yellow pixels.
+        // Draw the actual circuit as distinct editable Unity Images, each
+        // below the bulb and electrodes. No cropped-sheet dependency.
+        realWire=PanelImage(apparatus,"ConnectingWire",
+            new Vector2(0,75),new Vector2(145,5),Gold,Gold);
+        var oldWireFrame=Find(realWire.transform.parent,"BorderImage");
+        if(oldWireFrame!=null)oldWireFrame.gameObject.SetActive(false);
+        realWire.sprite=RoundedSprite();
+        PanelImage(apparatus,"LeftWireRise",new Vector2(-72,60),
+            new Vector2(6,36),Gold,Gold);
+        PanelImage(apparatus,"RightWireRise",new Vector2(72,60),
+            new Vector2(6,36),Gold,Gold);
         realWire.transform.parent.SetSiblingIndex(3);
         var bulb=Group(apparatus,"ConductivityBulb",
             new Vector2(0,80),new Vector2(55,59));
@@ -193,8 +202,26 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
                 new Vector2(bx[i],-4),new Vector2(i==2?255:244,61),bins[i],Off);
             classCards[i]=face;
             var classRoot=Find(bottom,"ClassificationButton_"+i);
-            InstallButtonArt(face,i==0?"ClassIonic":i==1?"ClassCovalent":"ClassMetallic",
-                Find(classRoot,"ButtonText"));
+            if(i<2)
+                InstallButtonArt(face,i==0?"ClassIonic":"ClassCovalent",
+                    Find(classRoot,"ButtonText"));
+            else
+            {
+                // The shipped ClassMetallic.png contains neighboring artwork.
+                // Use an independent real Image/text button until a clean sprite
+                // is available. This also works on previously baked scenes.
+                var frame=Find(face.transform.parent,"BorderImage");
+                if(frame!=null)frame.gameObject.SetActive(true);
+                face.sprite=RoundedSprite();
+                face.color=new Color32(10,105,158,255);
+                var caption=Find(classRoot,"ButtonText");
+                if(caption!=null)
+                {
+                    caption.gameObject.SetActive(true);
+                    var textComponent=caption.GetComponent<TMP_Text>();
+                    if(textComponent!=null)textComponent.text="◆ METALLIC ELEMENT";
+                }
+            }
         }
         var classify=Group(ui,"CheckClassificationButton",new Vector2(418,-222),
             new Vector2(249,46));
@@ -271,8 +298,16 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
         }
         if(realWire!=null)
         {
-            var sprite=LoadButtonArt(tested&&conducts?"WireOn":"WireOff");
-            if(sprite!=null){realWire.sprite=sprite;realWire.color=Color.white;}
+            // Adjust active circuit tint without swapping in bad sprite crops.
+            realWire.sprite=RoundedSprite();
+            realWire.color=tested&&conducts?
+                new Color32(255,200,66,255):new Color32(138,171,207,255);
+        }
+        foreach(string cable in new[]{"LeftWireRise","RightWireRise"})
+        {
+            var wire=Find(ui,cable)?.GetComponent<Image>();
+            if(wire!=null)wire.color=tested&&conducts?
+                new Color32(255,200,66,255):new Color32(138,171,207,255);
         }
         if(bulbGlow!=null && !UsingReferenceArt(realBulb))
             bulbGlow.color=tested&&conducts?
@@ -423,6 +458,7 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
             go.transform.SetParent(parent,false);
             old=go.transform;
         }
+        old.gameObject.SetActive(true);
         Place(old as RectTransform,pos,size);
         var label=old.GetComponent<TextMeshProUGUI>();
         label.text=content;label.fontSize=font;label.color=tint;
