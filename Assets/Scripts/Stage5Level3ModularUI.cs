@@ -259,6 +259,9 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
         var image=child.GetComponent<Image>();
         if(image==null)image=child.gameObject.AddComponent<Image>();
         image.raycastTarget=false;
+        // Rounded corners are generated as a real Sprite, and the Stage 5
+        // Bake utility persists it as an editable PNG asset in Resources.
+        if(image.sprite==null)image.sprite=RoundedSprite();
         return image;
     }
     private static TMP_Text Label(Transform parent,string name,string content,
@@ -279,6 +282,30 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
         label.textWrappingMode=TextWrappingModes.Normal;
         return label;
     }
+    private static Sprite roundedSprite;
+    private static Sprite RoundedSprite()
+    {
+        if(roundedSprite!=null)return roundedSprite;
+        const int width=64;
+        const int radius=12;
+        var tex=new Texture2D(width,width,TextureFormat.RGBA32,false);
+        tex.filterMode=FilterMode.Bilinear;
+        var pixels=new Color32[width*width];
+        for(int y=0;y<width;y++)
+        for(int x=0;x<width;x++)
+        {
+            float dx=Mathf.Max(radius-x,0f)+Mathf.Max(x-(width-1-radius),0f);
+            float dy=Mathf.Max(radius-y,0f)+Mathf.Max(y-(width-1-radius),0f);
+            float a=Mathf.Clamp01(radius+0.5f-Mathf.Sqrt(dx*dx+dy*dy));
+            pixels[y*width+x]=new Color(1f,1f,1f,a);
+        }
+        tex.SetPixels32(pixels);tex.Apply();
+        roundedSprite=Sprite.Create(tex,new Rect(0,0,width,width),
+            new Vector2(.5f,.5f),100f);
+        roundedSprite.name="Stage5Level3RoundedUI";
+        return roundedSprite;
+    }
+
     private static void Place(RectTransform t,Vector2 pos,Vector2 size)
     {
         if(t==null)return;
