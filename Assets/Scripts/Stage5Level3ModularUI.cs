@@ -59,6 +59,8 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
         var bank=Group(ui,"UnknownSamplesPanel",new Vector2(-421,-41),new Vector2(252,331));
         PanelImage(bank,"PanelBackground",Vector2.zero,new Vector2(252,331),Panel,Border);
         Label(bank,"PanelTitle","UNKNOWN SAMPLES",new Vector2(0,137),new Vector2(241,40),20,Gold);
+        InstallHeaderArt(bank,"SampleHeader",new Vector2(0,137),
+            new Vector2(244,45),Find(bank,"PanelTitle"));
         for(int i=0;i<3;i++)
         {
             var row=Group(bank,"SampleButton_"+(char)('A'+i),new Vector2(0,57-i*79),new Vector2(228,64));
@@ -68,6 +70,10 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
                 new Color32(190,236,252,255),new Color32(117,183,240,255));
             Label(row,"SampleLabel","SAMPLE "+(char)('A'+i),new Vector2(21,0),
                 new Vector2(170,44),19,Text);
+            // The reference design's complete glossy button is an editable
+            // sprite on this Image, not painted onto the scene background.
+            InstallButtonArt(sampleCards[i],"Sample"+(char)('A'+i),
+                Find(row,"SampleIcon_Frame"),Find(row,"SampleLabel"));
         }
 
         var center=Group(ui,"ConductivityWorkbench",new Vector2(-34,-39),new Vector2(509,331));
@@ -121,11 +127,15 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
                 new Vector2(156,77),Off,Border);
             Label(item,"PhaseIcon",symbols[i],new Vector2(0,15),new Vector2(145,30),24,Gold);
             Label(item,"PhaseLabel",names[i],new Vector2(0,-21),new Vector2(150,28),17,Text);
+            InstallButtonArt(phaseCards[i],"Phase"+(i==0?"Solid":i==1?"Molten":"Aqueous"),
+                Find(item,"PhaseIcon"),Find(item,"PhaseLabel"));
         }
 
         var notes=Group(ui,"LabNotebookPanel",new Vector2(417,-41),new Vector2(252,331));
         PanelImage(notes,"PanelBackground",Vector2.zero,new Vector2(252,331),Panel,Border);
         Label(notes,"NotebookTitle","LAB NOTEBOOK",new Vector2(0,136),new Vector2(242,40),21,Gold);
+        InstallHeaderArt(notes,"NotebookHeader",new Vector2(0,136),
+            new Vector2(244,45),Find(notes,"NotebookTitle"));
         TMP_Text[] notebooks={noteA,noteB,noteC};
         for(int i=0;i<3;i++)
         {
@@ -142,8 +152,11 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
 
         var bottom=Group(ui,"GameplayActionBar",new Vector2(0,-290),new Vector2(1113,89));
         PanelImage(bottom,"ActionBarPanel",Vector2.zero,new Vector2(1113,89),Panel,Gold);
-        ButtonFace(bottom,"TestProbeButton",new Vector2(-411,-4),new Vector2(255,61),
-            "⚡ TEST PROBE",Teal);
+        var probe=ButtonFace(bottom,"TestProbeButton",
+            new Vector2(-411,-4),new Vector2(255,61),"⚡ TEST PROBE",Teal);
+        InstallButtonArt(probe,"TestProbe",
+            Find(bottom,"TestProbeButton")!=null?
+                Find(Find(bottom,"TestProbeButton"),"ButtonText"):null);
         string[] bins={"IONIC COMPOUND","COVALENT MOLECULE","METALLIC ELEMENT"};
         int[] bx={-122,137,414};
         for(int i=0;i<3;i++)
@@ -151,6 +164,9 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
             var face=ButtonFace(bottom,"ClassificationButton_"+i,
                 new Vector2(bx[i],-4),new Vector2(i==2?255:244,61),bins[i],Off);
             classCards[i]=face;
+            var classRoot=Find(bottom,"ClassificationButton_"+i);
+            InstallButtonArt(face,i==0?"ClassIonic":i==1?"ClassCovalent":"ClassMetallic",
+                Find(classRoot,"ButtonText"));
         }
         var classify=Group(ui,"CheckClassificationButton",new Vector2(418,-222),
             new Vector2(249,46));
@@ -172,14 +188,28 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
         for(int i=0;i<3;i++)
         {
             if(sampleCards[i]==null)continue;
-            sampleCards[i].color=i==index?new Color32(10,179,180,255):SampleColors[i];
+            if(UsingReferenceArt(sampleCards[i]))
+            {
+                sampleCards[i].color=Color.white;
+                var frame=Find(sampleCards[i].transform.parent,"BorderImage")?.GetComponent<Image>();
+                if(frame!=null)frame.color=i==index?Gold:Border;
+            }
+            else sampleCards[i].color=i==index?new Color32(10,179,180,255):SampleColors[i];
         }
     }
     public void SetPhase(int index)
     {
         phase=Mathf.Clamp(index,0,2);
         for(int i=0;i<3;i++)if(phaseCards[i]!=null)
-            phaseCards[i].color=i==phase?Teal:Off;
+        {
+            if(UsingReferenceArt(phaseCards[i]))
+            {
+                phaseCards[i].color=Color.white;
+                var frame=Find(phaseCards[i].transform.parent,"BorderImage")?.GetComponent<Image>();
+                if(frame!=null)frame.color=i==phase?Gold:Border;
+            }
+            else phaseCards[i].color=i==phase?Teal:Off;
+        }
         SetConductivity(false,false);
     }
     public void SetConductivity(bool hasTested,bool doesConduct)
@@ -204,13 +234,68 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
             classStatus.text="SAMPLE "+(char)('A'+sample)+" → "+
                 (bin==0?"IONIC":bin==1?"COVALENT":"METALLIC");
         for(int i=0;i<3;i++)if(classCards[i]!=null)
-            classCards[i].color=i==bin?Teal:Off;
+        {
+            if(UsingReferenceArt(classCards[i]))
+            {
+                classCards[i].color=Color.white;
+                var frame=Find(classCards[i].transform.parent,"BorderImage")?.GetComponent<Image>();
+                if(frame!=null)frame.color=i==bin?Gold:Border;
+            }
+            else classCards[i].color=i==bin?Teal:Off;
+        }
     }
     private static string Condense(string s)
     {
         if(string.IsNullOrEmpty(s))return "S: --   M: --\nAq: N/A";
         return s.Replace("SOLID ","S: ").Replace("  MOLTEN ","   M: ")
             .Replace("\n     AQ ","\nAq: ").Replace("  Aq:","\nAq:");
+    }
+
+    private const string ButtonArtFolder="ChemQuestStage5Modular/";
+
+    private static Sprite LoadButtonArt(string name)
+    {
+        var sprite=Resources.Load<Sprite>(ButtonArtFolder+name);
+        if(sprite!=null)return sprite;
+        // The pack works even when Unity imports the PNG as a Texture.
+        var image=Resources.Load<Texture2D>(ButtonArtFolder+name);
+        if(image==null)return null;
+        return Sprite.Create(image,new Rect(0,0,image.width,image.height),
+            new Vector2(.5f,.5f),100f);
+    }
+
+    private static bool UsingReferenceArt(Image face)
+    {
+        return face!=null && face.sprite!=null &&
+            face.sprite.name!="Stage5Level3RoundedUI";
+    }
+
+    private static void InstallButtonArt(Image face,string spriteName,
+        params Transform[] oldPlaceholderParts)
+    {
+        var sprite=LoadButtonArt(spriteName);
+        if(sprite==null)return; // Keep functional fallback if pack is absent.
+        face.sprite=sprite;
+        face.color=Color.white;
+        face.preserveAspect=false;
+        face.type=Image.Type.Simple;
+        face.raycastTarget=false; // Touch controller owns the actual clicks.
+        if(oldPlaceholderParts!=null)
+            foreach(var part in oldPlaceholderParts)
+                if(part!=null)part.gameObject.SetActive(false);
+    }
+
+    private static void InstallHeaderArt(Transform parent,string spriteName,
+        Vector2 position,Vector2 size,Transform oldHeaderText)
+    {
+        var sprite=LoadButtonArt(spriteName);
+        if(sprite==null)return;
+        var header=EnsureImage(parent,spriteName+"_SeparateSprite");
+        header.sprite=sprite;
+        header.color=Color.white;
+        header.preserveAspect=false;
+        Place(header.rectTransform,position,size);
+        if(oldHeaderText!=null)oldHeaderText.gameObject.SetActive(false);
     }
 
     private static RectTransform Group(Transform parent,string name,Vector2 pos,Vector2 size)
