@@ -160,7 +160,10 @@ public sealed class Stage5ReferenceTouchController : MonoBehaviour,
         if(source>=0 && ghost!=null)
         {
             ghost.rectTransform.anchoredPosition=ToCanvas(p);
-            ghost.gameObject.SetActive((p-start).sqrMagnitude>90f);
+            // Visible as soon as the student actually drags beyond a very
+            // small tap tolerance, including over the sample bank itself.
+            ghost.gameObject.SetActive((p-start).sqrMagnitude>16f);
+            ghost.transform.SetAsLastSibling();
         }
     }
 
@@ -206,7 +209,12 @@ public sealed class Stage5ReferenceTouchController : MonoBehaviour,
         {
             var go=new GameObject("ActualDraggedSamplePreview",typeof(RectTransform),
                 typeof(CanvasRenderer),typeof(Image));
-            go.transform.SetParent(transform,false);
+            // The opaque Stage5Level3_ModularUI is a later Canvas sibling.
+            // A ghost nested under this transparent hit surface would render
+            // BEHIND that panel and disappear. Parent it directly to Canvas
+            // and keep it above the visual UI (while non-raycasting).
+            var root=GetComponentInParent<Canvas>();
+            go.transform.SetParent(root!=null?root.transform:transform,false);
             ghost=go.GetComponent<Image>();
             ghost.raycastTarget=false;
             ghost.preserveAspect=true;
@@ -221,7 +229,15 @@ public sealed class Stage5ReferenceTouchController : MonoBehaviour,
                 sprite=Sprite.Create(texture,new Rect(0,0,texture.width,texture.height),
                     new Vector2(.5f,.5f),100f);
         }
-        ghost.sprite=sprite;ghost.color=Color.white;
+        ghost.sprite=sprite;
+        ghost.color=Color.white;
+        ghost.type=Image.Type.Simple;
+        ghost.preserveAspect=true;
+        ghost.raycastTarget=false;
+        ghost.rectTransform.localScale=Vector3.one;
+        // Guarantee that the sample is in front of the matte and all
+        // individual sample/phase/action images as the drag begins.
+        ghost.transform.SetAsLastSibling();
         ghost.rectTransform.anchoredPosition=ToCanvas(p);
         ghost.gameObject.SetActive(false);
     }
