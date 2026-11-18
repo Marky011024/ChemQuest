@@ -26,6 +26,8 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     private Image[] mechanicalShards;
     private Image[] pressCrystalShards;
     private Image mechanicalFlattened;
+    private Image copperStrikeDent;
+    private Image copperFlattenedShine;
     private Image waxStrikeDent;
     private Sprite[] waxDentFrames;
     private RectTransform animatedHammerPivot;
@@ -614,10 +616,11 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         }
         EnsurePressCrystalShards();
         mechanicalFlattened=NewImage(canvas,"MechanicalFlattenedMetal",
-            fragmentSprite,new Color32(200,231,252,255));
+            MakeOvalSprite(),new Color32(194,91,51,255));
         Rect(mechanicalFlattened.transform,new Vector2(152,-102),
             new Vector2(14,10));
         mechanicalFlattened.gameObject.SetActive(false);
+        EnsureCopperEffects();
         BuildAnimatedHammer();
         BuildAnimatedPress();
     }
@@ -645,6 +648,37 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         waxStrikeDent.preserveAspect=true;
         waxStrikeDent.color=Color.white;
         waxStrikeDent.gameObject.SetActive(false);
+    }
+
+    // Reuse separate scene Images for Copper so both results have the
+    // actual orange metallic hue rather than the pale generic sample art.
+    private void EnsureCopperEffects()
+    {
+        if(level!=2 || canvas==null)return;
+        var dent=Find(canvas,"CopperStrikeDent")?.GetComponent<Image>();
+        bool newDent=dent==null;
+        if(newDent)dent=NewImage(canvas,"CopperStrikeDent",MakeOvalSprite(),
+            new Color32(113,47,28,245));
+        copperStrikeDent=dent;
+        if(newDent)Rect(dent.transform,new Vector2(-145,-76),new Vector2(29,9));
+        dent.raycastTarget=false;
+        dent.gameObject.SetActive(false);
+
+        var shine=Find(canvas,"CopperFlattenedHighlight")?.GetComponent<Image>();
+        bool newShine=shine==null;
+        if(newShine)shine=NewImage(canvas,"CopperFlattenedHighlight",MakeOvalSprite(),
+            new Color32(255,191,124,230));
+        copperFlattenedShine=shine;
+        if(newShine)Rect(shine.transform,new Vector2(150,-98),new Vector2(12,4));
+        shine.raycastTarget=false;
+        shine.gameObject.SetActive(false);
+        if(mechanicalFlattened!=null)
+        {
+            mechanicalFlattened.sprite=MakeOvalSprite();
+            mechanicalFlattened.overrideSprite=null;
+            mechanicalFlattened.color=new Color32(194,91,51,255);
+            mechanicalFlattened.raycastTarget=false;
+        }
     }
 
     // An independent group for brittle crystals crushed by the hydraulic
@@ -933,6 +967,8 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         if(pressCrystalShards!=null)foreach(var shard in pressCrystalShards)
             if(shard!=null)shard.gameObject.SetActive(false);
         if(mechanicalFlattened!=null)mechanicalFlattened.gameObject.SetActive(false);
+        if(copperStrikeDent!=null)copperStrikeDent.gameObject.SetActive(false);
+        if(copperFlattenedShine!=null)copperFlattenedShine.gameObject.SetActive(false);
         if(waxStrikeDent!=null)waxStrikeDent.gameObject.SetActive(false);
         var sprite=ResourceSprite("DragSample"+index);
         if(sprite==null)sprite=CreateFallbackSampleSprite(index);
@@ -963,6 +999,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         float ease=sampleT*sampleT*(3f-2f*sampleT);
         bool fractured=mechanicalSample==1 && mechanicalMode==1;
         bool dentedWax=mechanicalSample==0 && mechanicalMode==1;
+        bool dentedCopper=mechanicalSample==2 && mechanicalMode==1;
         bool pressBrittle=mechanicalSample==1 && mechanicalMode==2;
         bool malleable=mechanicalSample==2 && mechanicalMode==2;
         // Paraffin wax is soft: visibly compress it when the press is used.
@@ -979,6 +1016,8 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
                 rt.localScale=Vector3.one*Mathf.Max(.02f,1f-ease);
             else if(dentedWax)
                 rt.localScale=new Vector3(1f+ease*.12f,1f-ease*.34f,1f);
+            else if(dentedCopper)
+                rt.localScale=new Vector3(1f+ease*.26f,1f-ease*.32f,1f);
             else if(softWax)
                 rt.localScale=new Vector3(1f+ease*.55f,1f-ease*.62f,1f);
             else if(malleable)
@@ -987,6 +1026,9 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             if(softWax)
                 mechanicalCube.color=Color.Lerp(Color.white,
                     new Color(1f,.88f,.72f,1f),ease*.35f);
+            if(dentedCopper || malleable)
+                mechanicalCube.color=Color.Lerp(Color.white,
+                    new Color(1f,.72f,.52f,1f),ease*.62f);
             if((fractured || pressBrittle) && t>=1f)
                 mechanicalCube.gameObject.SetActive(false);
         }
@@ -1017,6 +1059,19 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
                     mechanicalCube.rectTransform.localScale=
                         new Vector3(1f+ease*.45f,1f-ease*.53f,1f);
                 }
+            }
+        }
+        // The dark, shallow indentation appears only AFTER impact,
+        // stays on the left platform, and follows the dented copper cube.
+        if(dentedCopper && copperStrikeDent!=null)
+        {
+            copperStrikeDent.gameObject.SetActive(t>=impactPoint);
+            if(t>=impactPoint)
+            {
+                copperStrikeDent.rectTransform.anchoredPosition=
+                    strikeSampleStart+new Vector2(0,-25f-43f*ease);
+                copperStrikeDent.rectTransform.sizeDelta=
+                    new Vector2(10f+19f*ease,3f+6f*ease);
             }
         }
         if(fractured && mechanicalShards!=null)
@@ -1060,6 +1115,13 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             Rect(mechanicalFlattened.transform,
                 pressSampleStart+new Vector2(0,-49),
                 new Vector2(20+120*flatten,8+15*flatten));
+            if(copperFlattenedShine!=null)
+            {
+                copperFlattenedShine.gameObject.SetActive(flatten>.01f);
+                Rect(copperFlattenedShine.transform,
+                    pressSampleStart+new Vector2(0,-46),
+                    new Vector2(12+94*flatten,3+5*flatten));
+            }
             if(t>=1f && mechanicalCube!=null)
                 mechanicalCube.gameObject.SetActive(false);
         }
@@ -1308,7 +1370,11 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             DecorateMechanicalWorkBench();
         }
         mechanicalFlattened=Find(canvas,"MechanicalFlattenedMetal")?.GetComponent<Image>();
-        if(level==2)EnsureWaxDentAnimation();
+        if(level==2)
+        {
+            EnsureWaxDentAnimation();
+            EnsureCopperEffects();
+        }
         // The sample, flattened sprite and fragment positions remain as
         // serialized. Only the actual STRIKE/PRESS animation moves them.
         animatedHammerPivot=Find(canvas,"AnimatedStrikeHammerPivot") as RectTransform;
@@ -1536,6 +1602,8 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             ResetHammer();
             ResetPress();
             if(mechanicalFlattened!=null)mechanicalFlattened.gameObject.SetActive(false);
+            if(copperStrikeDent!=null)copperStrikeDent.gameObject.SetActive(false);
+            if(copperFlattenedShine!=null)copperFlattenedShine.gameObject.SetActive(false);
             if(waxStrikeDent!=null)waxStrikeDent.gameObject.SetActive(false);
             if(mechanicalShards!=null)foreach(var shard in mechanicalShards)
                 if(shard!=null)shard.gameObject.SetActive(false);
