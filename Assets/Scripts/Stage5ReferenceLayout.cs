@@ -21,6 +21,13 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     private Image dynamicHeatKnob;
     private Image dynamicHeatFill;
     private Image heatingSample;
+    private Image mechanicalCube;
+    private Image mechanicalTopMask, mechanicalFragmentsMask, mechanicalPressMask;
+    private Image[] mechanicalShards;
+    private Image mechanicalFlattened;
+    private int mechanicalMode; // 0=loaded, 1=strike, 2=press
+    private float mechanicalTime;
+    private int mechanicalSample=-1;
     private Image moltenPool;
     private Image moltenHighlight;
     private bool isMelting;
@@ -225,6 +232,8 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             dynamicProgress=NewText(progressPanel.transform,"ReferenceProgress","SAMPLES TESTED 0 / 3",
                 16,new Vector2(0,-11),new Vector2(308,30),Cyan);
         }
+        if(level==2)
+            BuildMechanicalWorkbench();
         if(level==1)
         {
             BuildEmptyHeatingBench();
@@ -342,6 +351,112 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     // The original reference screenshot has a permanently melted cube and
     // 175 C already drawn into its pixels. Cover those objects and replace
     // them with a live empty heater, sample sprite, and 0-100% thermometer.
+    // Level 2: mask the sample/result poses painted permanently into the
+    // reference art. Leave the detailed hammer and press machines visible,
+    // then show the sample and results only after the player's actions.
+    private void BuildMechanicalWorkbench()
+    {
+        if(canvas==null)return;
+        mechanicalTopMask=NewImage(canvas,"MechanicalEmptySampleMask",null,
+            new Color32(5,29,57,255));
+        Rect(mechanicalTopMask.transform,new Vector2(-12,75),new Vector2(156,97));
+        mechanicalFragmentsMask=NewImage(canvas,"MechanicalShatteredResultMask",null,
+            new Color32(5,29,57,255));
+        Rect(mechanicalFragmentsMask.transform,new Vector2(-145,-45),new Vector2(160,63));
+        mechanicalPressMask=NewImage(canvas,"MechanicalPressedResultMask",null,
+            new Color32(5,29,57,255));
+        Rect(mechanicalPressMask.transform,new Vector2(152,-44),new Vector2(158,61));
+
+        mechanicalCube=NewImage(canvas,"ActualMechanicalSample",null,Color.white);
+        Rect(mechanicalCube.transform,new Vector2(-12,67),new Vector2(85,82));
+        mechanicalCube.preserveAspect=true;
+        mechanicalCube.gameObject.SetActive(false);
+
+        // Separate movable pieces make brittle fracture distinguishable from
+        // the fixed illustrated hammer. All are non-interactive UI images.
+        mechanicalShards=new Image[9];
+        var fragmentSprite=MakeOvalSprite();
+        for(int i=0;i<mechanicalShards.Length;i++)
+        {
+            mechanicalShards[i]=NewImage(canvas,"MechanicalFragment"+i,
+                fragmentSprite,new Color32(207,187,255,255));
+            Rect(mechanicalShards[i].transform,new Vector2(-145,-40),
+                new Vector2(22,17));
+            mechanicalShards[i].gameObject.SetActive(false);
+        }
+        mechanicalFlattened=NewImage(canvas,"MechanicalFlattenedMetal",
+            fragmentSprite,new Color32(200,231,252,255));
+        Rect(mechanicalFlattened.transform,new Vector2(152,-38),
+            new Vector2(14,10));
+        mechanicalFlattened.gameObject.SetActive(false);
+    }
+
+    private void ShowMechanicalSample(int index)
+    {
+        if(level!=2 || mechanicalCube==null)return;
+        mechanicalSample=index;
+        mechanicalMode=0;
+        mechanicalTime=0f;
+        if(mechanicalShards!=null)foreach(var shard in mechanicalShards)
+            if(shard!=null)shard.gameObject.SetActive(false);
+        if(mechanicalFlattened!=null)mechanicalFlattened.gameObject.SetActive(false);
+        var sprite=ResourceSprite("DragSample"+index);
+        if(sprite==null)sprite=CreateFallbackSampleSprite(index);
+        mechanicalCube.sprite=sprite;
+        mechanicalCube.rectTransform.localScale=Vector3.one;
+        mechanicalCube.rectTransform.anchoredPosition=new Vector2(-12,67);
+        mechanicalCube.color=Color.white;
+        mechanicalCube.gameObject.SetActive(true);
+    }
+
+    private void AnimateMechanicalResult()
+    {
+        mechanicalTime+=Time.deltaTime;
+        float t=Mathf.Clamp01(mechanicalTime/1.0f);
+        float ease=t*t*(3f-2f*t);
+        bool fractured=mechanicalSample==1 && mechanicalMode==1;
+        bool malleable=mechanicalSample==2 && mechanicalMode==2;
+        Vector2 end=mechanicalMode==1?new Vector2(-145,-34):
+            new Vector2(150,-36);
+        if(mechanicalCube!=null)
+        {
+            var rt=mechanicalCube.rectTransform;
+            rt.anchoredPosition=Vector2.Lerp(new Vector2(-12,67),end,ease);
+            if(fractured)
+                rt.localScale=Vector3.one*Mathf.Max(.02f,1f-ease);
+            else if(malleable)
+                rt.localScale=new Vector3(1f+ease*.85f,1f-ease*.78f,1f);
+            else rt.localScale=Vector3.one;
+            if(fractured && t>=1f)mechanicalCube.gameObject.SetActive(false);
+        }
+        if(fractured && mechanicalShards!=null)
+        {
+            float spread=Mathf.Clamp01((t-.45f)/.55f);
+            for(int i=0;i<mechanicalShards.Length;i++)
+            {
+                var shard=mechanicalShards[i];
+                if(shard==null)continue;
+                shard.gameObject.SetActive(spread>.01f);
+                var angle=(float)i/mechanicalShards.Length*Mathf.PI*2f;
+                shard.rectTransform.anchoredPosition=new Vector2(
+                    -145f+Mathf.Cos(angle)*75f*spread,
+                    -38f+Mathf.Sin(angle)*28f*spread);
+                shard.rectTransform.localEulerAngles=
+                    new Vector3(0,0,angle*Mathf.Rad2Deg+spread*30f);
+            }
+        }
+        if(malleable && mechanicalFlattened!=null)
+        {
+            float flatten=Mathf.Clamp01((t-.4f)/.6f);
+            mechanicalFlattened.gameObject.SetActive(flatten>.01f);
+            Rect(mechanicalFlattened.transform,new Vector2(150,-42),
+                new Vector2(20+148*flatten,8+17*flatten));
+            if(t>=1f && mechanicalCube!=null)
+                mechanicalCube.gameObject.SetActive(false);
+        }
+        if(t>=1f)mechanicalMode=0;
+    }
+
     private void BuildEmptyHeatingBench()
     {
         if(level!=1 || canvas==null)return;
@@ -509,6 +624,14 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         dynamicHeatKnob=Find(canvas,"ReferenceHeatKnob")?.GetComponent<Image>();
         dynamicHeatFill=Find(canvas,"CleanHeatFill")?.GetComponent<Image>();
         heatingSample=Find(canvas,"ActualSampleOnHeater")?.GetComponent<Image>();
+        mechanicalCube=Find(canvas,"ActualMechanicalSample")?.GetComponent<Image>();
+        mechanicalTopMask=Find(canvas,"MechanicalEmptySampleMask")?.GetComponent<Image>();
+        mechanicalFragmentsMask=Find(canvas,"MechanicalShatteredResultMask")?.GetComponent<Image>();
+        mechanicalPressMask=Find(canvas,"MechanicalPressedResultMask")?.GetComponent<Image>();
+        mechanicalFlattened=Find(canvas,"MechanicalFlattenedMetal")?.GetComponent<Image>();
+        mechanicalShards=new Image[9];
+        for(int i=0;i<mechanicalShards.Length;i++)
+            mechanicalShards[i]=Find(canvas,"MechanicalFragment"+i)?.GetComponent<Image>();
         moltenPool=Find(canvas,"HeatedSampleLiquidPool")?.GetComponent<Image>();
         moltenHighlight=Find(canvas,"HeatedSampleLiquidShine")?.GetComponent<Image>();
         thermometerFill=Find(canvas,"LiveHeatMercury")?.GetComponent<Image>();
@@ -531,6 +654,11 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         if(heatingSample!=null)heatingSample.gameObject.SetActive(false);
         if(moltenPool!=null)moltenPool.gameObject.SetActive(false);
         if(moltenHighlight!=null)moltenHighlight.gameObject.SetActive(false);
+        if(mechanicalCube!=null)mechanicalCube.gameObject.SetActive(false);
+        if(mechanicalFlattened!=null)mechanicalFlattened.gameObject.SetActive(false);
+        if(mechanicalShards!=null)foreach(var shard in mechanicalShards)
+            if(shard!=null)shard.gameObject.SetActive(false);
+        mechanicalMode=0;mechanicalSample=-1;mechanicalTime=0f;
         isMelting=false;
         meltingTime=0f;
         ready=true;
@@ -599,6 +727,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             ShowHeatingSample(index);
             if(liveStatus!=null)liveStatus.text="ADJUST HEAT, THEN PRESS APPLY HEAT";
         }
+        if(level==2)ShowMechanicalSample(index);
         if(level==3)SetConductivityVisual(false,false);
         actionEffect=0;
     }
@@ -631,12 +760,19 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     public void MechanicalResult(int sample,bool pressed)
     {
         if(!ready)return;
-        var art=sample==1&&!pressed?"StrikeShatter":
-            sample==2&&pressed?"PressFlatten":null;
-        actionEffect=pressed?3:2;
-        SetResult(art,sample==1&&!pressed?"HAMMER SMASHES: BRITTLE":
-            sample==2&&pressed?"PRESS FLATTENS: MALLEABLE":
-            "OBSERVATION RECORDED");
+        // This level animates the actual sample rather than overlaying a
+        // separate picture of a hammer/press on the full reference artwork.
+        if(level==2)
+        {
+            if(mechanicalSample!=sample)ShowMechanicalSample(sample);
+            mechanicalMode=pressed?2:1;
+            mechanicalTime=0f;
+            if(mechanicalFlattened!=null)mechanicalFlattened.gameObject.SetActive(false);
+            if(mechanicalShards!=null)foreach(var shard in mechanicalShards)
+                if(shard!=null)shard.gameObject.SetActive(false);
+            if(preview!=null)preview.gameObject.SetActive(false);
+            return;
+        }
     }
 
     public void PhaseChanged(int state)
@@ -715,6 +851,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     {
         if(!ready)return;
         if(isMelting)AnimateMelting();
+        if(level==2 && mechanicalMode!=0)AnimateMechanicalResult();
         if(preview==null || !preview.gameObject.activeSelf)return;
         effectTime+=Time.deltaTime;
         float t=Mathf.Clamp01(effectTime/(actionEffect==1?1.75f:
