@@ -316,7 +316,7 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
     {
         selected=index;
         if(chosen!=null)chosen.text=index<0?"CHOOSE A SAMPLE":
-            "SAMPLE "+(char)('A'+index)+"  -  SELECTED";
+            "SAMPLE "+(char)('A'+index);
         for(int i=0;i<3;i++)
             HighlightChoice(sampleCards[i],i==index,"sample");
         // Each sample has its own classification. Do not imply that the
