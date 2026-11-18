@@ -953,15 +953,20 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         backdrop.offsetMax=Vector2.zero;
         backdrop.localScale=Vector3.one;
 
-        // Reattach also to the original background Image, as that is what
-        // supplies the Stage5 HUD around the modular workbench. A missing
-        // scene sprite formerly left a solid white canvas.
+        // IMPORTANT: "Background" is an independent scene Image whose
+        // original artwork is serialized in Stage5Level1.unity. Never
+        // overwrite it with the screenshot/reference Sprite. Doing so can
+        // erase the actual colorful lab backdrop if the reference texture
+        // changes or is reimported. Keep that artwork as the base layer.
         var baseBackground=Find(canvas,"Background")?.GetComponent<Image>();
         if(baseBackground!=null)
         {
+            var owner=GetComponent<Stage5ElementCrucibleGame>();
+            if(baseBackground.sprite==null && owner!=null &&
+               owner.BackgroundSprite!=null)
+                baseBackground.sprite=owner.BackgroundSprite;
             baseBackground.gameObject.SetActive(true);
             baseBackground.enabled=true;
-            baseBackground.sprite=reference;
             baseBackground.overrideSprite=null;
             baseBackground.color=Color.white;
             baseBackground.raycastTarget=false;
