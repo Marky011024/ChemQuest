@@ -63,6 +63,13 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         if(Level==1)PolishStage5Level1Layout();
         PolishStage5ReferenceLayout();
         Bind();
+        // Each laboratory run starts with an empty heater and zero power.
+        // No previous slider value should carry into an untested sample.
+        if(Level==1 && heat!=null)
+        {
+            heat.SetValueWithoutNotify(0f);
+            UpdateHeatReadout(0f);
+        }
         // Add actual animated experiments inside the existing drop station.
         // All overlays are non-raycasting so drag/drop controls keep working.
         var station = Find(root,"TestStation") as RectTransform;
@@ -833,6 +840,12 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
     {
         if(!CanInteract)return;
         selected=index;
+        if(Level==1 && heat!=null)
+        {
+            heat.value=0f;
+            UpdateHeatReadout(0f);
+            if(exactReference!=null)exactReference.ReferenceHeatChanged(0f);
+        }
         if(exactReference!=null)exactReference.SampleChanged(index);
         // Show a distinct glowing selection border like the reference UI,
         // while retaining the original draggable sample buttons.
@@ -865,6 +878,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         var label=Find(root,"HeatValueText")?.GetComponent<TMP_Text>();
         if(label!=null)label.text="HEAT: "+Mathf.RoundToInt(level)+"%";
         if(visualLab!=null)visualLab.SetHeat(level);
+        if(exactReference!=null)exactReference.ReferenceHeatChanged(level);
     }
 
     private void ApplyHeat()
