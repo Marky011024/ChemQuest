@@ -24,6 +24,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     private Image mechanicalCube;
     private Image mechanicalTopMask, mechanicalFragmentsMask, mechanicalPressMask;
     private Image[] mechanicalShards;
+    private Image[] pressCrystalShards;
     private Image mechanicalFlattened;
     private RectTransform animatedHammerPivot;
     private Image animatedHammerHead;
@@ -608,6 +609,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
                 new Vector2(18+(i%3)*4,16+((i+1)%3)*4));
             mechanicalShards[i].gameObject.SetActive(false);
         }
+        EnsurePressCrystalShards();
         mechanicalFlattened=NewImage(canvas,"MechanicalFlattenedMetal",
             fragmentSprite,new Color32(200,231,252,255));
         Rect(mechanicalFlattened.transform,new Vector2(152,-102),
@@ -615,6 +617,34 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         mechanicalFlattened.gameObject.SetActive(false);
         BuildAnimatedHammer();
         BuildAnimatedPress();
+    }
+
+    // An independent group for brittle crystals crushed by the hydraulic
+    // press. Reuse objects on Play/Bake so they remain editable in Hierarchy.
+    private void EnsurePressCrystalShards()
+    {
+        if(level!=2 || canvas==null)return;
+        if(pressCrystalShards==null || pressCrystalShards.Length!=9)
+            pressCrystalShards=new Image[9];
+        var sprite=MakeCrystalShardSprite();
+        for(int i=0;i<pressCrystalShards.Length;i++)
+        {
+            var name="PressCrystalFragment"+i;
+            var item=Find(canvas,name)?.GetComponent<Image>();
+            bool created=item==null;
+            if(created)
+                item=NewImage(canvas,name,sprite,new Color32(229,219,255,255));
+            item.sprite=sprite;
+            item.overrideSprite=null;
+            item.color=new Color32(229,219,255,255);
+            item.preserveAspect=true;
+            item.raycastTarget=false;
+            if(created)
+                Rect(item.rectTransform,new Vector2(150,-85),
+                    new Vector2(16+(i%3)*4,15+((i+1)%3)*4));
+            item.gameObject.SetActive(false);
+            pressCrystalShards[i]=item;
+        }
     }
 
     private void DecorateMechanicalWorkBench()
@@ -874,6 +904,8 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         ResetPress();
         if(mechanicalShards!=null)foreach(var shard in mechanicalShards)
             if(shard!=null)shard.gameObject.SetActive(false);
+        if(pressCrystalShards!=null)foreach(var shard in pressCrystalShards)
+            if(shard!=null)shard.gameObject.SetActive(false);
         if(mechanicalFlattened!=null)mechanicalFlattened.gameObject.SetActive(false);
         var sprite=ResourceSprite("DragSample"+index);
         if(sprite==null)sprite=CreateFallbackSampleSprite(index);
@@ -898,6 +930,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         float sampleT=Mathf.Clamp01((t-impactPoint)/(1f-impactPoint));
         float ease=sampleT*sampleT*(3f-2f*sampleT);
         bool fractured=mechanicalSample==1 && mechanicalMode==1;
+        bool pressBrittle=mechanicalSample==1 && mechanicalMode==2;
         bool malleable=mechanicalSample==2 && mechanicalMode==2;
         // Paraffin wax is soft: visibly compress it when the press is used.
         // Unlike copper it keeps a squashed cube, rather than changing into
@@ -909,7 +942,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         {
             var rt=mechanicalCube.rectTransform;
             rt.anchoredPosition=Vector2.Lerp(origin,end,ease);
-            if(fractured)
+            if(fractured || pressBrittle)
                 rt.localScale=Vector3.one*Mathf.Max(.02f,1f-ease);
             else if(softWax)
                 rt.localScale=new Vector3(1f+ease*.55f,1f-ease*.62f,1f);
@@ -919,7 +952,8 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             if(softWax)
                 mechanicalCube.color=Color.Lerp(Color.white,
                     new Color(1f,.88f,.72f,1f),ease*.35f);
-            if(fractured && t>=1f)mechanicalCube.gameObject.SetActive(false);
+            if((fractured || pressBrittle) && t>=1f)
+                mechanicalCube.gameObject.SetActive(false);
         }
         if(fractured && mechanicalShards!=null)
         {
@@ -935,6 +969,24 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
                     strikeSampleStart.y-43f+Mathf.Sin(angle)*15f*spread);
                 shard.rectTransform.localEulerAngles=
                     new Vector3(0,0,angle*Mathf.Rad2Deg+spread*30f);
+            }
+        }
+        // PRESSING SODIUM CHLORIDE: crystals fracture at contact, then
+        // scatter across the RIGHT testing platform and remain visible.
+        if(pressBrittle && pressCrystalShards!=null)
+        {
+            float spread=Mathf.Clamp01((t-impactPoint)/(1f-impactPoint));
+            for(int i=0;i<pressCrystalShards.Length;i++)
+            {
+                var shard=pressCrystalShards[i];
+                if(shard==null)continue;
+                shard.gameObject.SetActive(spread>.01f);
+                float angle=(float)i/pressCrystalShards.Length*Mathf.PI*2f;
+                shard.rectTransform.anchoredPosition=new Vector2(
+                    pressSampleStart.x+Mathf.Cos(angle)*47f*spread,
+                    pressSampleStart.y-34f+Mathf.Sin(angle)*12f*spread);
+                shard.rectTransform.localEulerAngles=new Vector3(
+                    0,0,angle*Mathf.Rad2Deg+spread*24f);
             }
         }
         if(malleable && mechanicalFlattened!=null)
@@ -1206,6 +1258,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         ResetHammer();
         ResetPress();
         mechanicalShards=new Image[9];
+        if(level==2)EnsurePressCrystalShards();
         // Upgrade already-baked scenes from round dots to faceted crystals.
         var shardSprite=level==2?MakeCrystalShardSprite():null;
         for(int i=0;i<mechanicalShards.Length;i++)
@@ -1419,6 +1472,8 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             ResetPress();
             if(mechanicalFlattened!=null)mechanicalFlattened.gameObject.SetActive(false);
             if(mechanicalShards!=null)foreach(var shard in mechanicalShards)
+                if(shard!=null)shard.gameObject.SetActive(false);
+            if(pressCrystalShards!=null)foreach(var shard in pressCrystalShards)
                 if(shard!=null)shard.gameObject.SetActive(false);
             if(preview!=null)preview.gameObject.SetActive(false);
             return;
