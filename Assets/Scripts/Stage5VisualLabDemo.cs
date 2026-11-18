@@ -148,6 +148,14 @@ public sealed class Stage5VisualLabDemo : MonoBehaviour
         if (pictureResult==null) return;
         if (string.IsNullOrEmpty(resource)) { pictureResult.gameObject.SetActive(false); return; }
         var sprite=Resources.Load<Sprite>("ChemQuestStage5Visuals/"+resource);
+        if(sprite==null)
+        {
+            // Supports drag-and-drop PNG files imported with Unity's default
+            // Texture type; players need not configure every image manually.
+            var texture=Resources.Load<Texture2D>("ChemQuestStage5Visuals/"+resource);
+            if(texture!=null) sprite=Sprite.Create(texture,
+                new Rect(0,0,texture.width,texture.height),new Vector2(.5f,.5f),100f);
+        }
         if(sprite==null) { pictureResult.gameObject.SetActive(false); return; }
         pictureResult.sprite=sprite;
         pictureResult.color=Color.white;
@@ -239,7 +247,9 @@ public sealed class Stage5VisualLabDemo : MonoBehaviour
     {
         if(!ready||level!=3||sample<0)return;
         probed=true;conducting=isConducting;animation=0;
-        ShowPicture(isConducting ? "ConductivityOn" : null);
+        // The pictured moving +/- ions specifically represent ionic material;
+        // use procedural electrons for metallic conductivity.
+        ShowPicture(isConducting && sample==1 ? "ConductivityOn" : null);
         status.text=conducting?"BULB ON  -  CHARGES MOVE":"BULB OFF  -  NO CHARGE FLOW";
         RefreshElectricPhase();
     }
