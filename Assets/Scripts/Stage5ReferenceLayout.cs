@@ -576,12 +576,12 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         if(animatedPressHead!=null)
         {
             animatedPressHead.anchoredPosition=new Vector2(152,44);
-            animatedPressHead.gameObject.SetActive(false);
+            animatedPressHead.gameObject.SetActive(true);
         }
         if(animatedPressShaft!=null)
         {
             animatedPressShaft.anchoredPosition=new Vector2(152,81);
-            animatedPressShaft.gameObject.SetActive(false);
+            animatedPressShaft.gameObject.SetActive(true);
         }
         if(pressImpactGlow!=null)pressImpactGlow.gameObject.SetActive(false);
     }
