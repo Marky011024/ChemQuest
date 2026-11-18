@@ -17,6 +17,8 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
     private readonly Image[] phaseCards=new Image[3];
     private readonly Image[] classCards=new Image[3];
     private int selected=-1,phase=0;
+    private int selectedClassification=-1;
+    private int classificationSample=-1;
     private bool tested, conducts;
     private static readonly Color Deep=new Color32(5,24,52,255);
     private static readonly Color Panel=new Color32(9,37,72,255);
@@ -262,37 +264,85 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
         SetConductivity(tested,conducts);
     }
 
+    // The selected state is visible on the actual glossy button Image, not
+    // just on its hidden procedural border. All decoration is non-raycasting.
+    private static void HighlightChoice(Image face,bool active,string kind)
+    {
+        if(face==null)return;
+        var card=face.transform.parent!=null?
+            face.transform.parent.parent as RectTransform:null;
+        if(card==null)return;
+        card.localScale=active?new Vector3(1.035f,1.035f,1f):Vector3.one;
+        // Preserve the artwork's original hue; only gently dim inactive art.
+        if(UsingReferenceArt(face))
+            face.color=active?Color.white:new Color(0.79f,0.79f,0.79f,1f);
+        else
+            face.color=active?new Color32(8,176,180,255):
+                new Color32(29,83,134,255);
+        var outline=face.GetComponent<Outline>();
+        if(outline==null)outline=face.gameObject.AddComponent<Outline>();
+        outline.effectColor=new Color32(255,222,85,255);
+        outline.effectDistance=new Vector2(3f,-3f);
+        outline.useGraphicAlpha=false;
+        outline.enabled=active;
+
+        // A small independently editable label inside the card:
+        // SAMPLE = SELECTED, PHASE = ACTIVE, CLASSIFICATION = CHOSEN.
+        var badgeName="SelectionIndicator";
+        var badge=Find(card,badgeName) as RectTransform;
+        if(badge==null)
+        {
+            var go=new GameObject(badgeName,typeof(RectTransform),
+                typeof(CanvasRenderer),typeof(Image));
+            go.transform.SetParent(card,false);
+            badge=go.GetComponent<RectTransform>();
+        }
+        Place(badge,new Vector2(card.sizeDelta.x*.5f-29f,
+            card.sizeDelta.y*.5f-11f),new Vector2(53,20));
+        var badgeImage=badge.GetComponent<Image>();
+        badgeImage.sprite=RoundedSprite();
+        badgeImage.color=new Color32(255,212,72,255);
+        badgeImage.raycastTarget=false;
+        var badgeText=Label(badge,"SelectionIndicatorText",
+            kind=="sample"?"SELECTED":kind=="phase"?"ACTIVE":"CHOSEN",
+            Vector2.zero,new Vector2(52,18),10,Deep);
+        badgeText.fontStyle=FontStyles.Bold;
+        badge.gameObject.SetActive(active);
+        // Put indicator over the complete reference PNG button.
+        badge.SetAsLastSibling();
+    }
+
     public void SetSelected(int index)
     {
         selected=index;
-        if(chosen!=null)chosen.text=index<0?"CHOOSE A SAMPLE":"SAMPLE "+(char)('A'+index);
+        if(chosen!=null)chosen.text=index<0?"CHOOSE A SAMPLE":
+            "SAMPLE "+(char)('A'+index)+"  -  SELECTED";
         for(int i=0;i<3;i++)
+            HighlightChoice(sampleCards[i],i==index,"sample");
+        // Each sample has its own classification. Do not imply that the
+        // previous sample's bin choice also applies to the newly selected one.
+        if(classificationSample!=index)
         {
-            if(sampleCards[i]==null)continue;
-            if(UsingReferenceArt(sampleCards[i]))
-            {
-                sampleCards[i].color=Color.white;
-                var frame=Find(sampleCards[i].transform.parent,"BorderImage")?.GetComponent<Image>();
-                if(frame!=null)frame.color=i==index?Gold:Border;
-            }
-            else sampleCards[i].color=i==index?new Color32(10,179,180,255):SampleColors[i];
+            selectedClassification=-1;
+            if(classStatus!=null)classStatus.text="";
         }
+        RefreshClassificationHighlight();
     }
+
     public void SetPhase(int index)
     {
         phase=Mathf.Clamp(index,0,2);
-        for(int i=0;i<3;i++)if(phaseCards[i]!=null)
-        {
-            if(UsingReferenceArt(phaseCards[i]))
-            {
-                phaseCards[i].color=Color.white;
-                var frame=Find(phaseCards[i].transform.parent,"BorderImage")?.GetComponent<Image>();
-                if(frame!=null)frame.color=i==phase?Gold:Border;
-            }
-            else phaseCards[i].color=i==phase?Teal:Off;
-        }
+        for(int i=0;i<3;i++)
+            HighlightChoice(phaseCards[i],i==phase,"phase");
         SetConductivity(false,false);
     }
+
+    private void RefreshClassificationHighlight()
+    {
+        for(int i=0;i<3;i++)
+            HighlightChoice(classCards[i],selectedClassification==i,"class");
+    }
+
     public void SetConductivity(bool hasTested,bool doesConduct)
     {
         tested=hasTested;conducts=doesConduct;
@@ -339,19 +389,12 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
     }
     public void SetClassification(int sample,int bin)
     {
+        classificationSample=sample;
+        selectedClassification=bin;
         if(classStatus!=null)
-            classStatus.text="SAMPLE "+(char)('A'+sample)+" → "+
+            classStatus.text="SAMPLE "+(char)('A'+sample)+" CHOSEN: "+
                 (bin==0?"IONIC":bin==1?"COVALENT":"METALLIC");
-        for(int i=0;i<3;i++)if(classCards[i]!=null)
-        {
-            if(UsingReferenceArt(classCards[i]))
-            {
-                classCards[i].color=Color.white;
-                var frame=Find(classCards[i].transform.parent,"BorderImage")?.GetComponent<Image>();
-                if(frame!=null)frame.color=i==bin?Gold:Border;
-            }
-            else classCards[i].color=i==bin?Teal:Off;
-        }
+        RefreshClassificationHighlight();
     }
     private static string Condense(string s)
     {
