@@ -29,6 +29,11 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
     private static readonly Color Text=new Color32(237,249,255,255);
     private static readonly Color Teal=new Color32(3,142,164,255);
     private static readonly Color Off=new Color32(42,88,132,255);
+    // The artwork depicts identified teaching examples, while game logic
+    // continues to refer to them internally by A/B/C indexes.
+    private static readonly string[] MaterialNames={
+        "PARAFFIN WAX","SODIUM CHLORIDE","COPPER"
+    };
     private static readonly Color[] SampleColors={
         new Color32(14,109,193,255),
         new Color32(114,62,177,255),
@@ -93,10 +98,10 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
 
         var center=Group(ui,"ConductivityWorkbench",new Vector2(-34,-39),new Vector2(509,331));
         PanelImage(center,"CenterPanel",Vector2.zero,new Vector2(509,331),Panel,Border);
-        var selectedTag=Group(center,"SelectedSampleTag",new Vector2(0,146),new Vector2(177,32));
-        PanelImage(selectedTag,"TagImage",Vector2.zero,new Vector2(177,32),Teal,Gold);
-        chosen=Label(selectedTag,"SelectedSampleText","CHOOSE A SAMPLE",
-            Vector2.zero,new Vector2(174,29),16,Text);
+        var selectedTag=Group(center,"SelectedSampleTag",new Vector2(0,146),new Vector2(226,32));
+        PanelImage(selectedTag,"TagImage",Vector2.zero,new Vector2(226,32),Teal,Gold);
+        chosen=Label(selectedTag,"SelectedSampleText","CHOOSE A MATERIAL",
+            Vector2.zero,new Vector2(222,29),15,Text);
 
         var apparatus=Group(center,"ConductivityApparatus",new Vector2(-38,20),new Vector2(285,191));
         PanelImage(apparatus,"BeakerBody",new Vector2(0,-26),new Vector2(198,116),
@@ -325,8 +330,9 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
     public void SetSelected(int index)
     {
         selected=index;
-        if(chosen!=null)chosen.text=index<0?"CHOOSE A SAMPLE":
-            "SAMPLE "+(char)('A'+index);
+        if(chosen!=null)
+            chosen.text=index>=0 && index<MaterialNames.Length?
+                MaterialNames[index]:"CHOOSE A MATERIAL";
         if(droppedSample!=null)
         {
             var sprite=index>=0 && index<3?
