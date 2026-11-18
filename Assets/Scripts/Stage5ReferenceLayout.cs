@@ -148,7 +148,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             var tag=NewImage(canvas,"ActiveSampleTag",null,new Color32(5,29,57,255));
             // Keep the selected-sample caption above the heater masking
             // artwork instead of letting the new backdrop clip its letters.
-            Rect(tag.transform,new Vector2(-11,155),new Vector2(194,28));
+            Rect(tag.transform,new Vector2(-11,119),new Vector2(194,26));
             liveSample=NewText(tag.transform,"ActiveSampleName","CHOOSE A SAMPLE",15,
                 Vector2.zero,new Vector2(188,26),Gold);
             liveSample.fontStyle=FontStyles.Bold;
@@ -209,13 +209,19 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         if(level<=2)
         {
             var progressPanel=NewImage(canvas,"ReferenceProgressPlate",null,new Color32(5,29,57,255));
-            Rect(progressPanel.transform,new Vector2(0,-303),new Vector2(310,36));
+            // The old screenshot has faint progress text above its plaque.
+            // Cover the entire center strip, but keep outside the action buttons.
+            Rect(progressPanel.transform,new Vector2(0,-292),new Vector2(320,62));
             dynamicProgress=NewText(progressPanel.transform,"ReferenceProgress","SAMPLES TESTED 0 / 3",
-                16,Vector2.zero,new Vector2(302,30),Cyan);
+                16,new Vector2(0,-11),new Vector2(308,30),Cyan);
         }
         if(level==1)
         {
             BuildEmptyHeatingBench();
+            // The heater's cover is generated later than the tag and used
+            // to clip it. Re-order only the label above that cover.
+            if(liveSample!=null && liveSample.transform.parent!=null)
+                liveSample.transform.parent.SetAsLastSibling();
             // Entire slider art is rebuilt on top of the STATIC screenshot:
             // the reference thumb was baked at 175 C and caused two knobs.
             // This overlay is a display only; the mapped touch controller
@@ -344,7 +350,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         var inset=NewImage(canvas,"EmptyHotPlateInset",oval,new Color32(24,39,56,255));
         Rect(inset.transform,new Vector2(-24,8),new Vector2(219,27));
         heatingSample=NewImage(canvas,"ActualSampleOnHeater",null,Color.white);
-        Rect(heatingSample.transform,new Vector2(-24,53),new Vector2(108,100));
+        Rect(heatingSample.transform,new Vector2(-24,34),new Vector2(108,100));
         heatingSample.preserveAspect=true;
         heatingSample.gameObject.SetActive(false);
         // Hidden until the player heats Sample A. These dynamically animated
@@ -477,7 +483,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         if(heatingSample.sprite==null)
             heatingSample.sprite=CreateFallbackSampleSprite(index);
         heatingSample.rectTransform.localScale=Vector3.one;
-        heatingSample.rectTransform.anchoredPosition=new Vector2(-24,53);
+        heatingSample.rectTransform.anchoredPosition=new Vector2(-24,34);
         heatingSample.color=Color.white;
         heatingSample.gameObject.SetActive(heatingSample.sprite!=null);
     }
@@ -752,7 +758,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         {
             var r=heatingSample.rectTransform;
             r.localScale=new Vector3(1f+.24f*smooth,Mathf.Max(.10f,1f-.90f*smooth),1f);
-            r.anchoredPosition=new Vector2(-24f,53f-30f*smooth);
+            r.anchoredPosition=new Vector2(-24f,34f-15f*smooth);
             heatingSample.color=Color.Lerp(Color.white,WarmLiquid,smooth);
             // The remnant disappears at the end, leaving an unmistakable
             // irregular glossy liquid puddle on the heating surface.
