@@ -14,6 +14,7 @@ public sealed class Stage5VisualLabDemo : MonoBehaviour
     private RectTransform station, layer;
     private Image sampleSolid, sampleLiquid, burner, flame, tool, lamp, bulbHalo, beaker, liquid, leftProbe, rightProbe;
     private Image[] shards, ions, waves;
+    private Image pictureResult;
     private TMP_Text status;
     private Sprite disc;
     private static readonly Color Cyan = new Color(.25f,.83f,1f,1f);
@@ -134,7 +135,24 @@ public sealed class Stage5VisualLabDemo : MonoBehaviour
         for(int i=0;i<ions.Length;i++)
             ions[i]=Shape("MovingCharge"+i,layer,new Vector2(-61+(i%3)*61,-60+(i/3)*20),
                 new Vector2(18,18),i%2==0?new Color(.36f,1f,.51f,1f):new Color(.82f,.43f,1f,1f),true);
+        pictureResult=Shape("RealisticExperimentPicture",layer,new Vector2(0,-14),
+            new Vector2(300,158),Color.white);
+        pictureResult.preserveAspect=true;
+        pictureResult.gameObject.SetActive(false);
+        status.transform.SetAsLastSibling();
         ArrangeLevel();
+    }
+
+    private void ShowPicture(string resource)
+    {
+        if (pictureResult==null) return;
+        if (string.IsNullOrEmpty(resource)) { pictureResult.gameObject.SetActive(false); return; }
+        var sprite=Resources.Load<Sprite>("ChemQuestStage5Visuals/"+resource);
+        if(sprite==null) { pictureResult.gameObject.SetActive(false); return; }
+        pictureResult.sprite=sprite;
+        pictureResult.color=Color.white;
+        pictureResult.gameObject.SetActive(true);
+        status.transform.SetAsLastSibling();
     }
 
     private void ArrangeLevel()
@@ -166,6 +184,7 @@ public sealed class Stage5VisualLabDemo : MonoBehaviour
         pressed=false;
         conducting=false;
         ArrangeLevel();
+        ShowPicture(null);
         if(sampleSolid!=null && index>=0)
         {
             sampleSolid.color=SampleColors[Mathf.Clamp(index,0,2)];
@@ -190,6 +209,7 @@ public sealed class Stage5VisualLabDemo : MonoBehaviour
         heatSetting=Mathf.Clamp01(sliderValue/100f);
         animation=0;
         heatTested=true;
+        ShowPicture(sample==0 ? "HeatMelt" : null);
         status.text=sample==0?"HEATING: SAMPLE SOFTENS...":"HEATING: SOLID REMAINS INTACT";
     }
 
@@ -199,6 +219,8 @@ public sealed class Stage5VisualLabDemo : MonoBehaviour
         pressed=usePress;
         mechanicallyTested=true;
         animation=0;
+        ShowPicture(sample==1 && !usePress ? "StrikeShatter" :
+            sample==2 && usePress ? "PressFlatten" : null);
         status.text=usePress?"HYDRAULIC PRESS TEST":"IMPACT / STRIKE TEST";
     }
 
@@ -207,6 +229,7 @@ public sealed class Stage5VisualLabDemo : MonoBehaviour
         if(!ready||level!=3)return;
         phase=Mathf.Clamp(nextPhase,0,2);
         probed=false;conducting=false;animation=0;
+        ShowPicture(null);
         status.text=phase==0?"SOLID STATE - TEST THE PROBE":
             phase==1?"MOLTEN STATE - TEST THE PROBE":"AQUEOUS STATE - TEST THE PROBE";
         RefreshElectricPhase();
@@ -216,6 +239,7 @@ public sealed class Stage5VisualLabDemo : MonoBehaviour
     {
         if(!ready||level!=3||sample<0)return;
         probed=true;conducting=isConducting;animation=0;
+        ShowPicture(isConducting ? "ConductivityOn" : null);
         status.text=conducting?"BULB ON  -  CHARGES MOVE":"BULB OFF  -  NO CHARGE FLOW";
         RefreshElectricPhase();
     }
