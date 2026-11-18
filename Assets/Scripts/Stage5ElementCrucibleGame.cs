@@ -40,6 +40,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
     private TMP_Text level1BowQuestion,level1BowHint;
     private int level1BowStep=-1;
     private Slider heat;
+    private Stage5VisualLabDemo visualLab;
     private Transform root;
     private float nextEnergyUpdate;
     public bool CanInteract=>!failed&&!completed&&!paused&&Time.timeScale>0&&
@@ -60,6 +61,17 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         root=GameObject.Find("Stage5Level"+Level+"Canvas").transform;
         if(Level==1)PolishStage5Level1Layout();
         Bind();
+        // Add actual animated experiments inside the existing drop station.
+        // All overlays are non-raycasting so drag/drop controls keep working.
+        var station = Find(root,"TestStation") as RectTransform;
+        if(station!=null)
+        {
+            visualLab=GetComponent<Stage5VisualLabDemo>();
+            if(visualLab==null)visualLab=gameObject.AddComponent<Stage5VisualLabDemo>();
+            visualLab.Initialize(Level,station);
+            if(Level==1 && heat!=null)visualLab.SetHeat(heat.value);
+        }
+        else Debug.LogWarning("CHEMQUEST Stage 5: TestStation was not found for visual simulation.");
         if(Level==1)EnsureLevel1BowPanel();
         if(Level==2)EnsureLevel2BowPanel();
         if(Level==3)EnsureLevel3BowPanel();
@@ -643,6 +655,12 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         if(selectedLabel!=null)selectedLabel.text="SAMPLE "+samples[index]+" LOADED";
         if(resultLabel!=null)resultLabel.text="Ready for "+(Level==1?"heat test":Level==2?"strike/press test":"probe test");
         SetIndicator(new Color32(70,90,120,255));
+        if(visualLab!=null)
+        {
+            visualLab.SelectSample(index);
+            if(Level==1 && heat!=null)visualLab.SetHeat(heat.value);
+            if(Level==3)visualLab.SetPhase(stateIndex);
+        }
         if(feedback!=null)feedback.text="Sample "+samples[index]+" placed on workbench.";
     }
     private void UpdateHeatReadout(float level)
@@ -650,6 +668,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         if(Level!=1 || root==null)return;
         var label=Find(root,"HeatValueText")?.GetComponent<TMP_Text>();
         if(label!=null)label.text="HEAT: "+Mathf.RoundToInt(level)+"%";
+        if(visualLab!=null)visualLab.SetHeat(level);
     }
 
     private void ApplyHeat()
@@ -659,6 +678,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         float amount=heat==null?0:heat.value;
         if(amount<60){Info("Increase the heat above 60% to complete this comparison.");return;}
         examined[selected]=true;
+        if(visualLab!=null)visualLab.HeatTest(amount);
         resultLabel.text=thermal[selected];
         ReactionEffect("THERMAL TEST COMPLETE");
         SetIndicator(selected==0?new Color32(255,177,71,255):new Color32(80,180,239,255));
@@ -672,6 +692,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         if(!CanInteract||Level!=2)return;
         if(selected<0){Info("Place a sample in the mechanical station first.");return;}
         actions[selected,press?1:0]=true;
+        if(visualLab!=null)visualLab.MechanicalTest(press);
         string response=selected==0?(press?"Soft sample compresses":"Surface is soft"):
             selected==1?(press?"Crystal resists deformation":"Brittle sample breaks into pieces"):
             (press?"Metallic sample flattens":"Metal retains cohesion after impact");
@@ -688,6 +709,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         if(!CanInteract||Level!=3)return;
         stateIndex=s;
         stateName=s==0?"SOLID":s==1?"MOLTEN":"AQUEOUS";
+        if(visualLab!=null)visualLab.SetPhase(s);
         Info("Selected state: "+stateName+". Place sample and click TEST PROBE.");
     }
     private void Probe()
@@ -701,6 +723,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         }
         probed[selected,stateIndex]=true;
         bool conducts=selected==1?stateIndex!=0:selected==2;
+        if(visualLab!=null)visualLab.ProbeTest(conducts);
         if(resultLabel!=null)resultLabel.text="PROBE: "+(conducts?"LAMP ON — CONDUCTS":"LAMP OFF — NO DETECTABLE CONDUCTION");
         SetIndicator(conducts?new Color32(79,231,151,255):new Color32(80,91,119,255));
         ReactionEffect(conducts?"CONDUCTIVITY DETECTED":"NO CONDUCTIVITY");
