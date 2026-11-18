@@ -26,6 +26,8 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     private Image[] mechanicalShards;
     private Image[] pressCrystalShards;
     private Image mechanicalFlattened;
+    private Image waxStrikeDent;
+    private Sprite[] waxDentFrames;
     private RectTransform animatedHammerPivot;
     private Image animatedHammerHead;
     private Image hammerImpactFlash;
@@ -597,6 +599,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         Rect(mechanicalCube.transform,new Vector2(-12,67),new Vector2(66,60));
         mechanicalCube.preserveAspect=true;
         mechanicalCube.gameObject.SetActive(false);
+        EnsureWaxDentAnimation();
 
         // Angular fractured crystal fragments, not rounded purple circles.
         mechanicalShards=new Image[9];
@@ -617,6 +620,31 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         mechanicalFlattened.gameObject.SetActive(false);
         BuildAnimatedHammer();
         BuildAnimatedPress();
+    }
+
+    // The four wax-only frames are independent UI image assets. The animated
+    // hammer and platform remain in the original Level 2 hierarchy; only
+    // the specimen image changes to avoid duplicate hammers/platforms.
+    private void EnsureWaxDentAnimation()
+    {
+        if(level!=2 || canvas==null)return;
+        if(waxDentFrames==null || waxDentFrames.Length!=4)
+            waxDentFrames=new Sprite[4];
+        for(int i=0;i<4;i++)
+            waxDentFrames[i]=Resources.Load<Sprite>(
+                "ChemQuestStage5WaxDent/WaxDent"+(i+1));
+
+        var existing=Find(canvas,"WaxStrikeDentAnimation")?.GetComponent<Image>();
+        if(existing==null)
+        {
+            existing=NewImage(canvas,"WaxStrikeDentAnimation",null,Color.white);
+            Rect(existing.rectTransform,new Vector2(-145,-61),new Vector2(88,69));
+        }
+        waxStrikeDent=existing;
+        waxStrikeDent.raycastTarget=false;
+        waxStrikeDent.preserveAspect=true;
+        waxStrikeDent.color=Color.white;
+        waxStrikeDent.gameObject.SetActive(false);
     }
 
     // An independent group for brittle crystals crushed by the hydraulic
@@ -905,6 +933,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         if(pressCrystalShards!=null)foreach(var shard in pressCrystalShards)
             if(shard!=null)shard.gameObject.SetActive(false);
         if(mechanicalFlattened!=null)mechanicalFlattened.gameObject.SetActive(false);
+        if(waxStrikeDent!=null)waxStrikeDent.gameObject.SetActive(false);
         var sprite=ResourceSprite("DragSample"+index);
         if(sprite==null)sprite=CreateFallbackSampleSprite(index);
         mechanicalCube.sprite=sprite;
@@ -933,6 +962,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         float sampleT=Mathf.Clamp01((t-impactPoint)/(sampleEnd-impactPoint));
         float ease=sampleT*sampleT*(3f-2f*sampleT);
         bool fractured=mechanicalSample==1 && mechanicalMode==1;
+        bool dentedWax=mechanicalSample==0 && mechanicalMode==1;
         bool pressBrittle=mechanicalSample==1 && mechanicalMode==2;
         bool malleable=mechanicalSample==2 && mechanicalMode==2;
         // Paraffin wax is soft: visibly compress it when the press is used.
@@ -947,6 +977,8 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             rt.anchoredPosition=Vector2.Lerp(origin,end,ease);
             if(fractured || pressBrittle)
                 rt.localScale=Vector3.one*Mathf.Max(.02f,1f-ease);
+            else if(dentedWax)
+                rt.localScale=new Vector3(1f+ease*.12f,1f-ease*.34f,1f);
             else if(softWax)
                 rt.localScale=new Vector3(1f+ease*.55f,1f-ease*.62f,1f);
             else if(malleable)
@@ -957,6 +989,35 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
                     new Color(1f,.88f,.72f,1f),ease*.35f);
             if((fractured || pressBrittle) && t>=1f)
                 mechanicalCube.gameObject.SetActive(false);
+        }
+        if(dentedWax && waxStrikeDent!=null)
+        {
+            // The first half uses the moving Unity hammer. At the impact,
+            // step through the prepared wax sprites, then retain the dent.
+            float dentProgress=Mathf.Clamp01((t-impactPoint)/(.94f-impactPoint));
+            bool haveFrames=waxDentFrames!=null && waxDentFrames.Length==4 &&
+                waxDentFrames[0]!=null && waxDentFrames[1]!=null &&
+                waxDentFrames[2]!=null && waxDentFrames[3]!=null;
+            if(haveFrames && t>=impactPoint)
+            {
+                int frame=Mathf.Min(3,Mathf.FloorToInt(dentProgress*4f));
+                waxStrikeDent.sprite=waxDentFrames[frame];
+                waxStrikeDent.rectTransform.anchoredPosition=
+                    strikeSampleStart+new Vector2(0,-11);
+                waxStrikeDent.gameObject.SetActive(true);
+                if(mechanicalCube!=null)mechanicalCube.gameObject.SetActive(false);
+            }
+            else if(!haveFrames && t>=impactPoint)
+            {
+                // If sprites have not yet been imported, an unmistakable
+                // scale deformation still renders instead of a static cube.
+                if(mechanicalCube!=null)
+                {
+                    mechanicalCube.gameObject.SetActive(true);
+                    mechanicalCube.rectTransform.localScale=
+                        new Vector3(1f+ease*.45f,1f-ease*.53f,1f);
+                }
+            }
         }
         if(fractured && mechanicalShards!=null)
         {
@@ -1247,6 +1308,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             DecorateMechanicalWorkBench();
         }
         mechanicalFlattened=Find(canvas,"MechanicalFlattenedMetal")?.GetComponent<Image>();
+        if(level==2)EnsureWaxDentAnimation();
         // The sample, flattened sprite and fragment positions remain as
         // serialized. Only the actual STRIKE/PRESS animation moves them.
         animatedHammerPivot=Find(canvas,"AnimatedStrikeHammerPivot") as RectTransform;
@@ -1474,6 +1536,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             ResetHammer();
             ResetPress();
             if(mechanicalFlattened!=null)mechanicalFlattened.gameObject.SetActive(false);
+            if(waxStrikeDent!=null)waxStrikeDent.gameObject.SetActive(false);
             if(mechanicalShards!=null)foreach(var shard in mechanicalShards)
                 if(shard!=null)shard.gameObject.SetActive(false);
             if(pressCrystalShards!=null)foreach(var shard in pressCrystalShards)
