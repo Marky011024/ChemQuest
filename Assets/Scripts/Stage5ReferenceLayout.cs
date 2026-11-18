@@ -899,17 +899,26 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         float ease=sampleT*sampleT*(3f-2f*sampleT);
         bool fractured=mechanicalSample==1 && mechanicalMode==1;
         bool malleable=mechanicalSample==2 && mechanicalMode==2;
+        // Paraffin wax is soft: visibly compress it when the press is used.
+        // Unlike copper it keeps a squashed cube, rather than changing into
+        // the metallic sheet sprite. This makes SOFT / DEFORMS observable.
+        bool softWax=mechanicalSample==0 && mechanicalMode==2;
         Vector2 origin=mechanicalMode==1?strikeSampleStart:pressSampleStart;
-        Vector2 end=origin+new Vector2(0,-43);
+        Vector2 end=origin+new Vector2(0,softWax?-28f:-43f);
         if(mechanicalCube!=null)
         {
             var rt=mechanicalCube.rectTransform;
             rt.anchoredPosition=Vector2.Lerp(origin,end,ease);
             if(fractured)
                 rt.localScale=Vector3.one*Mathf.Max(.02f,1f-ease);
+            else if(softWax)
+                rt.localScale=new Vector3(1f+ease*.55f,1f-ease*.62f,1f);
             else if(malleable)
                 rt.localScale=new Vector3(1f+ease*.85f,1f-ease*.78f,1f);
             else rt.localScale=Vector3.one;
+            if(softWax)
+                mechanicalCube.color=Color.Lerp(Color.white,
+                    new Color(1f,.88f,.72f,1f),ease*.35f);
             if(fractured && t>=1f)mechanicalCube.gameObject.SetActive(false);
         }
         if(fractured && mechanicalShards!=null)
