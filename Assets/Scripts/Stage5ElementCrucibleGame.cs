@@ -1343,6 +1343,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         if(Level==3)SetLevel3BackgroundFeedbackVisible(false);
         if(scoreText!=null)scoreText.text="SCORE\n"+points.ToString("D6");
         if(finalScore!=null)finalScore.text="FINAL SCORE "+points.ToString("D6");
+        if(Level==3)RevealDiscoveredMaterials();
         if(completePanel!=null){completePanel.SetActive(true);completePanel.transform.SetAsLastSibling();}
         if(Level==3 && ChemQuestCertificate.AllLevelsComplete() &&
            !ChemQuestAssessmentGate.PostCompleted)
@@ -1354,6 +1355,41 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
             assessment.OpenPostIfEligible();
         }
     }
+    // Reveal real-world material examples ONLY after the student has
+    // correctly classified all three unknown samples and passed the two
+    // BOW conductivity questions. The tests remain fictional simulations.
+    private void RevealDiscoveredMaterials()
+    {
+        if(completePanel==null)return;
+        var description=Find(completePanel.transform,"Description")?.GetComponent<TMP_Text>();
+        if(description==null)return;
+        description.text=
+            "<color=#74DCFF><b>SAMPLE A - PARAFFIN WAX</b></color>  |  Covalent molecular\n"+
+            "No mobile charge carriers: OFF in solid and molten states.\n"+
+            "<color=#DEB2FF><b>SAMPLE B - SODIUM CHLORIDE (NaCl)</b></color>  |  Ionic\n"+
+            "Ions move when molten or dissolved: OFF / ON / ON.\n"+
+            "<color=#89F4D4><b>SAMPLE C - COPPER (Cu)</b></color>  |  Metallic\n"+
+            "Mobile electrons conduct in solid and molten states: ON / ON.";
+        var rt=description.rectTransform;
+        rt.anchorMin=rt.anchorMax=new Vector2(.5f,.5f);
+        rt.pivot=new Vector2(.5f,.5f);
+        rt.anchoredPosition=new Vector2(0,54);
+        rt.sizeDelta=new Vector2(690,157);
+        description.fontSize=17;
+        description.alignment=TextAlignmentOptions.Center;
+        description.textWrappingMode=TextWrappingModes.Normal;
+        description.raycastTarget=false;
+        // Keep the final score and navigation buttons clearly separated
+        // from the discovery text, using the existing completion panel.
+        if(finalScore!=null)
+        {
+            var scoreRect=finalScore.rectTransform;
+            scoreRect.anchoredPosition=new Vector2(0,-55);
+            scoreRect.sizeDelta=new Vector2(640,39);
+            finalScore.fontSize=24;
+        }
+    }
+
     private void UpdateEvidence()
     {
         if(evidenceText==null)return;
