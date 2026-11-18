@@ -28,6 +28,9 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     private RectTransform animatedHammerPivot;
     private Image animatedHammerHead;
     private Image hammerImpactFlash;
+    private RectTransform animatedPressHead;
+    private RectTransform animatedPressShaft;
+    private Image pressImpactGlow;
     private bool hammerHasStruck;
     private int mechanicalMode; // 0=loaded, 1=strike, 2=press
     private float mechanicalTime;
@@ -398,6 +401,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             new Vector2(14,10));
         mechanicalFlattened.gameObject.SetActive(false);
         BuildAnimatedHammer();
+        BuildAnimatedPress();
     }
 
     private void DecorateMechanicalWorkBench()
@@ -536,6 +540,87 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         }
     }
 
+    // The hydraulic press is a real, animated set of editable UI objects.
+    // Build only missing parts so repeating the Stage 5 Bake command is safe.
+    private void BuildAnimatedPress()
+    {
+        if(level!=2 || canvas==null)return;
+        animatedPressHead=Find(canvas,"AnimatedPressHead") as RectTransform;
+        animatedPressShaft=Find(canvas,"AnimatedPressShaft") as RectTransform;
+        pressImpactGlow=Find(canvas,"PressImpactGlow")?.GetComponent<Image>();
+
+        if(animatedPressShaft==null)
+        {
+            var shaft=NewImage(canvas,"AnimatedPressShaft",null,
+                new Color32(145,183,213,255));
+            animatedPressShaft=shaft.rectTransform;
+            Rect(animatedPressShaft,new Vector2(152,121),new Vector2(21,94));
+            var shine=NewImage(animatedPressShaft,"PressShaftHighlight",null,
+                new Color32(227,241,253,255));
+            Rect(shine.transform,new Vector2(-5,0),new Vector2(5,86));
+        }
+        if(animatedPressHead==null)
+        {
+            var head=NewImage(canvas,"AnimatedPressHead",null,
+                new Color32(103,159,204,255));
+            animatedPressHead=head.rectTransform;
+            Rect(animatedPressHead,new Vector2(152,73),new Vector2(131,22));
+            var face=NewImage(animatedPressHead,"AnimatedPressContactPlate",null,
+                new Color32(217,232,245,255));
+            Rect(face.transform,new Vector2(0,-10),new Vector2(136,8));
+            var glow=NewImage(animatedPressHead,"AnimatedPressHeadRim",null,
+                new Color32(249,179,89,255));
+            Rect(glow.transform,new Vector2(0,10),new Vector2(129,5));
+        }
+        if(pressImpactGlow==null)
+        {
+            pressImpactGlow=NewImage(canvas,"PressImpactGlow",MakeOvalSprite(),
+                new Color32(255,203,107,0));
+            Rect(pressImpactGlow.transform,new Vector2(152,-22),new Vector2(122,27));
+        }
+        ResetPress();
+    }
+
+    private void ResetPress()
+    {
+        if(animatedPressHead!=null)
+            animatedPressHead.anchoredPosition=new Vector2(152,73);
+        if(animatedPressShaft!=null)
+            animatedPressShaft.anchoredPosition=new Vector2(152,121);
+        if(pressImpactGlow!=null)pressImpactGlow.gameObject.SetActive(false);
+    }
+
+    private void AnimatePress(float progress,float impactPoint)
+    {
+        if(animatedPressHead==null || animatedPressShaft==null)return;
+        // Move the plate down to the sample, hold while it compresses, and
+        // raise the assembly once the metal has been flattened.
+        float down;
+        if(progress<impactPoint)
+        {
+            float u=Mathf.Clamp01(progress/impactPoint);
+            down=u*u*(3f-2f*u);
+        }
+        else if(progress<.78f)down=1f;
+        else
+        {
+            float u=Mathf.Clamp01((progress-.78f)/.22f);
+            down=1f-u*u*(3f-2f*u);
+        }
+        animatedPressHead.anchoredPosition=new Vector2(152,Mathf.Lerp(73,26,down));
+        animatedPressShaft.anchoredPosition=new Vector2(152,Mathf.Lerp(121,74,down));
+        bool compressing=progress>=impactPoint && progress<.80f;
+        if(pressImpactGlow!=null)
+        {
+            pressImpactGlow.gameObject.SetActive(compressing);
+            if(compressing)
+            {
+                float pulse=.4f+.35f*Mathf.Sin((progress-impactPoint)*25f);
+                pressImpactGlow.color=new Color(1f,.78f,.36f,pulse);
+            }
+        }
+    }
+
     private void ShowMechanicalSample(int index)
     {
         if(level!=2 || mechanicalCube==null)return;
@@ -543,6 +628,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         mechanicalMode=0;
         mechanicalTime=0f;
         ResetHammer();
+        ResetPress();
         if(mechanicalShards!=null)foreach(var shard in mechanicalShards)
             if(shard!=null)shard.gameObject.SetActive(false);
         if(mechanicalFlattened!=null)mechanicalFlattened.gameObject.SetActive(false);
@@ -564,8 +650,8 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         // the hammer is still in the air.
         float impactPoint=.55f;
         if(mechanicalMode==1)AnimateHammer(t,impactPoint);
-        float sampleT=mechanicalMode==1?
-            Mathf.Clamp01((t-impactPoint)/(1f-impactPoint)):t;
+        if(mechanicalMode==2)AnimatePress(t,impactPoint);
+        float sampleT=Mathf.Clamp01((t-impactPoint)/(1f-impactPoint));
         float ease=sampleT*sampleT*(3f-2f*sampleT);
         bool fractured=mechanicalSample==1 && mechanicalMode==1;
         bool malleable=mechanicalSample==2 && mechanicalMode==2;
@@ -602,7 +688,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         }
         if(malleable && mechanicalFlattened!=null)
         {
-            float flatten=Mathf.Clamp01((t-.4f)/.6f);
+            float flatten=sampleT;
             mechanicalFlattened.gameObject.SetActive(flatten>.01f);
             Rect(mechanicalFlattened.transform,new Vector2(150,-42),
                 new Vector2(20+148*flatten,8+17*flatten));
@@ -613,6 +699,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         {
             mechanicalMode=0;
             ResetHammer();
+            ResetPress();
         }
     }
 
@@ -806,6 +893,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         // Upgrade an already-baked Level2 scene rather than requiring a new
         // scene: create missing animated hammer in the saved hierarchy.
         if(level==2 && animatedHammerPivot==null)BuildAnimatedHammer();
+        if(level==2)BuildAnimatedPress();
         ResetHammer();
         mechanicalShards=new Image[9];
         for(int i=0;i<mechanicalShards.Length;i++)
@@ -956,6 +1044,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             }
             hammerHasStruck=false;
             ResetHammer();
+            ResetPress();
             if(mechanicalFlattened!=null)mechanicalFlattened.gameObject.SetActive(false);
             if(mechanicalShards!=null)foreach(var shard in mechanicalShards)
                 if(shard!=null)shard.gameObject.SetActive(false);
