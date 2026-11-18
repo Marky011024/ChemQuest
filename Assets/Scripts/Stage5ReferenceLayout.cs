@@ -298,6 +298,9 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
                 "CHECK CLASSIFICATION",15,Vector2.zero,new Vector2(226,42),Color.white);
             checkCaption.fontStyle=FontStyles.Bold;
         }
+        // The three real-material buttons are actual editable UI Images,
+        // not part of the background. Touch control remains unchanged.
+        if(level==1)RefreshLevel1MaterialButtons();
         // One mapped raycast surface handles both mouse and Android touch.
         // It sits above all artwork and legacy transparent controls.
         var hit=NewImage(canvas,"Stage5MappedTouchSurface",null,Color.clear);
@@ -308,6 +311,63 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         ready=true;
         Debug.Log("CHEMQUEST: Exact Stage 5 reference artwork and functional hit targets loaded for Level "+level);
         return true;
+    }
+
+    private static readonly string[] Level1MaterialNames={
+        "PARAFFIN WAX","SODIUM CHLORIDE","COPPER"
+    };
+
+    // Maintain the exact Level 1 sample button hit regions and visual size.
+    // Uses the three separate PNG buttons already installed for Level 3.
+    // Repeated calls (Bake, Play, rebind) reuse the same GameObjects.
+    private void RefreshLevel1MaterialButtons()
+    {
+        if(level!=1 || canvas==null)return;
+        var row=Find(canvas,"Stage5Level1MaterialButtons") as RectTransform;
+        if(row==null)
+        {
+            var root=new GameObject("Stage5Level1MaterialButtons",
+                typeof(RectTransform));
+            root.transform.SetParent(canvas,false);
+            row=root.GetComponent<RectTransform>();
+        }
+        Rect(row,Vector2.zero,new Vector2(1280,720));
+        row.gameObject.SetActive(true);
+        for(int i=0;i<3;i++)
+        {
+            var name="MaterialButton_"+(char)('A'+i);
+            var objectTransform=Find(row,name);
+            Image image;
+            if(objectTransform==null)
+                image=NewImage(row,name,null,Color.white);
+            else
+                image=objectTransform.GetComponent<Image>();
+            if(image==null)continue;
+            var sprite=Resources.Load<Sprite>(
+                "ChemQuestStage5Modular/Sample"+(char)('A'+i));
+            image.overrideSprite=null;
+            if(sprite!=null)image.sprite=sprite;
+            if(image.sprite==null)
+            {
+                Debug.LogWarning("Stage 5 Level 1: Missing Sample"+
+                    (char)('A'+i)+" sprite in ChemQuestStage5Modular.");
+                image.gameObject.SetActive(false);
+                continue;
+            }
+            image.gameObject.SetActive(true);
+            image.color=Color.white;
+            image.type=Image.Type.Simple;
+            image.preserveAspect=true;
+            image.raycastTarget=false;
+            // Level 1 artwork uses narrower cards than Level 3. Never
+            // stretch the source sprite or cover neighbouring elements.
+            Rect(image.transform,new Vector2(-404,64-i*79),
+                new Vector2(232,64));
+        }
+        // These images cover the old reference-art SAMPLE A/B/C buttons,
+        // but do not intercept mapped dragging/clicking.
+        var touch=Find(canvas,"Stage5MappedTouchSurface");
+        if(touch!=null)row.SetSiblingIndex(touch.GetSiblingIndex());
     }
 
     // Keep the Stage 5 Level 3 labels and status panels separate.
@@ -1059,6 +1119,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         conductivityResultPlate=Find(canvas,"DynamicProbeResult")?.GetComponent<Image>();
         conductivityResultText=Find(canvas,"DynamicProbeResultLabel")?.GetComponent<TMP_Text>();
         if(level==3)PolishLevel3Reference();
+        if(level==1)RefreshLevel1MaterialButtons();
         touchController=Find(canvas,"Stage5MappedTouchSurface")?.GetComponent<Stage5ReferenceTouchController>();
         if(touchController!=null)
         {
@@ -1135,7 +1196,9 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     {
         if(!ready)return;
         selected=index;
-        if(liveSample!=null)liveSample.text="SAMPLE "+(char)('A'+index);
+        if(liveSample!=null)
+            liveSample.text=level==1 && index>=0 && index<3?
+                Level1MaterialNames[index]:"SAMPLE "+(char)('A'+index);
         if(liveStatus!=null)liveStatus.text="SELECT THE TEST ACTION";
         if(preview!=null) preview.gameObject.SetActive(false);
         if(level==1)
