@@ -87,7 +87,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         if(exactReference==null)exactReference=gameObject.AddComponent<Stage5ReferenceLayout>();
         if(exactReference.Initialize(Level,root,visualLab))
         {
-            exactReference.SyncNotebook(evidenceText==null?"":evidenceText.text);
+            UpdateEvidence();
             if(Level==1 && heat!=null)exactReference.ReferenceHeatChanged(heat.value);
             if(progress!=null)exactReference.ReferenceSetProgress(progress.text);
         }
@@ -1367,7 +1367,34 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
             }
         }
         evidenceText.text=text;
-        if(exactReference!=null)exactReference.SyncNotebook(text);
+        if(exactReference!=null)
+        {
+            var rows=new string[3];
+            for(int i=0;i<3;i++)
+            {
+                if(Level==1)
+                    rows[i]=examined[i]?
+                        (i==0?"MELTED / LOW HEAT":"REMAINED SOLID"):"NOT TESTED";
+                else if(Level==2)
+                {
+                    bool strike=actions[i,0],press=actions[i,1];
+                    if(strike&&press)
+                        rows[i]=i==0?"SOFT / DEFORMS":
+                            i==1?"BRITTLE / SHATTERS":"MALLEABLE / FLATTENS";
+                    else if(strike||press)
+                        rows[i]=strike?"STRIKE DONE, PRESS NEXT":"PRESS DONE, STRIKE NEXT";
+                    else rows[i]="NOT TESTED";
+                }
+                else
+                {
+                    string solid=probed[i,0]?(i==2?"ON":"OFF"):"--";
+                    string molten=probed[i,1]?(i==0?"OFF":"ON"):"--";
+                    string aq=i==1?(probed[i,2]?"ON":"--"):"N/A";
+                    rows[i]="SOLID "+solid+"  MOLTEN "+molten+"\n     AQ "+aq;
+                }
+            }
+            exactReference.SyncCompactNotebook(rows[0],rows[1],rows[2]);
+        }
         int count=0;
         for(int i=0;i<3;i++)if(examined[i])count++;
         if(progress!=null)
