@@ -860,33 +860,31 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         if(animatedPressHead==null||animatedPressShaft==null)return;
         if(!animatedPressHead.gameObject.activeSelf) animatedPressHead.gameObject.SetActive(true);
         if(!animatedPressShaft.gameObject.activeSelf) animatedPressShaft.gameObject.SetActive(true);
-        float down;
-        // A clear three-phase motion: lift 22px, descend and contact,
-        // then retract. The contact displacement is derived from the
-        // current specimen instead of always forcing a 40px stroke.
+        // Longer, clearly readable press sequence: lift, slow descent,
+        // hold pressure while the specimen reacts, then retract.
         float offset;
-        if(progress<.18f)
+        if(progress<.16f)
         {
-            float u=Mathf.Clamp01(progress/.18f);
+            float u=Mathf.Clamp01(progress/.16f);
             offset=-22f*u*u*(3f-2f*u);
         }
         else if(progress<impactPoint)
         {
-            float u=Mathf.Clamp01((progress-.18f)/(impactPoint-.18f));
+            float u=Mathf.Clamp01((progress-.16f)/(impactPoint-.16f));
             u=u*u*(3f-2f*u);
             offset=Mathf.Lerp(-22f,pressTravel,u);
         }
-        else if(progress<.78f) offset=pressTravel;
+        else if(progress<.82f) offset=pressTravel;
         else
         {
-            float u=Mathf.Clamp01((progress-.78f)/.22f);
+            float u=Mathf.Clamp01((progress-.82f)/.18f);
             offset=Mathf.Lerp(pressTravel,0f,u*u*(3f-2f*u));
         }
         animatedPressHead.anchoredPosition=pressHeadHome+
             Vector2.down*offset;
         animatedPressShaft.anchoredPosition=pressShaftHome+
             Vector2.down*offset;
-        bool contact=progress>=impactPoint&&progress<.80f;
+        bool contact=progress>=impactPoint&&progress<.82f;
         if(pressImpactGlow!=null)
         {
             pressImpactGlow.gameObject.SetActive(contact);
@@ -919,15 +917,20 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     private void AnimateMechanicalResult()
     {
         mechanicalTime+=Time.deltaTime;
-        float t=Mathf.Clamp01(mechanicalTime/1.25f);
-        // The moving hammer contacts the specimen around 55% of the cycle.
-        // Delaying the fracture until impact avoids pieces appearing while
-        // the hammer is still in the air.
-        float impactPoint=.55f;
+        // Do not speed up the existing hammer. Give the hydraulic press
+        // substantially longer so its approach, compression and release
+        // are visible to learners (2.8 seconds vs 1.25 for STRIKE).
+        float duration=mechanicalMode==2?2.8f:1.25f;
+        float t=Mathf.Clamp01(mechanicalTime/duration);
+        // Specimen reactions start at contact, never before.
+        float impactPoint=mechanicalMode==2?.60f:.55f;
         // Preserve the moving hammer and hydraulic press during each test.
         if(mechanicalMode==1)AnimateHammer(t,impactPoint);
         if(mechanicalMode==2)AnimatePress(t,impactPoint);
-        float sampleT=Mathf.Clamp01((t-impactPoint)/(1f-impactPoint));
+        // Complete deformation during the press's contact hold, so
+        // learners see the finished material before the press lifts away.
+        float sampleEnd=mechanicalMode==2?.81f:1f;
+        float sampleT=Mathf.Clamp01((t-impactPoint)/(sampleEnd-impactPoint));
         float ease=sampleT*sampleT*(3f-2f*sampleT);
         bool fractured=mechanicalSample==1 && mechanicalMode==1;
         bool pressBrittle=mechanicalSample==1 && mechanicalMode==2;
@@ -975,7 +978,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         // scatter across the RIGHT testing platform and remain visible.
         if(pressBrittle && pressCrystalShards!=null)
         {
-            float spread=Mathf.Clamp01((t-impactPoint)/(1f-impactPoint));
+            float spread=sampleT;
             for(int i=0;i<pressCrystalShards.Length;i++)
             {
                 var shard=pressCrystalShards[i];
