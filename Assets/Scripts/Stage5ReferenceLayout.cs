@@ -18,6 +18,12 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     private int actionEffect;
     private float effectTime;
     private Vector2 previewHome;
+    private Image dynamicHeatKnob;
+    private TMP_Text dynamicHeatReadout;
+    private TMP_Text dynamicProgress;
+    private TMP_Text dynamicScore;
+    private TMP_Text dynamicEnergy;
+    private Stage5ReferenceTouchController touchController;
 
     private static readonly Color Navy=new Color32(5,29,57,250);
     private static readonly Color Gold=new Color32(255,207,109,255);
@@ -45,7 +51,11 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         var bgRect=skin.rectTransform;
         bgRect.anchorMin=Vector2.zero;bgRect.anchorMax=Vector2.one;
         bgRect.offsetMin=Vector2.zero;bgRect.offsetMax=Vector2.zero;
-        skin.transform.SetSiblingIndex(board.GetSiblingIndex());
+        // The complete reference image must sit ABOVE all stale Unity panels.
+        // Previously the serialized lab panels covered its buttons with large
+        // dark rectangles. Input now belongs solely to the transparent touch
+        // controller added after the art.
+        skin.transform.SetAsLastSibling();
 
         // Hide the old procedural text boxes / panels, not their controls.
         foreach(var name in new[]{"LabBoard","SampleBank","TestStation","EvidenceBoard"})
@@ -88,13 +98,13 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         Rect(notebook,new Vector2(400,6),new Vector2(282,325));
         // The generated mockups have incorrect pre-filled results.
         // Mask ONLY the notebook entries and replace them with real observations.
-        var ink=NewImage(notebook,"AccurateNotebookPanel",null,Navy);
-        Rect(ink.transform,Vector2.zero,new Vector2(278,315));
+        var ink=NewImage(canvas,"AccurateNotebookPanel",null,Navy);
+        Rect(ink.transform,new Vector2(399,-2),new Vector2(275,314));
         ink.raycastTarget=false;
         liveNotebook=NewText(ink.transform,"ActualNotebook","A: Not tested\n\nB: Not tested\n\nC: Not tested",
             18,new Vector2(0,-13),new Vector2(254,223),Color.white);
-        var title=NewText(ink.transform,"ActualNotebookTitle","LAB NOTEBOOK",23,
-            new Vector2(0,133),new Vector2(264,35),Gold);
+        var title=NewText(ink.transform,"ActualNotebookTitle","LAB NOTEBOOK",22,
+            new Vector2(0,124),new Vector2(264,35),Gold);
         title.fontStyle=FontStyles.Bold;
         liveNotebook.alignment=TextAlignmentOptions.TopLeft;
         liveNotebook.margin=new Vector4(8,6,6,3);
@@ -106,17 +116,21 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             if(activeStation!=null){activeStation.color=new Color(1,1,1,0f);activeStation.raycastTarget=true;}
             // Close-up action visual: heater, striking hammer, hydraulic press,
             // or wired conductivity apparatus, whichever was actually tested.
-            preview=NewImage(station,"ActiveExperimentCloseup",null,Color.white);
-            Rect(preview.transform,new Vector2(0,-4),new Vector2(425,245));
+            preview=NewImage(canvas,"ActiveExperimentCloseup",null,Color.white);
+            Rect(preview.transform,new Vector2(-11,-3),new Vector2(402,236));
             preview.preserveAspect=true;
             preview.raycastTarget=false;
             previewHome=preview.rectTransform.anchoredPosition;
             preview.gameObject.SetActive(false);
-            liveSample=NewText(station,"ActiveSampleName","DRAG A SAMPLE",22,
-                new Vector2(0,148),new Vector2(390,34),Gold);
+            var tag=NewImage(canvas,"ActiveSampleTag",null,Navy);
+            Rect(tag.transform,new Vector2(-11,132),new Vector2(194,31));
+            liveSample=NewText(tag.transform,"ActiveSampleName","CHOOSE A SAMPLE",17,
+                Vector2.zero,new Vector2(187,28),Gold);
             liveSample.fontStyle=FontStyles.Bold;
-            liveStatus=NewText(station,"RealExperimentStatus","",17,
-                new Vector2(0,-149),new Vector2(455,28),Cyan);
+            var statusPanel=NewImage(canvas,"RealExperimentStatusPlate",null,Navy);
+            Rect(statusPanel.transform,new Vector2(-11,-142),new Vector2(410,28));
+            liveStatus=NewText(statusPanel.transform,"RealExperimentStatus","",16,
+                Vector2.zero,new Vector2(403,27),Cyan);
         }
 
         foreach(var name in new[]{"TestButton","StrikeButton","PressButton","ProbeButton",
@@ -159,10 +173,34 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             var energyImg=Find(sceneRoot,"Energy"+i)?.GetComponent<Image>();
             if(energyImg!=null)energyImg.enabled=false;
         }
-        // Keep the real action buttons above the background image.
-        if(level==1)PlaceLevel1Controls();
-        if(level==2)PlaceLevel2Controls();
-        if(level==3)PlaceLevel3Controls();
+        // Live readouts are redrawn above the static reference art.
+        dynamicScore=NewText(canvas,"ReferenceLiveScore","000000",17,
+            new Vector2(562,306),new Vector2(125,24),Gold);
+        dynamicEnergy=NewText(canvas,"ReferenceLiveEnergy","5/5",20,
+            new Vector2(-314,313),new Vector2(72,28),Color.white);
+        if(level<=2)
+        {
+            var progressPanel=NewImage(canvas,"ReferenceProgressPlate",null,Navy);
+            Rect(progressPanel.transform,new Vector2(0,-303),new Vector2(275,34));
+            dynamicProgress=NewText(progressPanel.transform,"ReferenceProgress","SAMPLES TESTED 0 / 3",
+                17,Vector2.zero,new Vector2(268,30),Cyan);
+        }
+        if(level==1)
+        {
+            var knob=NewImage(canvas,"ReferenceHeatKnob",null,Gold);
+            dynamicHeatKnob=knob;
+            Rect(knob.transform,new Vector2(-294,-221),new Vector2(23,34));
+            var heatPlate=NewImage(canvas,"ReferenceHeatReadoutPlate",null,Navy);
+            Rect(heatPlate.transform,new Vector2(458,-222),new Vector2(130,40));
+            dynamicHeatReadout=NewText(heatPlate.transform,"ReferenceHeatReadout","HEAT: 0%",
+                16,Vector2.zero,new Vector2(126,34),Gold);
+        }
+        // One mapped raycast surface handles both mouse and Android touch.
+        // It sits above all artwork and legacy transparent controls.
+        var hit=NewImage(canvas,"Stage5MappedTouchSurface",null,Color.clear);
+        hit.raycastTarget=true;
+        touchController=hit.gameObject.AddComponent<Stage5ReferenceTouchController>();
+        touchController.Setup(GetComponent<Stage5ElementCrucibleGame>(),this,level);
         ready=true;
         Debug.Log("CHEMQUEST: Exact Stage 5 reference artwork and functional hit targets loaded for Level "+level);
         return true;
@@ -214,6 +252,38 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         if(image!=null){image.color=new Color32(15,136,150,245);image.raycastTarget=true;}
         var text=submit?.GetComponentInChildren<TMP_Text>(true);
         if(text!=null){text.enabled=true;text.text="CHECK CLASSIFICATION";text.fontSize=14;}
+    }
+
+    public void ReferenceHeatChanged(float value)
+    {
+        if(!ready||level!=1)return;
+        if(dynamicHeatKnob!=null)
+        {
+            var pos=dynamicHeatKnob.rectTransform.anchoredPosition;
+            pos.x=Mathf.Lerp(-294f,261f,Mathf.Clamp01(value/100f));
+            dynamicHeatKnob.rectTransform.anchoredPosition=pos;
+        }
+        if(dynamicHeatReadout!=null)
+            dynamicHeatReadout.text="HEAT: "+Mathf.RoundToInt(value)+"%";
+    }
+
+    public void ReferencePhaseSelected(int selectedPhase)
+    {
+        if(!ready||level!=3)return;
+        phase=selectedPhase;
+        if(liveStatus!=null)
+            liveStatus.text=(phase==0?"SOLID":phase==1?"MOLTEN":"AQUEOUS")+" SELECTED";
+    }
+
+    public void ReferenceSetProgress(string text)
+    {
+        if(dynamicProgress!=null)dynamicProgress.text=text;
+    }
+
+    public void ReferenceSetIndicators(int score,int energy)
+    {
+        if(dynamicScore!=null)dynamicScore.text=score.ToString("D6");
+        if(dynamicEnergy!=null)dynamicEnergy.text=energy+" / 5";
     }
 
     public void SampleChanged(int index)
