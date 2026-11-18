@@ -597,10 +597,20 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
     private static Image CircuitSegment(Transform parent,string name,
         Vector2 pos,Vector2 size)
     {
+        // The student can reposition the four wires in the saved Unity
+        // Hierarchy. During Play, Build() runs again; do NOT reset their
+        // RectTransforms to the default coordinates on each rebuild.
+        var existing=Find(parent,name);
+        bool created=existing==null;
         var piece=EnsureImage(parent,name);
         piece.sprite=RoundedSprite();
-        piece.color=new Color32(138,171,207,255);
-        Place(piece.rectTransform,pos,size);
+        piece.raycastTarget=false;
+        if(created)
+        {
+            Place(piece.rectTransform,pos,size);
+            piece.color=new Color32(138,171,207,255);
+        }
+        piece.gameObject.SetActive(true);
         return piece;
     }
 
