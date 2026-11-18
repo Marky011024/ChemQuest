@@ -301,9 +301,80 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         hit.raycastTarget=true;
         touchController=hit.gameObject.AddComponent<Stage5ReferenceTouchController>();
         touchController.Setup(GetComponent<Stage5ElementCrucibleGame>(),this,level);
+        if(level==3)PolishLevel3Reference();
         ready=true;
         Debug.Log("CHEMQUEST: Exact Stage 5 reference artwork and functional hit targets loaded for Level "+level);
         return true;
+    }
+
+    // Keep the Stage 5 Level 3 labels and status panels separate.
+    // Called for both a fresh Bake and an already-baked Unity scene.
+    private void PolishLevel3Reference()
+    {
+        if(level!=3 || canvas==null)return;
+
+        // The screenshot includes a preprinted sample prompt slightly below
+        // the live selected-sample tag. Cover both with one compact label.
+        var tag=Find(canvas,"ActiveSampleTag") as RectTransform;
+        if(tag!=null)
+        {
+            Rect(tag,new Vector2(-11,112),new Vector2(196,52));
+            var image=tag.GetComponent<Image>();
+            if(image!=null)image.color=new Color32(5,29,57,255);
+        }
+        if(liveSample==null)
+            liveSample=Find(canvas,"ActiveSampleName")?.GetComponent<TMP_Text>();
+        if(liveSample!=null)
+        {
+            Rect(liveSample.transform,new Vector2(0,11),new Vector2(190,26));
+            liveSample.fontSize=15;
+            liveSample.alignment=TextAlignmentOptions.Center;
+        }
+
+        // Avoid a dark rectangle over the center of the conducting apparatus.
+        if(conductivityBulbMask!=null)
+        {
+            Rect(conductivityBulbMask.transform,new Vector2(-100,62),
+                new Vector2(42,38));
+            conductivityBulbMask.raycastTarget=false;
+        }
+        if(conductivityResultPlate!=null)
+        {
+            Rect(conductivityResultPlate.transform,new Vector2(220,86),
+                new Vector2(134,46));
+            conductivityResultPlate.raycastTarget=false;
+        }
+        if(conductivityResultText!=null)
+        {
+            Rect(conductivityResultText.transform,Vector2.zero,new Vector2(126,39));
+            conductivityResultText.fontSize=13;
+            conductivityResultText.enableAutoSizing=true;
+            conductivityResultText.fontSizeMin=11;
+            conductivityResultText.fontSizeMax=13;
+            conductivityResultText.alignment=TextAlignmentOptions.Center;
+        }
+
+        // Keep all three phase observations inside the narrow notebook.
+        var ink=Find(canvas,"AccurateNotebookPanel") as RectTransform;
+        if(ink!=null)Rect(ink,new Vector2(399,-2),new Vector2(274,311));
+        if(liveNotebook==null)
+            liveNotebook=Find(canvas,"ActualNotebook")?.GetComponent<TMP_Text>();
+        if(liveNotebook!=null)
+        {
+            Rect(liveNotebook.transform,new Vector2(0,-20),new Vector2(253,231));
+            liveNotebook.fontSize=13;
+            liveNotebook.fontSizeMin=11;
+            liveNotebook.fontSizeMax=13;
+            liveNotebook.lineSpacing=0;
+            liveNotebook.margin=new Vector4(6,9,6,3);
+            liveNotebook.overflowMode=TextOverflowModes.Ellipsis;
+        }
+        var notebookTitle=Find(canvas,"ActualNotebookTitle")?.GetComponent<TMP_Text>();
+        if(notebookTitle!=null)
+        {
+            Rect(notebookTitle.transform,new Vector2(0,122),new Vector2(254,32));
+            notebookTitle.fontSize=19;
+        }
     }
 
     private void PlaceLevel1Controls()
@@ -918,6 +989,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         conductivityBulbMask=Find(canvas,"DynamicLampMask")?.GetComponent<Image>();
         conductivityResultPlate=Find(canvas,"DynamicProbeResult")?.GetComponent<Image>();
         conductivityResultText=Find(canvas,"DynamicProbeResultLabel")?.GetComponent<TMP_Text>();
+        if(level==3)PolishLevel3Reference();
         touchController=Find(canvas,"Stage5MappedTouchSurface")?.GetComponent<Stage5ReferenceTouchController>();
         if(touchController!=null)
         {
@@ -1080,8 +1152,11 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         // The illustration with mobile ions depicts IONIC sample B only.
         actionEffect=4;
         SetConductivityVisual(true,conducting);
-        SetResult(sample==1&&conducting?"ConductivityOn":null,
-            conducting?"BULB ON - CONDUCTS":"BULB OFF - DOES NOT CONDUCT");
+        // Show the verified result in the compact conductivity status,
+        // not the huge close-up sprite that covers the phase buttons.
+        if(preview!=null)preview.gameObject.SetActive(false);
+        if(liveStatus!=null)liveStatus.text=
+            conducting?"BULB ON - CONDUCTS":"BULB OFF - DOES NOT CONDUCT";
     }
 
     private void SetConductivityVisual(bool tested,bool conducting)
