@@ -51,10 +51,25 @@ public static class Stage5BakeHierarchyEditor
             "Stage5MappedTouchSurface")!=null;
         if(alreadyBaked)
         {
-            EditorUtility.DisplayDialog("Stage 5","This scene already contains "+
-                "the saved interactive UI. Edit its existing objects in the Hierarchy. "+
-                "No duplicates were generated.","OK");
+            // Allow the user to apply new visual controls to an older baked
+            // Stage 5 scene. Initialize will rebind and add missing objects,
+            // without duplicating the existing full-screen artwork.
+            var existingLayout=controller.GetComponent<Stage5ReferenceLayout>();
+            if(existingLayout==null)
+                existingLayout=Undo.AddComponent<Stage5ReferenceLayout>(controller.gameObject);
+            if(!existingLayout.Initialize(controller.Level,canvas.transform,null))
+            {
+                EditorUtility.DisplayDialog("Stage 5",
+                    "Unable to upgrade this scene. Confirm the reference PNGs are installed.","OK");
+                return;
+            }
+            PersistGeneratedSprites(canvas,controller.Level);
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
             Selection.activeGameObject=canvas;
+            EditorUtility.DisplayDialog("Stage 5",
+                "Updated the saved Level "+controller.Level+
+                " hierarchy with any new experiment objects. No duplicate panels were created.","OK");
             return;
         }
 
