@@ -359,13 +359,17 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         if(canvas==null)return;
         mechanicalTopMask=NewImage(canvas,"MechanicalEmptySampleMask",null,
             new Color32(5,29,57,255));
-        Rect(mechanicalTopMask.transform,new Vector2(-12,75),new Vector2(156,97));
+        Rect(mechanicalTopMask.transform,new Vector2(-12,75),new Vector2(112,73));
         mechanicalFragmentsMask=NewImage(canvas,"MechanicalShatteredResultMask",null,
             new Color32(5,29,57,255));
-        Rect(mechanicalFragmentsMask.transform,new Vector2(-145,-45),new Vector2(160,63));
+        Rect(mechanicalFragmentsMask.transform,new Vector2(-145,-45),new Vector2(139,52));
         mechanicalPressMask=NewImage(canvas,"MechanicalPressedResultMask",null,
             new Color32(5,29,57,255));
-        Rect(mechanicalPressMask.transform,new Vector2(152,-44),new Vector2(158,61));
+        Rect(mechanicalPressMask.transform,new Vector2(152,-44),new Vector2(139,52));
+        // Restore visually recognizable test platforms above the masking
+        // patches. Avoid large flat black boxes over the real machine art.
+        DecorateMechanicalWorkBench();
+
 
         mechanicalCube=NewImage(canvas,"ActualMechanicalSample",null,Color.white);
         Rect(mechanicalCube.transform,new Vector2(-12,67),new Vector2(85,82));
@@ -389,6 +393,34 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         Rect(mechanicalFlattened.transform,new Vector2(152,-38),
             new Vector2(14,10));
         mechanicalFlattened.gameObject.SetActive(false);
+    }
+
+    private void DecorateMechanicalWorkBench()
+    {
+        if(canvas==null)return;
+        // Keep one set of machine-platform decorations when the editor
+        // Bake menu is run repeatedly (including existing saved scenes).
+        var oval=MakeOvalSprite();
+        var coordinates=new[]{
+            new Vector2(-145,-57),new Vector2(152,-57)};
+        for(int i=0;i<2;i++)
+        {
+            string name=i==0?"StrikeBenchSurface":"PressBenchSurface";
+            Image platform=Find(canvas,name)?.GetComponent<Image>();
+            if(platform==null)platform=NewImage(canvas,name,oval,
+                new Color32(70,123,166,255));
+            if(platform.sprite==null)platform.sprite=oval;
+            platform.color=new Color32(70,123,166,255);
+            Rect(platform.transform,coordinates[i],new Vector2(135,21));
+
+            string rimName=i==0?"StrikeBenchGlow":"PressBenchGlow";
+            Image rim=Find(canvas,rimName)?.GetComponent<Image>();
+            if(rim==null)rim=NewImage(canvas,rimName,oval,
+                new Color32(247,165,71,210));
+            if(rim.sprite==null)rim.sprite=oval;
+            rim.color=new Color32(247,165,71,210);
+            Rect(rim.transform,coordinates[i]+new Vector2(0,6),new Vector2(130,8));
+        }
     }
 
     private void ShowMechanicalSample(int index)
@@ -632,6 +664,14 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         mechanicalTopMask=Find(canvas,"MechanicalEmptySampleMask")?.GetComponent<Image>();
         mechanicalFragmentsMask=Find(canvas,"MechanicalShatteredResultMask")?.GetComponent<Image>();
         mechanicalPressMask=Find(canvas,"MechanicalPressedResultMask")?.GetComponent<Image>();
+        // Apply the corrected geometry when upgrading already-baked scenes.
+        if(level==2 && mechanicalTopMask!=null)
+        {
+            Rect(mechanicalTopMask.transform,new Vector2(-12,75),new Vector2(112,73));
+            Rect(mechanicalFragmentsMask?.transform,new Vector2(-145,-45),new Vector2(139,52));
+            Rect(mechanicalPressMask?.transform,new Vector2(152,-44),new Vector2(139,52));
+            DecorateMechanicalWorkBench();
+        }
         mechanicalFlattened=Find(canvas,"MechanicalFlattenedMetal")?.GetComponent<Image>();
         mechanicalShards=new Image[9];
         for(int i=0;i<mechanicalShards.Length;i++)
