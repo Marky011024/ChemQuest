@@ -136,8 +136,8 @@ public sealed class Stage5VisualLabDemo : MonoBehaviour
         for(int i=0;i<ions.Length;i++)
             ions[i]=Shape("MovingCharge"+i,layer,new Vector2(-61+(i%3)*61,-60+(i/3)*20),
                 new Vector2(18,18),i%2==0?new Color(.36f,1f,.51f,1f):new Color(.82f,.43f,1f,1f),true);
-        pictureResult=Shape("RealisticExperimentPicture",layer,new Vector2(0,-14),
-            new Vector2(300,158),Color.white);
+        pictureResult=Shape("RealisticExperimentPicture",layer,new Vector2(0,-20),
+            new Vector2(362,169),Color.white);
         pictureResult.preserveAspect=true;
         pictureResult.gameObject.SetActive(false);
         status.transform.SetAsLastSibling();
@@ -147,7 +147,12 @@ public sealed class Stage5VisualLabDemo : MonoBehaviour
     private void ShowPicture(string resource)
     {
         if (pictureResult==null) return;
-        if (string.IsNullOrEmpty(resource)) { pictureResult.gameObject.SetActive(false); return; }
+        if (string.IsNullOrEmpty(resource))
+        {
+            pictureResult.gameObject.SetActive(false);
+            ArrangeLevel();
+            return;
+        }
         var sprite=Resources.Load<Sprite>("ChemQuestStage5Visuals/"+resource);
         if(sprite==null)
         {
@@ -158,6 +163,14 @@ public sealed class Stage5VisualLabDemo : MonoBehaviour
                 new Rect(0,0,texture.width,texture.height),new Vector2(.5f,.5f),100f);
         }
         if(sprite==null) { pictureResult.gameObject.SetActive(false); return; }
+        // Hide the temporary square-and-line simulation whenever the
+        // illustrated instrument is present. Otherwise both render on top
+        // of one another and the experiment looks inaccurate.
+        foreach(Transform child in layer)
+        {
+            if(child==pictureResult.transform || child==status.transform)continue;
+            child.gameObject.SetActive(false);
+        }
         pictureResult.sprite=sprite;
         pictureReveal=0f;
         pictureResult.color=new Color(1,1,1,0);
