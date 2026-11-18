@@ -785,6 +785,20 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
     {
         if(!CanInteract)return;
         selected=index;
+        // Show a distinct glowing selection border like the reference UI,
+        // while retaining the original draggable sample buttons.
+        var sampleBank=Find(root,"SampleBank");
+        for(int i=0;i<3;i++)
+        {
+            var token=Find(sampleBank,"Sample"+i);
+            var outline=token?.GetComponent<Outline>();
+            if(outline!=null)
+            {
+                outline.effectColor=i==index?new Color32(255,213,93,255):
+                    new Color32(77,196,244,170);
+                outline.effectDistance=i==index?new Vector2(3,3):new Vector2(1.4f,1.4f);
+            }
+        }
         if(selectedLabel!=null)selectedLabel.text="SAMPLE "+samples[index]+" LOADED";
         if(resultLabel!=null)resultLabel.text="Ready for "+(Level==1?"heat test":Level==2?"strike/press test":"probe test");
         SetIndicator(new Color32(70,90,120,255));
