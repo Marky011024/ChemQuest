@@ -138,9 +138,11 @@ public sealed class Stage5ReferenceTouchController : MonoBehaviour,
             if(Contains(p,-249,-346,-4,-268))return 10; // ionic bin
             if(Contains(p,0,-346,280,-268))return 11; // molecule bin
             if(Contains(p,285,-346,548,-268))return 12; // metal bin
-            if(Contains(p,-242,-196,-80,-103))return 20; // solid
-            if(Contains(p,-76,-196,92,-103))return 21; // molten
-            if(Contains(p,95,-196,265,-103))return 22; // aqueous
+            // Match the independent PhaseButton_* GameObjects in
+            // Stage5Level3ModularUI (center x=-200, -34, 132).
+            if(Contains(p,-278,-194,-122,-108))return 20; // solid
+            if(Contains(p,-112,-194,44,-108))return 21; // molten
+            if(Contains(p,54,-194,210,-108))return 22; // aqueous
             if(Contains(p,265,-262,538,-191))return 4; // visible check button
         }
         return -1;
