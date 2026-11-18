@@ -28,7 +28,7 @@ public static class Stage5BakeHierarchyEditor
         }
 
         Scene scene=SceneManager.GetActiveScene();
-        var controller=UnityEngine.Object.FindFirstObjectByType<Stage5ElementCrucibleGame>();
+        var controller=UnityEngine.Object.FindAnyObjectByType<Stage5ElementCrucibleGame>();
         if(controller==null || controller.Level<1 || controller.Level>3)
         {
             EditorUtility.DisplayDialog("Stage 5",
@@ -146,7 +146,7 @@ public static class Stage5BakeHierarchyEditor
             string current=ResourceFolder;
             AssetDatabase.CreateFolder(current,"GeneratedEditorSprites");
         }
-        var converted=new Dictionary<int,Sprite>();
+        var converted=new Dictionary<Texture2D,Sprite>();
         int index=0;
         foreach(var image in canvas.GetComponentsInChildren<Image>(true))
         {
@@ -154,7 +154,7 @@ public static class Stage5BakeHierarchyEditor
             if(!string.IsNullOrEmpty(AssetDatabase.GetAssetPath(image.sprite)))continue;
             var tex=image.sprite.texture;
             if(tex==null)continue;
-            int key=tex.GetInstanceID();
+            Texture2D key=tex;
             if(!converted.TryGetValue(key,out var persistent))
             {
                 var filepath=GeneratedFolder+"/L"+level+"_"+(index++)+"_"+
