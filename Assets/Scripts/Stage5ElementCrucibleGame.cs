@@ -86,7 +86,11 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         exactReference=GetComponent<Stage5ReferenceLayout>();
         if(exactReference==null)exactReference=gameObject.AddComponent<Stage5ReferenceLayout>();
         if(exactReference.Initialize(Level,root,visualLab))
+        {
             exactReference.SyncNotebook(evidenceText==null?"":evidenceText.text);
+            if(Level==1 && heat!=null)exactReference.ReferenceHeatChanged(heat.value);
+            if(progress!=null)exactReference.ReferenceSetProgress(progress.text);
+        }
         if(Level==1)EnsureLevel1BowPanel();
         if(Level==2)EnsureLevel2BowPanel();
         if(Level==3)EnsureLevel3BowPanel();
@@ -1376,6 +1380,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
                 progress.text="CONDUCTIVITY TESTED  "+ready+" / 3";
             }
             else progress.text="SAMPLES TESTED  "+count+" / 3";
+            if(exactReference!=null)exactReference.ReferenceSetProgress(progress.text);
         }
     }
     private void SetIndicator(Color color)
@@ -1422,6 +1427,8 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
             if(icon!=null)icon.enabled=i<manager.CurrentEnergy;
         }
         if(energyText!=null)energyText.text=manager.CurrentEnergy+" / 5";
+        if(exactReference!=null)exactReference.ReferenceSetIndicators(
+            completed?(wrong==0?100:75):0,manager.CurrentEnergy);
         if(emptyPanel!=null)
         {
             if(!manager.HasEnergy)
