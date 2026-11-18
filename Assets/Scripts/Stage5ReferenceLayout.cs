@@ -323,10 +323,18 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         if(level!=1 || canvas==null)return;
         var cover=NewImage(canvas,"EmptyHeaterCover",null,new Color32(5,27,52,255));
         Rect(cover.transform,new Vector2(-24,65),new Vector2(298,142));
-        var ring=NewImage(canvas,"EmptyHotPlateRim",null,new Color32(232,101,33,255));
-        Rect(ring.transform,new Vector2(-24,-6),new Vector2(250,25));
-        var surface=NewImage(canvas,"EmptyHotPlateSurface",null,new Color32(57,77,98,255));
-        Rect(surface.transform,new Vector2(-24,5),new Vector2(242,33));
+        // An oval with a glowing orange rim resembles the illustrated
+        // heater, instead of a rectangular placeholder.
+        var oval=MakeOvalSprite();
+        var glow=NewImage(canvas,"HotplateOrangeGlow",oval,
+            new Color32(230,101,41,230));
+        Rect(glow.transform,new Vector2(-24,-9),new Vector2(281,60));
+        var ring=NewImage(canvas,"EmptyHotPlateRim",oval,new Color32(243,155,75,255));
+        Rect(ring.transform,new Vector2(-24,-2),new Vector2(268,52));
+        var surface=NewImage(canvas,"EmptyHotPlateSurface",oval,new Color32(49,65,85,255));
+        Rect(surface.transform,new Vector2(-24,4),new Vector2(249,42));
+        var inset=NewImage(canvas,"EmptyHotPlateInset",oval,new Color32(24,39,56,255));
+        Rect(inset.transform,new Vector2(-24,8),new Vector2(219,27));
         heatingSample=NewImage(canvas,"ActualSampleOnHeater",null,Color.white);
         Rect(heatingSample.transform,new Vector2(-24,53),new Vector2(108,100));
         heatingSample.preserveAspect=true;
@@ -353,6 +361,24 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         Rect(led.transform,new Vector2(-27,-69),new Vector2(101,36));
         dynamicPlateHeat=NewText(led.transform,"LiveHotplateHeat","0%",17,
             Vector2.zero,new Vector2(95,29),Gold);
+    }
+
+    private static Sprite MakeOvalSprite()
+    {
+        const int size=64;
+        var texture=new Texture2D(size,size,TextureFormat.RGBA32,false);
+        texture.filterMode=FilterMode.Bilinear;
+        for(int y=0;y<size;y++)
+        for(int x=0;x<size;x++)
+        {
+            float dx=(x-31.5f)/31.5f;
+            float dy=(y-31.5f)/31.5f;
+            float radius=Mathf.Sqrt(dx*dx+dy*dy);
+            texture.SetPixel(x,y,new Color(1,1,1,Mathf.Clamp01((1f-radius)*18f)));
+        }
+        texture.Apply();
+        return Sprite.Create(texture,new Rect(0,0,size,size),
+            new Vector2(.5f,.5f),100f);
     }
 
     private void ShowHeatingSample(int index)
