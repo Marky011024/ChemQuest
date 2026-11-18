@@ -395,13 +395,13 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         {
             mechanicalShards[i]=NewImage(canvas,"MechanicalFragment"+i,
                 fragmentSprite,new Color32(207,187,255,255));
-            Rect(mechanicalShards[i].transform,new Vector2(-145,-155),
+            Rect(mechanicalShards[i].transform,new Vector2(-145,-109),
                 new Vector2(22,17));
             mechanicalShards[i].gameObject.SetActive(false);
         }
         mechanicalFlattened=NewImage(canvas,"MechanicalFlattenedMetal",
             fragmentSprite,new Color32(200,231,252,255));
-        Rect(mechanicalFlattened.transform,new Vector2(152,-157),
+        Rect(mechanicalFlattened.transform,new Vector2(152,-111),
             new Vector2(14,10));
         mechanicalFlattened.gameObject.SetActive(false);
         BuildAnimatedHammer();
@@ -637,13 +637,13 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         float ease=sampleT*sampleT*(3f-2f*sampleT);
         bool fractured=mechanicalSample==1 && mechanicalMode==1;
         bool malleable=mechanicalSample==2 && mechanicalMode==2;
-        Vector2 end=mechanicalMode==1?new Vector2(-145,-168):
-            new Vector2(150,-170);
+        Vector2 end=mechanicalMode==1?new Vector2(-145,-113):
+            new Vector2(150,-115);
         if(mechanicalCube!=null)
         {
             var rt=mechanicalCube.rectTransform;
             Vector2 initial=mechanicalMode==1?
-                new Vector2(-145,-143):new Vector2(150,-144);
+                new Vector2(-145,-88):new Vector2(150,-90);
             rt.anchoredPosition=Vector2.Lerp(initial,end,ease);
             if(fractured)
                 rt.localScale=Vector3.one*Mathf.Max(.02f,1f-ease);
@@ -663,7 +663,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
                 var angle=(float)i/mechanicalShards.Length*Mathf.PI*2f;
                 shard.rectTransform.anchoredPosition=new Vector2(
                     -145f+Mathf.Cos(angle)*75f*spread,
-                    -165f+Mathf.Sin(angle)*28f*spread);
+                    -107f+Mathf.Sin(angle)*18f*spread);
                 shard.rectTransform.localEulerAngles=
                     new Vector3(0,0,angle*Mathf.Rad2Deg+spread*30f);
             }
@@ -672,7 +672,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         {
             float flatten=sampleT;
             mechanicalFlattened.gameObject.SetActive(flatten>.01f);
-            Rect(mechanicalFlattened.transform,new Vector2(150,-170),
+            Rect(mechanicalFlattened.transform,new Vector2(150,-115),
                 new Vector2(20+148*flatten,8+17*flatten));
             if(t>=1f && mechanicalCube!=null)
                 mechanicalCube.gameObject.SetActive(false);
@@ -1035,7 +1035,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
                 mechanicalCube.gameObject.SetActive(true);
                 mechanicalCube.rectTransform.localScale=Vector3.one;
                 mechanicalCube.rectTransform.anchoredPosition=pressed?
-                    new Vector2(150,-144):new Vector2(-145,-143);
+                    new Vector2(150,-90):new Vector2(-145,-88);
             }
             hammerHasStruck=false;
             ResetHammer();
