@@ -15,6 +15,9 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     private TMP_Text liveSample, liveNotebook, liveStatus;
     private Stage5VisualLabDemo previous;
     private bool ready;
+    private int actionEffect;
+    private float effectTime;
+    private Vector2 previewHome;
 
     private static readonly Color Navy=new Color32(5,29,57,250);
     private static readonly Color Gold=new Color32(255,207,109,255);
@@ -105,6 +108,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             Rect(preview.transform,new Vector2(0,-4),new Vector2(425,245));
             preview.preserveAspect=true;
             preview.raycastTarget=false;
+            previewHome=preview.rectTransform.anchoredPosition;
             preview.gameObject.SetActive(false);
             liveSample=NewText(station,"ActiveSampleName","DRAG A SAMPLE",22,
                 new Vector2(0,148),new Vector2(390,34),Gold);
@@ -180,11 +184,13 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         if(liveSample!=null)liveSample.text="SAMPLE "+(char)('A'+index);
         if(liveStatus!=null)liveStatus.text="SELECT THE TEST ACTION";
         if(preview!=null)preview.gameObject.SetActive(false);
+        actionEffect=0;
     }
 
     public void ThermalResult(int sample)
     {
         if(!ready)return;
+        actionEffect=1;
         SetResult(sample==0?"HeatMelt":null,sample==0?
             "SAMPLE A MELTS":"SOLID AFTER HEATING");
     }
@@ -194,6 +200,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         if(!ready)return;
         var art=sample==1&&!pressed?"StrikeShatter":
             sample==2&&pressed?"PressFlatten":null;
+        actionEffect=pressed?3:2;
         SetResult(art,sample==1&&!pressed?"HAMMER SMASHES: BRITTLE":
             sample==2&&pressed?"PRESS FLATTENS: MALLEABLE":
             "OBSERVATION RECORDED");
@@ -212,6 +219,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     {
         if(!ready)return;
         // The illustration with mobile ions depicts IONIC sample B only.
+        actionEffect=4;
         SetResult(sample==1&&conducting?"ConductivityOn":null,
             conducting?"BULB ON - CONDUCTS":"BULB OFF - DOES NOT CONDUCT");
     }
@@ -230,7 +238,37 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         if(preview==null)return;
         var sprite=string.IsNullOrEmpty(spriteName)?null:ResourceSprite(spriteName);
         preview.gameObject.SetActive(sprite!=null);
-        if(sprite!=null)preview.sprite=sprite;
+        if(sprite!=null)
+        {
+            preview.sprite=sprite;
+            effectTime=0f;
+            preview.color=new Color(1f,1f,1f,0f);
+            preview.rectTransform.localScale=Vector3.one*.88f;
+        }
+    }
+
+    private void Update()
+    {
+        if(!ready || preview==null || !preview.gameObject.activeSelf)return;
+        effectTime+=Time.deltaTime;
+        float t=Mathf.Clamp01(effectTime/(actionEffect==1?1.75f:
+            actionEffect==3?1.25f:.65f));
+        float smooth=t*t*(3f-2f*t);
+        var rt=preview.rectTransform;
+        // Melt: gradually appear and spread. Strike: rapid downward impact,
+        // rebound and settle. Press: slower mechanical compression.
+        float startHeight=actionEffect==2?75f:actionEffect==3?50f:15f;
+        float y=previewHome.y+startHeight*(1f-smooth);
+        if(actionEffect==2 && effectTime<.55f)
+        {
+            float impact=Mathf.Exp(-effectTime*9f)*Mathf.Sin(effectTime*57f);
+            rt.anchoredPosition=new Vector2(previewHome.x+impact*9f,y);
+        }
+        else rt.anchoredPosition=new Vector2(previewHome.x,y);
+        rt.localScale=new Vector3(
+            Mathf.Lerp(actionEffect==1?.84f:.92f,1f,smooth),
+            Mathf.Lerp(actionEffect==3?1.10f:.90f,1f,smooth),1);
+        preview.color=new Color(1f,1f,1f,smooth);
     }
 
     private static Sprite ResourceSprite(string name)
