@@ -318,7 +318,9 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         var tag=Find(canvas,"ActiveSampleTag") as RectTransform;
         if(tag!=null)
         {
-            Rect(tag,new Vector2(-11,112),new Vector2(196,52));
+            // Cover both the static painted caption and the stale prompt.
+            // The background shows SAMPLE C above the dynamic SAMPLE A.
+            Rect(tag,new Vector2(-11,135),new Vector2(204,87));
             var image=tag.GetComponent<Image>();
             if(image!=null)image.color=new Color32(5,29,57,255);
         }
@@ -326,8 +328,8 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             liveSample=Find(canvas,"ActiveSampleName")?.GetComponent<TMP_Text>();
         if(liveSample!=null)
         {
-            Rect(liveSample.transform,new Vector2(0,11),new Vector2(190,26));
-            liveSample.fontSize=15;
+            Rect(liveSample.transform,new Vector2(0,13),new Vector2(196,29));
+            liveSample.fontSize=17;
             liveSample.alignment=TextAlignmentOptions.Center;
         }
 
@@ -356,24 +358,29 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
 
         // Keep all three phase observations inside the narrow notebook.
         var ink=Find(canvas,"AccurateNotebookPanel") as RectTransform;
-        if(ink!=null)Rect(ink,new Vector2(399,-2),new Vector2(274,311));
+        if(ink!=null)
+        {
+            Rect(ink,new Vector2(400,-2),new Vector2(280,315));
+            var inkImage=ink.GetComponent<Image>();
+            if(inkImage!=null)inkImage.color=new Color32(5,29,57,255);
+        }
         if(liveNotebook==null)
             liveNotebook=Find(canvas,"ActualNotebook")?.GetComponent<TMP_Text>();
         if(liveNotebook!=null)
         {
-            Rect(liveNotebook.transform,new Vector2(0,-20),new Vector2(253,231));
-            liveNotebook.fontSize=13;
-            liveNotebook.fontSizeMin=11;
-            liveNotebook.fontSizeMax=13;
-            liveNotebook.lineSpacing=0;
-            liveNotebook.margin=new Vector4(6,9,6,3);
+            Rect(liveNotebook.transform,new Vector2(0,-23),new Vector2(263,227));
+            liveNotebook.enableAutoSizing=false;
+            liveNotebook.fontSize=16;
+            liveNotebook.lineSpacing=3;
+            liveNotebook.margin=new Vector4(7,8,7,3);
+            liveNotebook.alignment=TextAlignmentOptions.TopLeft;
             liveNotebook.overflowMode=TextOverflowModes.Ellipsis;
         }
         var notebookTitle=Find(canvas,"ActualNotebookTitle")?.GetComponent<TMP_Text>();
         if(notebookTitle!=null)
         {
-            Rect(notebookTitle.transform,new Vector2(0,122),new Vector2(254,32));
-            notebookTitle.fontSize=19;
+            Rect(notebookTitle.transform,new Vector2(0,122),new Vector2(260,32));
+            notebookTitle.fontSize=20;
         }
     }
 
@@ -1190,6 +1197,22 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     public void SyncCompactNotebook(string a,string b,string c)
     {
         if(!ready||liveNotebook==null)return;
+        if(level==3)
+        {
+            // Compress two-line phase data to one readable row per sample,
+            // preserving all observations. Aqueous is N/A for A and C.
+            string Compact(string observation)
+            {
+                return observation.Replace("SOLID ","S: ")
+                    .Replace("  MOLTEN ","  M: ")
+                    .Replace("\n     AQ ","  Aq: ");
+            }
+            liveNotebook.text=
+                "<color=#7ECDEF><b>A</b></color>  "+Compact(a)+"\n\n"+
+                "<color=#D4A5FF><b>B</b></color>  "+Compact(b)+"\n\n"+
+                "<color=#7FF3DC><b>C</b></color>  "+Compact(c);
+            return;
+        }
         liveNotebook.text=
             "<color=#7ECDEF><b>A</b></color>  "+a+"\n\n"+
             "<color=#D4A5FF><b>B</b></color>  "+b+"\n\n"+
