@@ -171,7 +171,7 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
                 new Vector2(156,77),Off,Border);
             Label(item,"PhaseIcon",symbols[i],new Vector2(0,15),new Vector2(145,30),24,Gold);
             Label(item,"PhaseLabel",names[i],new Vector2(0,-21),new Vector2(150,28),17,Text);
-            InstallButtonArt(phaseCards[i],"Phase"+(i==0?"Solid":i==1?"Molten":"Aqueous"),
+            InstallButtonArt(phaseCards[i],i==0?"PhaseSolidClean":i==1?"PhaseMoltenClean":"PhaseAqueousClean",
                 Find(item,"PhaseIcon"),Find(item,"PhaseLabel"));
         }
 
@@ -286,8 +286,17 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
         outline.useGraphicAlpha=false;
         outline.enabled=active;
 
-        // A small independently editable label inside the card:
-        // SAMPLE = SELECTED, PHASE = ACTIVE, CLASSIFICATION = CHOSEN.
+        // The new phase sprites are deliberately free of yellow ACTIVE tabs.
+        // Show phase selection using a strong cyan outline instead of a badge.
+        if(kind=="phase")
+        {
+            outline.effectColor=new Color32(0,244,255,255);
+            outline.effectDistance=new Vector2(4f,-4f);
+            var oldBadge=Find(card,"SelectionIndicator");
+            if(oldBadge!=null)oldBadge.gameObject.SetActive(false);
+            return;
+        }
+        // A small independently editable label for sample/classification.
         var badgeName="SelectionIndicator";
         var badge=Find(card,badgeName) as RectTransform;
         if(badge==null)
