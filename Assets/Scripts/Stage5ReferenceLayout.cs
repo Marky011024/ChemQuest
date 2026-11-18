@@ -540,84 +540,76 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         }
     }
 
-    // The hydraulic press is a real, animated set of editable UI objects.
-    // Build only missing parts so repeating the Stage 5 Bake command is safe.
+    // Compact press overlay: the reference art displays the idle machine.
+    // Re-baking upgrades existing parts rather than making duplicates.
     private void BuildAnimatedPress()
     {
-        if(level!=2 || canvas==null)return;
-        animatedPressHead=Find(canvas,"AnimatedPressHead") as RectTransform;
-        animatedPressShaft=Find(canvas,"AnimatedPressShaft") as RectTransform;
-        pressImpactGlow=Find(canvas,"PressImpactGlow")?.GetComponent<Image>();
+        if(level!=2||canvas==null)return;
+        var shaft=Find(canvas,"AnimatedPressShaft")?.GetComponent<Image>();
+        if(shaft==null)shaft=NewImage(canvas,"AnimatedPressShaft",null,new Color32(145,183,213,255));
+        animatedPressShaft=shaft.rectTransform;
+        Rect(animatedPressShaft,new Vector2(152,81),new Vector2(16,47));
+        var shine=Find(animatedPressShaft,"PressShaftHighlight")?.GetComponent<Image>();
+        if(shine==null)shine=NewImage(animatedPressShaft,"PressShaftHighlight",null,new Color32(227,241,253,255));
+        Rect(shine.transform,new Vector2(-3,0),new Vector2(4,43));
 
-        if(animatedPressShaft==null)
-        {
-            var shaft=NewImage(canvas,"AnimatedPressShaft",null,
-                new Color32(145,183,213,255));
-            animatedPressShaft=shaft.rectTransform;
-            Rect(animatedPressShaft,new Vector2(152,121),new Vector2(21,94));
-            var shine=NewImage(animatedPressShaft,"PressShaftHighlight",null,
-                new Color32(227,241,253,255));
-            Rect(shine.transform,new Vector2(-5,0),new Vector2(5,86));
-        }
-        if(animatedPressHead==null)
-        {
-            var head=NewImage(canvas,"AnimatedPressHead",null,
-                new Color32(103,159,204,255));
-            animatedPressHead=head.rectTransform;
-            Rect(animatedPressHead,new Vector2(152,73),new Vector2(131,22));
-            var face=NewImage(animatedPressHead,"AnimatedPressContactPlate",null,
-                new Color32(217,232,245,255));
-            Rect(face.transform,new Vector2(0,-10),new Vector2(136,8));
-            var glow=NewImage(animatedPressHead,"AnimatedPressHeadRim",null,
-                new Color32(249,179,89,255));
-            Rect(glow.transform,new Vector2(0,10),new Vector2(129,5));
-        }
+        var head=Find(canvas,"AnimatedPressHead")?.GetComponent<Image>();
+        if(head==null)head=NewImage(canvas,"AnimatedPressHead",null,new Color32(103,159,204,255));
+        animatedPressHead=head.rectTransform;
+        Rect(animatedPressHead,new Vector2(152,44),new Vector2(99,17));
+        var face=Find(animatedPressHead,"AnimatedPressContactPlate")?.GetComponent<Image>();
+        if(face==null)face=NewImage(animatedPressHead,"AnimatedPressContactPlate",null,new Color32(217,232,245,255));
+        Rect(face.transform,new Vector2(0,-10),new Vector2(103,6));
+        var rim=Find(animatedPressHead,"AnimatedPressHeadRim")?.GetComponent<Image>();
+        if(rim==null)rim=NewImage(animatedPressHead,"AnimatedPressHeadRim",null,new Color32(249,179,89,255));
+        Rect(rim.transform,new Vector2(0,9),new Vector2(96,4));
+
+        pressImpactGlow=Find(canvas,"PressImpactGlow")?.GetComponent<Image>();
         if(pressImpactGlow==null)
-        {
-            pressImpactGlow=NewImage(canvas,"PressImpactGlow",MakeOvalSprite(),
-                new Color32(255,203,107,0));
-            Rect(pressImpactGlow.transform,new Vector2(152,-22),new Vector2(122,27));
-        }
+            pressImpactGlow=NewImage(canvas,"PressImpactGlow",MakeOvalSprite(),new Color32(255,203,107,0));
+        Rect(pressImpactGlow.transform,new Vector2(152,-22),new Vector2(100,18));
         ResetPress();
     }
 
     private void ResetPress()
     {
         if(animatedPressHead!=null)
-            animatedPressHead.anchoredPosition=new Vector2(152,73);
+        {
+            animatedPressHead.anchoredPosition=new Vector2(152,44);
+            animatedPressHead.gameObject.SetActive(false);
+        }
         if(animatedPressShaft!=null)
-            animatedPressShaft.anchoredPosition=new Vector2(152,121);
+        {
+            animatedPressShaft.anchoredPosition=new Vector2(152,81);
+            animatedPressShaft.gameObject.SetActive(false);
+        }
         if(pressImpactGlow!=null)pressImpactGlow.gameObject.SetActive(false);
     }
 
     private void AnimatePress(float progress,float impactPoint)
     {
-        if(animatedPressHead==null || animatedPressShaft==null)return;
-        // Move the plate down to the sample, hold while it compresses, and
-        // raise the assembly once the metal has been flattened.
+        if(animatedPressHead==null||animatedPressShaft==null)return;
+        if(!animatedPressHead.gameObject.activeSelf) animatedPressHead.gameObject.SetActive(true);
+        if(!animatedPressShaft.gameObject.activeSelf) animatedPressShaft.gameObject.SetActive(true);
         float down;
         if(progress<impactPoint)
         {
             float u=Mathf.Clamp01(progress/impactPoint);
             down=u*u*(3f-2f*u);
         }
-        else if(progress<.78f)down=1f;
+        else if(progress<.78f) down=1f;
         else
         {
             float u=Mathf.Clamp01((progress-.78f)/.22f);
             down=1f-u*u*(3f-2f*u);
         }
-        animatedPressHead.anchoredPosition=new Vector2(152,Mathf.Lerp(73,26,down));
-        animatedPressShaft.anchoredPosition=new Vector2(152,Mathf.Lerp(121,74,down));
-        bool compressing=progress>=impactPoint && progress<.80f;
+        animatedPressHead.anchoredPosition=new Vector2(152,Mathf.Lerp(44,11,down));
+        animatedPressShaft.anchoredPosition=new Vector2(152,Mathf.Lerp(81,48,down));
+        bool contact=progress>=impactPoint&&progress<.80f;
         if(pressImpactGlow!=null)
         {
-            pressImpactGlow.gameObject.SetActive(compressing);
-            if(compressing)
-            {
-                float pulse=.4f+.35f*Mathf.Sin((progress-impactPoint)*25f);
-                pressImpactGlow.color=new Color(1f,.78f,.36f,pulse);
-            }
+            pressImpactGlow.gameObject.SetActive(contact);
+            if(contact)pressImpactGlow.color=new Color(1f,.78f,.36f,.3f+.2f*Mathf.Sin((progress-impactPoint)*25f));
         }
     }
 
@@ -656,12 +648,12 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         bool fractured=mechanicalSample==1 && mechanicalMode==1;
         bool malleable=mechanicalSample==2 && mechanicalMode==2;
         Vector2 end=mechanicalMode==1?new Vector2(-145,-34):
-            new Vector2(150,-36);
+            new Vector2(150,-42);
         if(mechanicalCube!=null)
         {
             var rt=mechanicalCube.rectTransform;
             Vector2 initial=mechanicalMode==1?
-                new Vector2(-145,-12):new Vector2(150,-12);
+                new Vector2(-145,-12):new Vector2(150,-28);
             rt.anchoredPosition=Vector2.Lerp(initial,end,ease);
             if(fractured)
                 rt.localScale=Vector3.one*Mathf.Max(.02f,1f-ease);
@@ -1040,7 +1032,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
                 mechanicalCube.gameObject.SetActive(true);
                 mechanicalCube.rectTransform.localScale=Vector3.one;
                 mechanicalCube.rectTransform.anchoredPosition=pressed?
-                    new Vector2(150,-12):new Vector2(-145,-12);
+                    new Vector2(150,-28):new Vector2(-145,-12);
             }
             hammerHasStruck=false;
             ResetHammer();
