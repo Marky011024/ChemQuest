@@ -333,10 +333,29 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         }
         Rect(row,Vector2.zero,new Vector2(1280,720));
         row.gameObject.SetActive(true);
-        // The reference screenshot already has SAMPLE A/B/C buttons painted
-        // into it. A smaller glossy PNG alone cannot hide those pixels.
-        // Cover each old printed button first, then draw the material sprite.
-        // The masks and new sprites are all independent, saved scene Images.
+        // Level 1's full reference screenshot has the ORIGINAL three button
+        // borders baked into the pixels. Small per-button covers left their
+        // lower / right edges visible. One continuous dark inner-bank cover
+        // hides ALL three original buttons and halos without masking the
+        // UNKNOWN SAMPLES header or the outer panel outline.
+        var innerMaskTransform=Find(row,"OriginalSampleBankCover");
+        var innerMask=innerMaskTransform==null?
+            NewImage(row,"OriginalSampleBankCover",null,new Color32(5,29,57,255)):
+            innerMaskTransform.GetComponent<Image>();
+        if(innerMask!=null)
+        {
+            innerMask.sprite=null;
+            innerMask.overrideSprite=null;
+            innerMask.color=new Color32(5,29,57,255);
+            innerMask.type=Image.Type.Simple;
+            innerMask.raycastTarget=false;
+            innerMask.gameObject.SetActive(true);
+            Rect(innerMask.rectTransform,new Vector2(-404,-16),
+                new Vector2(270,246));
+            innerMask.transform.SetAsFirstSibling();
+        }
+        // Existing small masks remain in the saved editable Hierarchy, but
+        // the broad cover is the authoritative eraser for prepainted buttons.
         for(int i=0;i<3;i++)
         {
             var coverName="OriginalSampleCover_"+(char)('A'+i);
@@ -353,7 +372,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
                 cover.color=new Color32(5,29,57,255);
                 cover.raycastTarget=false;
                 Rect(cover.rectTransform,new Vector2(-404,64-i*79),
-                    new Vector2(242,72));
+                    new Vector2(264,80));
                 // The covers must render behind all final material buttons.
                 cover.transform.SetAsFirstSibling();
             }
