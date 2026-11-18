@@ -420,9 +420,17 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
                 (ny-.37f)*(ny-.37f)/.025f));
             float shine2=Mathf.Exp(-((nx-.38f)*(nx-.38f)/.075f+
                 (ny+.03f)*(ny+.03f)/.013f));
-            Color baseColor=Color.Lerp(new Color(.91f,.35f,.12f,1f),
-                new Color(1f,.78f,.58f,1f),Mathf.Clamp01(.20f+.38f*bottom+
-                .35f*glaze+.2f*shine2+.32f*rim));
+            // The sample melts into a glossy translucent SILVERY liquid.
+            // Orange is the heater light underneath, not the sample itself.
+            // Keep the surface brighter than the hotplate so the liquid is
+            // unmistakable against its dark metal heating ring.
+            float shine=Mathf.Clamp01(.18f+.28f*bottom+
+                .43f*glaze+.32f*shine2+.28f*rim);
+            Color baseColor=Color.Lerp(new Color(.55f,.74f,.85f,1f),
+                new Color(1f,1f,.98f,1f),shine);
+            // Small warm reflection on the lower edge from the hot plate.
+            float warm=Mathf.Clamp01((.10f-ny)*.3f);
+            baseColor=Color.Lerp(baseColor,new Color(1f,.80f,.65f,1f),warm*.25f);
             tex.SetPixel(x,y,new Color(baseColor.r,baseColor.g,baseColor.b,alpha));
         }
         tex.Apply();
@@ -757,11 +765,12 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             float shimmer=.84f+.14f*Mathf.Sin(meltingTime*7f);
             Rect(moltenHighlight.rectTransform,new Vector2(-42,33),
                 new Vector2(5+90*smooth,2+6*smooth));
-            moltenHighlight.color=new Color(1f,.97f,.87f,.04f+.56f*smooth*shimmer);
+            moltenHighlight.color=new Color(.96f,.99f,1f,.04f+.69f*smooth*shimmer);
         }
         if(t>=1f)
         {
             isMelting=false;
+            if(heatingSample!=null)heatingSample.gameObject.SetActive(false);
             if(liveStatus!=null)liveStatus.text="SAMPLE A MELTED INTO LIQUID";
         }
     }
