@@ -30,6 +30,14 @@ public class Stage5SampleDrag : MonoBehaviour, IBeginDragHandler, IDragHandler, 
         home = rect.anchoredPosition;
     }
 
+    // Reference artwork repositions the interactive sample hit regions at
+    // runtime; update the drag return point so they never jump to old positions.
+    public void RefreshHome()
+    {
+        if(rect==null)rect=GetComponent<RectTransform>();
+        home=rect.anchoredPosition;
+    }
+
     public void ResetToken()
     {
         if (rect == null) Awake();
