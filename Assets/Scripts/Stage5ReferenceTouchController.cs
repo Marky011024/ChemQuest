@@ -44,8 +44,14 @@ public sealed class Stage5ReferenceTouchController : MonoBehaviour,
             e.pressEventCamera:null;
         // Use canvas coordinates so all 16:9 reference artwork targets have
         // the same hit locations on Windows editor and Android landscape.
-        return RectTransformUtility.ScreenPointToLocalPointInRectangle(
-            surface,e.position,camera,out point);
+        if(!RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            surface,e.position,camera,out point))return false;
+        // Normalize to the artwork's 1280x720 logical coordinates, even on
+        // wider Android devices with a 19.5:9 or 20:9 physical screen.
+        var size=surface.rect.size;
+        if(size.x<=0||size.y<=0)return false;
+        point=new Vector2(point.x*1280f/size.x,point.y*720f/size.y);
+        return true;
     }
 
     private static bool Contains(Vector2 p,float x0,float y0,float x1,float y1)
@@ -148,7 +154,7 @@ public sealed class Stage5ReferenceTouchController : MonoBehaviour,
         }
         if(source>=0 && ghost!=null)
         {
-            ghost.rectTransform.anchoredPosition=p;
+            ghost.rectTransform.anchoredPosition=ToCanvas(p);
             ghost.gameObject.SetActive((p-start).sqrMagnitude>90f);
         }
     }
@@ -209,8 +215,14 @@ public sealed class Stage5ReferenceTouchController : MonoBehaviour,
                     new Vector2(.5f,.5f),100f);
         }
         ghost.sprite=sprite;ghost.color=Color.white;
-        ghost.rectTransform.anchoredPosition=p;
+        ghost.rectTransform.anchoredPosition=ToCanvas(p);
         ghost.gameObject.SetActive(false);
+    }
+
+    private Vector2 ToCanvas(Vector2 reference)
+    {
+        var size=surface.rect.size;
+        return new Vector2(reference.x*size.x/1280f,reference.y*size.y/720f);
     }
 
     private void ResetTouch()
