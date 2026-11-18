@@ -1373,20 +1373,51 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         var rt=description.rectTransform;
         rt.anchorMin=rt.anchorMax=new Vector2(.5f,.5f);
         rt.pivot=new Vector2(.5f,.5f);
-        rt.anchoredPosition=new Vector2(0,54);
-        rt.sizeDelta=new Vector2(690,157);
-        description.fontSize=17;
+        // Six lines fit between the title and final score without overlap.
+        rt.anchoredPosition=new Vector2(0,51);
+        rt.sizeDelta=new Vector2(662,142);
+        description.fontSize=15;
+        description.lineSpacing=0;
         description.alignment=TextAlignmentOptions.Center;
         description.textWrappingMode=TextWrappingModes.Normal;
+        description.overflowMode=TextOverflowModes.Ellipsis;
         description.raycastTarget=false;
-        // Keep the final score and navigation buttons clearly separated
-        // from the discovery text, using the existing completion panel.
+
+        var header=Find(completePanel.transform,"Title")?.GetComponent<TMP_Text>();
+        if(header!=null)
+        {
+            var titleRect=header.rectTransform;
+            titleRect.anchorMin=titleRect.anchorMax=new Vector2(.5f,.5f);
+            titleRect.anchoredPosition=new Vector2(0,158);
+            titleRect.sizeDelta=new Vector2(680,46);
+            header.fontSize=30;
+            header.textWrappingMode=TextWrappingModes.NoWrap;
+        }
         if(finalScore!=null)
         {
             var scoreRect=finalScore.rectTransform;
-            scoreRect.anchoredPosition=new Vector2(0,-55);
-            scoreRect.sizeDelta=new Vector2(640,39);
-            finalScore.fontSize=24;
+            scoreRect.anchorMin=scoreRect.anchorMax=new Vector2(.5f,.5f);
+            scoreRect.anchoredPosition=new Vector2(0,-48);
+            scoreRect.sizeDelta=new Vector2(640,36);
+            finalScore.fontSize=22;
+        }
+        // Move the certificate underneath the score, and keep both
+        // navigation buttons on their own bottom row.
+        var cert=Find(completePanel.transform,"CertificateButton") as RectTransform;
+        if(cert!=null)
+        {
+            cert.anchorMin=cert.anchorMax=new Vector2(.5f,.5f);
+            cert.anchoredPosition=new Vector2(0,-104);
+            cert.sizeDelta=new Vector2(278,44);
+        }
+        foreach(var name in new[]{"NextButton","CompleteLevelButton"})
+        {
+            var button=Find(completePanel.transform,name) as RectTransform;
+            if(button==null)continue;
+            button.anchorMin=button.anchorMax=new Vector2(.5f,.5f);
+            button.anchoredPosition=new Vector2(
+                name=="NextButton"?159:-159,-165);
+            button.sizeDelta=new Vector2(278,52);
         }
     }
 
