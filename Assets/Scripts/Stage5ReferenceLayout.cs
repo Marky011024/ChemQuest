@@ -133,15 +133,20 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             preview.raycastTarget=false;
             previewHome=preview.rectTransform.anchoredPosition;
             preview.gameObject.SetActive(false);
-            var tag=NewImage(canvas,"ActiveSampleTag",null,Navy);
-            Rect(tag.transform,new Vector2(-11,132),new Vector2(194,31));
+            // The sample label is baked into the reference picture as
+            // "Sample B/C". Cover it completely and redraw the selected one.
+            var tag=NewImage(canvas,"ActiveSampleTag",null,new Color32(5,29,57,255));
+            Rect(tag.transform,new Vector2(-11,132),new Vector2(224,37));
             liveSample=NewText(tag.transform,"ActiveSampleName","CHOOSE A SAMPLE",17,
-                Vector2.zero,new Vector2(187,28),Gold);
+                Vector2.zero,new Vector2(214,31),Gold);
             liveSample.fontStyle=FontStyles.Bold;
-            var statusPanel=NewImage(canvas,"RealExperimentStatusPlate",null,Navy);
-            Rect(statusPanel.transform,new Vector2(-11,-142),new Vector2(410,28));
-            liveStatus=NewText(statusPanel.transform,"RealExperimentStatus","",16,
-                Vector2.zero,new Vector2(403,27),Cyan);
+            // The earlier status plate covered the illustrated
+            // CRACKS/FLATTENS labels and Level3 phase options. Keep its
+            // information in memory for feedback but hide it visually:
+            // the notebook contains the authoritative recorded result.
+            liveStatus=NewText(canvas,"RealExperimentStatus","",15,
+                new Vector2(-11,-136),new Vector2(400,27),Cyan);
+            liveStatus.enabled=false;
         }
 
         foreach(var name in new[]{"TestButton","StrikeButton","PressButton","ProbeButton",
@@ -393,9 +398,20 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     public void SyncNotebook(string actual)
     {
         if(!ready||liveNotebook==null)return;
-        // Prefer the actual live record in the original EvidenceText field.
-        liveNotebook.text=string.IsNullOrWhiteSpace(actual)?
-            "A: Not tested\n\nB: Not tested\n\nC: Not tested":actual;
+        // Only used as a safe placeholder until the game supplies concise
+        // verified observations. Never render the original overlong log,
+        // which overflowed the three notebook rows in Level 3.
+        if(string.IsNullOrWhiteSpace(actual))
+            SyncCompactNotebook("NOT TESTED","NOT TESTED","NOT TESTED");
+    }
+
+    public void SyncCompactNotebook(string a,string b,string c)
+    {
+        if(!ready||liveNotebook==null)return;
+        liveNotebook.text=
+            "<color=#7ECDEF><b>A</b></color>  "+a+"\n\n"+
+            "<color=#D4A5FF><b>B</b></color>  "+b+"\n\n"+
+            "<color=#7FF3DC><b>C</b></color>  "+c;
     }
 
     private void SetResult(string spriteName,string message)
