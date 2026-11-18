@@ -1211,17 +1211,37 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     {
         if(!ready||level!=1)return;
         float fraction=Mathf.Clamp01(value/100f);
+        // Derive the animated range from the SAVED CleanHeatTrack
+        // RectTransform, rather than rebuilding the fill at fixed scene
+        // coordinates. This respects user edits to track position and width.
+        var track=Find(canvas,"CleanHeatTrack") as RectTransform;
+        float left=-294f, right=276f;
+        if(track!=null)
+        {
+            var trackPosition=track.anchoredPosition;
+            float trackWidth=track.rect.width;
+            // Five points of inset at each end keep the fill inside the rail.
+            left=trackPosition.x-trackWidth*track.pivot.x+5f;
+            right=trackPosition.x+trackWidth*(1f-track.pivot.x)-5f;
+        }
         if(dynamicHeatKnob!=null)
         {
             var pos=dynamicHeatKnob.rectTransform.anchoredPosition;
-            pos.x=Mathf.Lerp(-294f,276f,fraction);
+            pos.x=Mathf.Lerp(left,right,fraction);
             dynamicHeatKnob.rectTransform.anchoredPosition=pos;
         }
         if(dynamicHeatFill!=null)
         {
-            float width=570f*fraction;
-            Rect(dynamicHeatFill.transform,new Vector2(-294f+width*.5f,-221f),
-                new Vector2(width,12f));
+            // Keep the edited Y, height, scale, and pivot. Only the X
+            // position and displayed width should animate with heat.
+            var rect=dynamicHeatFill.rectTransform;
+            float width=(right-left)*fraction;
+            var pos=rect.anchoredPosition;
+            pos.x=left+width*rect.pivot.x;
+            rect.anchoredPosition=pos;
+            var size=rect.sizeDelta;
+            size.x=width;
+            rect.sizeDelta=size;
         }
         string reading=Mathf.RoundToInt(value)+"%";
         if(dynamicHeatReadout!=null)
