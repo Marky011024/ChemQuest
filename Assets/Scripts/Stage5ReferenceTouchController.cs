@@ -125,9 +125,12 @@ public sealed class Stage5ReferenceTouchController : MonoBehaviour,
         }
         else if(level==2)
         {
-            if(Contains(p,-537,-330,-174,-255))return 1; // strike
-            if(Contains(p,-174,-330,174,-255))return 2; // press
-            if(Contains(p,173,-330,545,-255))return 4; // submit
+            // The buttons are centered around y=-245 in the art. The
+            // previous -255 upper edge cut off taps near their label centers.
+            // Wider hit regions work with both mouse and Android finger taps.
+            if(Contains(p,-537,-337,-174,-215))return 1; // strike
+            if(Contains(p,-174,-337,174,-215))return 2; // press
+            if(Contains(p,173,-337,545,-215))return 4; // submit
         }
         else if(level==3)
         {
