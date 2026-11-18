@@ -119,7 +119,44 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
 
         foreach(var name in new[]{"TestButton","StrikeButton","PressButton","ProbeButton",
             "SolidButton","MoltenButton","AqueousButton","SubmitButton"})
-            Transparent(Find(sceneRoot,name),true);
+        {
+            var control=Find(sceneRoot,name);
+            Transparent(control,true);
+            // The artwork already contains the caption; avoid a second
+            // offset copy of the same words while preserving Button.onClick.
+            var caption=control?.GetComponentInChildren<TMP_Text>(true);
+            if(caption!=null)caption.enabled=false;
+        }
+
+        // The pause/menu button and score/energy are real interactive/readout
+        // values, placed over the exact corresponding artwork coordinates.
+        var menu=Find(sceneRoot,"MenuButton");
+        Rect(menu,new Vector2(-596,314),new Vector2(67,65));
+        Transparent(menu,true);
+        var menuText=menu?.GetComponentInChildren<TMP_Text>(true);
+        if(menuText!=null)menuText.enabled=false;
+        var score=Find(sceneRoot,"Score")?.GetComponent<TMP_Text>();
+        if(score!=null)
+        {
+            Rect(score.transform,new Vector2(555,303),new Vector2(128,62));
+            score.fontSize=17;
+            score.color=Gold;
+            score.fontStyle=FontStyles.Bold;
+            score.alignment=TextAlignmentOptions.Center;
+        }
+        var energyCount=Find(sceneRoot,"EnergyCount")?.GetComponent<TMP_Text>();
+        if(energyCount!=null)
+        {
+            Rect(energyCount.transform,new Vector2(-312,309),new Vector2(78,35));
+            energyCount.fontSize=20;energyCount.fontStyle=FontStyles.Bold;
+        }
+        var energyLabel=Find(sceneRoot,"EnergyLabel")?.GetComponent<TMP_Text>();
+        if(energyLabel!=null)energyLabel.enabled=false;
+        for(int i=1;i<=5;i++)
+        {
+            var energyImg=Find(sceneRoot,"Energy"+i)?.GetComponent<Image>();
+            if(energyImg!=null)energyImg.enabled=false;
+        }
         // Keep the real action buttons above the background image.
         if(level==1)PlaceLevel1Controls();
         if(level==2)PlaceLevel2Controls();
