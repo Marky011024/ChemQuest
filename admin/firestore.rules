@@ -28,6 +28,14 @@ service cloud.firestore {
       allow list: if false;
       allow create, update, delete: if admin() && pilotId == "demo";
     }
+    // Approved formative BOW snapshot only. All questions in the snapshot are
+    // readable by students: NEVER store private pre/post assessment answer keys.
+    match /publishedBow/{snapshotId} {
+      allow get: if snapshotId == "stage1-level1" && signedIn() &&
+        resource.data.status == "published";
+      allow list: if false;
+      allow create, update, delete: if snapshotId == "stage1-level1" && admin();
+    }
     match /{document=**} { allow read, write: if false; }
   }
 }
