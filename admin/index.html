@@ -40,7 +40,7 @@ button{border:0;border-radius:7px;background:#17a6b4;color:#071729;font-weight:7
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js';
 import { getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
-import { getFirestore,doc,getDoc,collection,getDocs,addDoc,updateDoc,serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
+import { getFirestore,doc,getDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
 import { firebaseConfig } from './firebase-config.js';
 const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
 const el=id=>document.getElementById(id),message=s=>{el('message').textContent=s;};
@@ -65,12 +65,41 @@ function render(){
 const q=el('search').value.trim().toLowerCase(),filter=el('filter').value;
 const list=records.filter(r=>(filter==='all'||r.kind===filter)&&escapeText(r.prompt).toLowerCase().includes(q)).sort((a,b)=>String(a.kind).localeCompare(String(b.kind))||Number(a.stage)-Number(b.stage)||Number(a.level)-Number(b.level)||Number(a.order)-Number(b.order));
 el('count').textContent=list.length+' questions';el('questionList').replaceChildren();
-for(const r of list){const card=document.createElement('div');card.className='item';const hd=document.createElement('div');hd.className='itemHead';const title=document.createElement('strong');title.textContent=(r.kind||'').toUpperCase()+' • Stage '+r.stage+(r.kind==='bow'?' / Level '+r.level:'')+' • #'+r.order;const status=document.createElement('span');status.className='tag';status.textContent=r.status||'draft';hd.append(title,status);card.append(hd);const p=document.createElement('p');p.textContent=escapeText(r.prompt);card.append(p);const actions=document.createElement('div');actions.className='actions';actions.append(makeButton('Edit',()=>edit(r)));if(r.status!=='published')actions.append(makeButton('Publish',()=>publish(r),'gold'));card.append(actions);el('questionList').append(card);}
+for(const r of list){const card=document.createElement('div');card.className='item';const hd=document.createElement('div');hd.className='itemHead';const title=document.createElement('strong');title.textContent=(r.kind||'').toUpperCase()+' • Stage '+r.stage+(r.kind==='bow'?' / Level '+r.level:'')+' • #'+r.order;const status=document.createElement('span');status.className='tag';status.textContent=r.status||'draft';hd.append(title,status);card.append(hd);const p=document.createElement('p');p.textContent=escapeText(r.prompt);card.append(p);const actions=document.createElement('div');actions.className='actions';actions.append(makeButton('Edit',()=>edit(r)));actions.append(makeButton('Preview',()=>preview(r)));if(r.status!=='published')actions.append(makeButton('Publish',()=>publish(r),'gold'));actions.append(makeButton('Delete',()=>removeQuestion(r),'danger'));card.append(actions);el('questionList').append(card);}
 }
 el('filter').addEventListener('change',render);el('search').addEventListener('input',render);
 function edit(r){selectedId=r.id;for(const key of ['kind','stage','level','order','prompt','hint','explanation'])if(el(key))el(key).value=r[key]??'';['a','b','c','d'].forEach((k,i)=>el(k).value=(r.choices||[])[i]||'');el('answer').value=String(r.correct??0);el('kind').dispatchEvent(new Event('change'));window.scrollTo({top:0,behavior:'smooth'});message('Editing question; Save draft before publishing.');}
 function dataFromForm(){const kind=el('kind').value,choices=['a','b','c','d'].map(k=>el(k).value.trim()),correct=Number(el('answer').value);if(!choices[correct])throw Error('Correct answer must have text.');if(kind!=='bow'&&choices.some(x=>!x))throw Error('Pre/Post-test requires all four choices.');if(kind==='bow'&&(!choices[0]||!choices[1]))throw Error('BOW requires at least A and B.');
 return {kind,stage:Number(el('stage').value),level:kind==='bow'?Number(el('level').value):null,order:Number(el('order').value),prompt:el('prompt').value.trim(),choices,correct,hint:el('hint').value.trim(),explanation:el('explanation').value.trim(),status:'draft',updatedAt:serverTimestamp()};}
-el('questionForm').addEventListener('submit',async e=>{e.preventDefault();if(!isAdmin)return;try{const data=dataFromForm();message('Saving draft…');if(selectedId)await updateDoc(doc(db,'questionBank',selectedId),data);else await addDoc(collection(db,'questionBank'),{...data,createdAt:serverTimestamp()});resetEditor();await load();message('Draft saved. Publish after review.');}catch(err){message('Save failed: '+err.message);}});
+let saving=false;
+function sameSlot(a,b){return a.kind===b.kind && Number(a.stage)===Number(b.stage) &&
+  (a.kind!=='bow'||Number(a.level)===Number(b.level)) && Number(a.order)===Number(b.order);}
+function preview(r){
+ const letters=['A','B','C','D'];
+ const choices=(r.choices||[]).map((c,i)=>c?letters[i]+'. '+c:'').filter(Boolean).join('\n');
+ alert('QUESTION PREVIEW\n\n'+r.prompt+'\n\n'+choices+
+   '\n\nCorrect answer: '+letters[r.correct]+'\n\nHint: '+(r.hint||'(none)')+
+   '\nExplanation: '+(r.explanation||'(none)')+
+   '\n\nStatus: '+(r.status||'draft'));
+}
+async function removeQuestion(r){
+ if(!isAdmin||!confirm('Permanently delete this '+r.kind+' question (#'+r.order+')? This cannot be undone.'))return;
+ try{await deleteDoc(doc(db,'questionBank',r.id));if(selectedId===r.id)resetEditor();await load();message('Question deleted.');}
+ catch(err){message('Delete failed: '+err.message);}
+}
+el('questionForm').addEventListener('submit',async e=>{
+ e.preventDefault();if(!isAdmin||saving)return;
+ try{
+  const data=dataFromForm();
+  if(records.some(r=>r.id!==selectedId&&sameSlot(r,data)))
+    throw Error('A question already exists at this assessment, stage, level and order. Edit that question or choose another order.');
+  saving=true;el('questionForm').querySelector('button[type=submit]').disabled=true;
+  message('Saving draft…');
+  if(selectedId)await updateDoc(doc(db,'questionBank',selectedId),data);
+  else await addDoc(collection(db,'questionBank'),{...data,createdAt:serverTimestamp()});
+  resetEditor();await load();message('Draft saved. Publish after review.');
+ }catch(err){message('Save failed: '+err.message);}
+ finally{saving=false;el('questionForm').querySelector('button[type=submit]').disabled=false;}
+});
 async function publish(r){if(!isAdmin||!confirm('Publish this approved question to the question bank?'))return;try{await updateDoc(doc(db,'questionBank',r.id),{status:'published',updatedAt:serverTimestamp()});await load();message('Question published. Unity synchronization is not yet connected.');}catch(err){message('Publish failed: '+err.message);}}
 </script></body></html>
