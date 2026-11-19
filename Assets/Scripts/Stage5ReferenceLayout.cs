@@ -976,7 +976,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         if(copperStrikeDent!=null)copperStrikeDent.gameObject.SetActive(false);
         if(copperFlattenedShine!=null)copperFlattenedShine.gameObject.SetActive(false);
         if(waxStrikeDent!=null)waxStrikeDent.gameObject.SetActive(false);
-        var sprite=ResourceSprite("DragSample"+index);
+        var sprite=Stage5MaterialCubeSprites.Get(index);
         if(sprite==null)sprite=CreateFallbackSampleSprite(index);
         mechanicalCube.sprite=sprite;
         mechanicalCube.rectTransform.localScale=Vector3.one;
@@ -1284,7 +1284,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         if(moltenPool!=null)moltenPool.gameObject.SetActive(false);
         if(moltenHighlight!=null)moltenHighlight.gameObject.SetActive(false);
         if(heatingSample==null || index<0 || index>2)return;
-        heatingSample.sprite=ResourceSprite("DragSample"+index);
+        heatingSample.sprite=Stage5MaterialCubeSprites.Get(index);
         // Keep a visible specimen even if a particular optional sample PNG
         // is missing from Resources.
         if(heatingSample.sprite==null)
