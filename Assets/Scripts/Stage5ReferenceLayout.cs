@@ -321,7 +321,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         {
             RefreshStage5MaterialButtons();
             RefreshMaterialHighlight();
-            if(level==2)EnsureActionHighlight();
+            EnsureActionHighlight();
         }
         // One mapped raycast surface handles both mouse and Android touch.
         // It sits above all artwork and legacy transparent controls.
@@ -476,7 +476,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     // The original touch mapping and gameplay logic stay authoritative.
     private void EnsureActionHighlight()
     {
-        if(level!=2 || canvas==null)return;
+        if((level!=1 && level!=2) || canvas==null)return;
         var root=Find(canvas,"Stage5ClickedActionHighlight") as RectTransform;
         if(root==null)
         {
@@ -505,21 +505,27 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
 
     public void HighlightAction(int action)
     {
-        if(!ready || level!=2 || (action!=1 && action!=2))return;
+        if(!ready || canvas==null)return;
+        if(level==3)
+        {
+            if(action!=3 && action!=4)return;
+            highlightedAction=action;
+            RefreshLevel3ActionHighlight(action);
+            return;
+        }
+        if(level==1 && action!=0)return;
+        if(level==2 && action!=1 && action!=2)return;
         highlightedAction=action;
-        if(actionHighlightEdges==null || actionHighlightEdges.Length!=4)
-            EnsureActionHighlight();
-        if(actionHighlightEdges==null)return;
-        var root=actionHighlightEdges[0]!=null?
-            actionHighlightEdges[0].transform.parent.gameObject:null;
-        if(root==null)return;
-        // Visible inside existing action buttons; outside no gameplay hitbox.
-        // Match the ACTUAL Level 2 button art (not the larger input
-        // hit zones). The old -275/67 rectangle extended down over the
-        // SAMPLES TESTED progress bar in 16:9 Game View.
-        float centerX=action==1?-355f:0f;
-        float centerY=-254f;
-        float width=315f,height=51f,thickness=3f;
+        if(actionHighlightEdges==null || actionHighlightEdges.Length!=4 ||
+            actionHighlightEdges[0]==null)EnsureActionHighlight();
+        if(actionHighlightEdges==null || actionHighlightEdges[0]==null)return;
+        var root=actionHighlightEdges[0].transform.parent.gameObject;
+        // Fit the painted button; the touch rectangle is deliberately larger.
+        float centerX=action==2?0f:-355f;
+        float centerY=level==1?-300f:-254f;
+        float width=level==1?320f:315f;
+        float height=level==1?54f:51f;
+        const float thickness=3f;
         Rect(actionHighlightEdges[0].transform,
             new Vector2(centerX,centerY+height*.5f),new Vector2(width,thickness));
         Rect(actionHighlightEdges[1].transform,
@@ -529,8 +535,31 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         Rect(actionHighlightEdges[3].transform,
             new Vector2(centerX+width*.5f,centerY),new Vector2(thickness,height));
         root.SetActive(true);
-        // Keep the border visible above art but never block the mapped touch.
         root.transform.SetAsLastSibling();
+    }
+
+    // Match the actual editable Level 3 button sprites precisely.
+    private void RefreshLevel3ActionHighlight(int action)
+    {
+        if(level!=3 || canvas==null)return;
+        var ui=Find(canvas,"Stage5Level3_ModularUI");
+        if(ui==null)return;
+        SetActionOutline(Find(ui,"TestProbeButton"),action==3);
+        SetActionOutline(Find(ui,"CheckClassificationButton"),action==4);
+    }
+
+    private static void SetActionOutline(Transform button,bool active)
+    {
+        if(button==null)return;
+        var image=Find(button,"ButtonImage")?.GetComponent<Image>();
+        if(image==null)image=button.GetComponent<Image>();
+        if(image==null)return;
+        var outline=image.GetComponent<Outline>();
+        if(outline==null)outline=image.gameObject.AddComponent<Outline>();
+        outline.effectColor=new Color32(255,218,72,255);
+        outline.effectDistance=new Vector2(3f,-3f);
+        outline.useGraphicAlpha=false;
+        outline.enabled=active;
     }
 
     // Keep the Stage 5 Level 3 labels and status panels separate.
@@ -1577,8 +1606,9 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         {
             RefreshStage5MaterialButtons();
             RefreshMaterialHighlight();
-            if(level==2)EnsureActionHighlight();
+            EnsureActionHighlight();
         }
+        if(level==3)RefreshLevel3ActionHighlight(-1);
         touchController=Find(canvas,"Stage5MappedTouchSurface")?.GetComponent<Stage5ReferenceTouchController>();
         if(touchController!=null)
         {
@@ -1676,9 +1706,10 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         if(!ready)return;
         selected=index;
         RefreshMaterialHighlight();
-        if(level==2 && actionHighlightEdges!=null && actionHighlightEdges.Length>0 &&
-            actionHighlightEdges[0]!=null)
+        if((level==1 || level==2) && actionHighlightEdges!=null &&
+            actionHighlightEdges.Length>0 && actionHighlightEdges[0]!=null)
             actionHighlightEdges[0].transform.parent.gameObject.SetActive(false);
+        if(level==3)RefreshLevel3ActionHighlight(-1);
         highlightedAction=-1;
         if(liveSample!=null)
             liveSample.text=(level==1 || level==2) && index>=0 && index<3?
