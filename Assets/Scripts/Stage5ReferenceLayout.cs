@@ -522,10 +522,13 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         var root=actionHighlightEdges[0].transform.parent.gameObject;
         // Fit the painted button; the touch rectangle is deliberately larger.
         float centerX=action==2?0f:-355f;
-        float centerY=level==1?-300f:-254f;
-        float width=level==1?320f:315f;
-        float height=level==1?54f:51f;
-        const float thickness=3f;
+        // Level 1's painted APPLY HEAT border has rounded corners and
+        // occupies less space than the mapped touch region. Inset the
+        // highlight on all four sides so it never overlaps nearby artwork.
+        float centerY=level==1?-298f:-254f;
+        float width=level==1?304f:315f;
+        float height=level==1?42f:51f;
+        float thickness=level==1?2.5f:3f;
         Rect(actionHighlightEdges[0].transform,
             new Vector2(centerX,centerY+height*.5f),new Vector2(width,thickness));
         Rect(actionHighlightEdges[1].transform,
