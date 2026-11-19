@@ -1828,7 +1828,20 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     public void ReferenceSetIndicators(int score,int energy)
     {
         if(dynamicScore!=null)dynamicScore.text=score.ToString("D6");
-        if(dynamicEnergy!=null)dynamicEnergy.text=energy+" / 5";
+        int remaining=Mathf.Clamp(energy,0,5);
+        if(dynamicEnergy!=null)dynamicEnergy.text=remaining+" / 5";
+        // Five reference lightning bolts are pre-painted in the PNG. Disable
+        // the corresponding slot visually when energy is spent. The overlays
+        // are saved as editable GameObjects by the Stage 5 HUD editor command,
+        // and do not intercept the experiment's pointer events.
+        if(canvas!=null)
+        {
+            for(int i=0;i<5;i++)
+            {
+                var spent=Find(canvas,"Stage5SpentEnergy"+(i+1));
+                if(spent!=null)spent.gameObject.SetActive(i>=remaining);
+            }
+        }
     }
 
     public void SampleChanged(int index)
