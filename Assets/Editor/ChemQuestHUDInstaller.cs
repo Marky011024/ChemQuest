@@ -71,7 +71,9 @@ public static class ChemQuestHUDInstaller
             "OK");
     }
 
-    [MenuItem("ChemQuest/HUD/Apply Unified HUD To All Gameplay Scenes")]
+    // Disabled: this older installer overlays existing in-scene HUD controls.
+    // Use "Fix Overlapping HUDs In All Stages" instead.
+    // [MenuItem("ChemQuest/HUD/Apply Unified HUD To All Gameplay Scenes")]
     private static void Apply()
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode)
