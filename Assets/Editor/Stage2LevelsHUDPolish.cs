@@ -92,9 +92,12 @@ public static class Stage2LevelsHUDPolish
         if(duplicate!=null && duplicate.GetComponent<ChemQuestUnifiedHUD>()!=null)
             UnityEngine.Object.DestroyImmediate(duplicate);
 
+        // Stage 5 reference proportions: compact Menu 68x64, Energy 346x60,
+        // Score 138x65 on the 1280x720 reference canvas.
+        // Reapply command safely to previously edited scenes (idempotent).
         // Menu: existing Pause button and Unity onClick callback preserved.
         var menuRT=originalMenu.GetComponent<RectTransform>();
-        Place(menuRT,new Vector2(0,1),new Vector2(70,-72),new Vector2(94,86));
+        Place(menuRT,new Vector2(0,1),new Vector2(52,-47),new Vector2(68,64));
         var menuFace=originalMenu.GetComponent<Image>();
         if(menuFace==null)menuFace=originalMenu.gameObject.AddComponent<Image>();
         Skin(menuFace,rounded,new Color32(8,49,83,255),true);
@@ -103,7 +106,7 @@ public static class Stage2LevelsHUDPolish
         var border=menuFace.GetComponent<Outline>();
         if(border==null)border=menuFace.gameObject.AddComponent<Outline>();
         border.effectColor=Gold;
-        border.effectDistance=new Vector2(3,-3);
+        border.effectDistance=new Vector2(2,-2);
         border.useGraphicAlpha=false;
         border.enabled=true;
 
@@ -113,7 +116,7 @@ public static class Stage2LevelsHUDPolish
         for(int i=0;i<3;i++)
         {
             var line=Ensure(menuRT,"Line"+(i+1),new Vector2(.5f,.5f),
-                new Vector2(0,16-16*i),new Vector2(49,7));
+                new Vector2(0,11-11*i),new Vector2(34,5));
             var img=line.GetComponent<Image>();
             if(img==null)img=line.gameObject.AddComponent<Image>();
             img.sprite=null;
@@ -125,16 +128,16 @@ public static class Stage2LevelsHUDPolish
         // Existing energy icons/labels are reparented, not cloned. References
         // stored in Stage 2 level scripts remain valid.
         var energy=Ensure(canvas,"Stage2EnergyPanel",new Vector2(0,1),
-            new Vector2(360,-68),new Vector2(435,72));
+            new Vector2(275,-43),new Vector2(346,60));
         var backing=energy.GetComponent<Image>();
         if(backing==null)backing=energy.gameObject.AddComponent<Image>();
         Skin(backing,rounded,Navy,false);
         title.transform.SetParent(energy,false);
         Place(title.rectTransform,new Vector2(.5f,.5f),
-            new Vector2(-160,19),new Vector2(112,24));
+            new Vector2(-105,16),new Vector2(83,18));
         title.text="ENERGY";
         title.color=Color.white;
-        title.fontSize=22;
+        title.fontSize=16;
         title.fontStyle=FontStyles.Bold;
         title.alignment=TextAlignmentOptions.Center;
         title.raycastTarget=false;
@@ -142,30 +145,30 @@ public static class Stage2LevelsHUDPolish
         {
             bolts[i].transform.SetParent(energy,false);
             Place(bolts[i].rectTransform,new Vector2(.5f,.5f),
-                new Vector2(-119+i*53,-6),new Vector2(38,49));
+                new Vector2(-103+i*36,-6),new Vector2(28,35));
             bolts[i].color=Cyan;
             bolts[i].preserveAspect=true;
             bolts[i].raycastTarget=false;
         }
         energyText.transform.SetParent(energy,false);
         Place(energyText.rectTransform,new Vector2(.5f,.5f),
-            new Vector2(171,-7),new Vector2(78,34));
+            new Vector2(130,-6),new Vector2(63,29));
         energyText.color=Color.white;
-        energyText.fontSize=25;
+        energyText.fontSize=18;
         energyText.fontStyle=FontStyles.Bold;
         energyText.alignment=TextAlignmentOptions.Center;
         energyText.raycastTarget=false;
         // Existing stage 2 code remains responsible for '5 / 5' updates.
 
         var score=Ensure(canvas,"Stage2ScorePanel",new Vector2(1,1),
-            new Vector2(-112,-68),new Vector2(176,78));
+            new Vector2(-74,-43),new Vector2(138,65));
         var scoreBacking=score.GetComponent<Image>();
         if(scoreBacking==null)scoreBacking=score.gameObject.AddComponent<Image>();
         Skin(scoreBacking,rounded,Navy,false);
         scoreText.transform.SetParent(score,false);
         Place(scoreText.rectTransform,new Vector2(.5f,.5f),
-            Vector2.zero,new Vector2(168,70));
-        scoreText.fontSize=25;
+            Vector2.zero,new Vector2(132,60));
+        scoreText.fontSize=19;
         scoreText.fontStyle=FontStyles.Bold;
         scoreText.color=Gold;
         scoreText.alignment=TextAlignmentOptions.Center;
