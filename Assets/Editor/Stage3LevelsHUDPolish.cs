@@ -2,7 +2,6 @@
 using System;
 using TMPro;
 using UnityEditor;
-using UnityEditor.Events;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -140,18 +139,18 @@ public static class Stage3LevelsHUDPolish
 
         Button menu=Find(canvas,level==2?"PauseButton":
             level==3?"Level3PauseButton":"Stage3Level1PauseButton")?.GetComponent<Button>();
-        if(menu==null && level==1)
+        if(level==1)
         {
-            // Preserve Stage3Level1HUD.PauseGame(), including its scene
-            // specific menu and time-scale behavior.
+            // Stage 3 Level 1 has an ALREADY serialized pause button under
+            // Stage3Level1HUDCanvas. Use that exact button: no duplicate.
             var controller=SceneObject(scene,"Stage3Level1HUD")?.GetComponent<Stage3Level1HUD>();
             if(controller==null)throw new Exception("Stage 3 Level 1 pause controller missing.");
-            var menuRect=Ensure(canvas,"Stage3Level1PauseButton",new Vector2(0,1),
-                new Vector2(52,-47),new Vector2(68,64));
-            menu=menuRect.GetComponent<Button>();
-            if(menu==null)menu=menuRect.gameObject.AddComponent<Button>();
-            menu.onClick.RemoveAllListeners();
-            UnityEventTools.AddPersistentListener(menu.onClick,controller.PauseGame);
+            var serial=new SerializedObject(controller);
+            var field=serial.FindProperty("scenePauseButton");
+            var configured=field!=null?field.objectReferenceValue as Button:null;
+            if(configured!=null)menu=configured;
+            if(menu==null)
+                throw new Exception("Stage 3 Level 1 scenePauseButton is not assigned.");
         }
         if(menu==null)throw new Exception("Pause Button missing in "+scene.name);
         var menuRT=menu.GetComponent<RectTransform>();
