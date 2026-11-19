@@ -33,7 +33,7 @@ textarea{line-height:1.5}
 .item:hover{border-color:#71b3ce}
 #message{padding:10px 14px;border-left:3px solid #f2c65d;background:#122a43;border-radius:5px;margin-bottom:16px}
 #message:empty{display:none}
-.dashboard{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 18px}
+.assessment-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}.assessment-tabs button{border:1px solid #416c89;background:#143657;color:#deeffc}.assessment-tabs button.active{background:#f2c65d;color:#10223b}.import-panel{border:1px solid #416b84;padding:16px;border-radius:10px;margin-bottom:16px;background:#0e2743}.import-panel input[type=file]{padding:8px}.import-panel p{margin:4px 0 12px}.import-preview{max-height:180px;overflow:auto;border:1px solid #3b5f7b;padding:10px;border-radius:6px;white-space:pre-wrap;font-size:12px;color:#cfe5f3}.dashboard{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 18px}
 .metric{background:#112d4a;border:1px solid #355978;border-radius:12px;padding:16px}
 .metric .value{font-size:28px;font-weight:800;color:#ffe09a;margin-top:8px}
 .metric small{font-size:12px}
@@ -49,7 +49,7 @@ textarea{line-height:1.5}
 <main><p id="message" role="status"></p>
 <section id="loginPanel" class="panel"><h2>Administrator sign in</h2><p>Use an approved Firebase Authentication account. Only accounts with an administrator role in Firestore may edit questions.</p>
 <form id="loginForm" class="fields"><label>Email<input id="email" type="email" autocomplete="username" required></label><label>Password<input id="password" type="password" autocomplete="current-password" required></label><div class="wide"><button type="submit">Sign in</button></div></form></section>
-<div id="workspace"><div class="dashboard" aria-label="Question statistics">
+<div id="workspace"><nav class="assessment-tabs" aria-label="Question assessment views"><button type="button" class="active" data-view="all">Overview</button><button type="button" data-view="pre">Pre-test</button><button type="button" data-view="bow">BOW</button><button type="button" data-view="post">Post-test</button></nav><div class="dashboard" aria-label="Question statistics">
 <div class="metric"><small>Total questions</small><div class="value" id="totalMetric">0</div></div>
 <div class="metric"><small>Published</small><div class="value" id="publishedMetric">0</div></div>
 <div class="metric"><small>Drafts</small><div class="value" id="draftMetric">0</div></div>
@@ -70,7 +70,7 @@ textarea{line-height:1.5}
 </form><small>Changing an existing published question saves it as a draft. Publish separately after approval.</small>
 </section>
 <section class="panel"><div class="tool-heading"><h2>Question bank</h2><button id="refresh" type="button" class="secondary">↻ Refresh</button></div>
-<div class="fields"><label>Assessment filter<select id="filter"><option value="all">All assessments</option><option value="pre">Pre-test</option><option value="bow">BOW</option><option value="post">Post-test</option></select></label><label>Status<select id="statusFilter"><option value="all">All statuses</option><option value="draft">Draft</option><option value="published">Published</option></select></label><label class="wide">Search questions<input id="search" placeholder="Search by question text or choices"></label></div><p class="hint-text" id="count"></p><div id="questionList"></div></section></div>
+<div class="import-panel"><div class="tool-heading"><strong>Bulk import & backup</strong><button type="button" class="secondary" id="template">Download CSV template</button></div><p class="hint-text">Import approved questions as drafts. CSV columns: kind,stage,level,order,prompt,a,b,c,d,correct,hint,explanation. One question per row.</p><label>Choose a CSV file<input id="importFile" type="file" accept=".csv,text/csv"></label><p id="importSummary" class="hint-text" role="status">No CSV selected.</p><div id="importPreview" class="import-preview" hidden></div><div class="actions"><button type="button" id="importButton" disabled>Import validated drafts</button><button type="button" id="exportButton" class="secondary">Export CSV backup</button></div></div><div class="fields"><label>Assessment filter<select id="filter"><option value="all">All assessments</option><option value="pre">Pre-test</option><option value="bow">BOW</option><option value="post">Post-test</option></select></label><label>Status<select id="statusFilter"><option value="all">All statuses</option><option value="draft">Draft</option><option value="published">Published</option></select></label><label class="wide">Search questions<input id="search" placeholder="Search by question text or choices"></label></div><p class="hint-text" id="count"></p><div id="questionList"></div></section></div>
 <section class="panel"><h2>Important for school assessments</h2><p>Publish only questions approved by your Science teacher. Do not change an assessment version while students are taking a pre-test or post-test. The Unity offline reader and published-version locking still need to be integrated and tested before use with respondents.</p></section></div></main>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js';
@@ -79,7 +79,7 @@ import { getFirestore,doc,getDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,s
 import { firebaseConfig } from './firebase-config.js';
 const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
 const el=id=>document.getElementById(id),message=s=>{el('message').textContent=s;};
-let records=[],selectedId=null,isAdmin=false;
+let records=[],selectedId=null,isAdmin=false,importRows=[];
 const escapeText=t=>String(t??'');
 function resetEditor(){selectedId=null;el('questionForm').reset();el('order').value='1';el('editorHeading').textContent='Create a question';el('kind').dispatchEvent(new Event('change'));}
 el('kind').addEventListener('change',()=>{let isBow=el('kind').value==='bow';el('level').disabled=!isBow;});
@@ -104,9 +104,17 @@ el('draftMetric').textContent=records.filter(r=>r.status!=='published').length;
 el('bowMetric').textContent=records.filter(r=>r.kind==='bow').length;
 const list=records.filter(r=>(filter==='all'||r.kind===filter)&&(status==='all'||(r.status||'draft')===status)&&([r.prompt,...(r.choices||[])].join(' ').toLowerCase().includes(q))).sort((a,b)=>String(a.kind).localeCompare(String(b.kind))||Number(a.stage)-Number(b.stage)||Number(a.level)-Number(b.level)||Number(a.order)-Number(b.order));
 el('count').textContent=list.length+' questions';el('questionList').replaceChildren();
-for(const r of list){const card=document.createElement('div');card.className='item';const hd=document.createElement('div');hd.className='itemHead';const title=document.createElement('strong');title.textContent=(r.kind||'').toUpperCase()+' • Stage '+r.stage+(r.kind==='bow'?' / Level '+r.level:'')+' • #'+r.order;const status=document.createElement('span');status.className='tag';status.textContent=r.status||'draft';hd.append(title,status);card.append(hd);const p=document.createElement('p');p.textContent=escapeText(r.prompt);card.append(p);const actions=document.createElement('div');actions.className='actions';actions.append(makeButton('Edit',()=>edit(r)));actions.append(makeButton('Preview',()=>preview(r)));if(r.status!=='published')actions.append(makeButton('Publish',()=>publish(r),'gold'));actions.append(makeButton('Delete',()=>removeQuestion(r),'danger'));card.append(actions);el('questionList').append(card);}
+for(const r of list){const card=document.createElement('div');card.className='item';const hd=document.createElement('div');hd.className='itemHead';const title=document.createElement('strong');title.textContent=(r.kind||'').toUpperCase()+' • Stage '+r.stage+(r.kind==='bow'?' / Level '+r.level:'')+' • #'+r.order;const status=document.createElement('span');status.className='tag';status.textContent=r.status||'draft';hd.append(title,status);card.append(hd);const p=document.createElement('p');p.textContent=escapeText(r.prompt);card.append(p);const actions=document.createElement('div');actions.className='actions';actions.append(makeButton('Edit',()=>edit(r)));actions.append(makeButton('Preview',()=>preview(r)));if(r.status!=='published')actions.append(makeButton('Publish',()=>publish(r),'gold'));else actions.append(makeButton('Unpublish',()=>unpublish(r)));actions.append(makeButton('History',()=>history(r)));actions.append(makeButton('Delete',()=>removeQuestion(r),'danger'));card.append(actions);el('questionList').append(card);}
 }
-el('filter').addEventListener('change',render);el('statusFilter').addEventListener('change',render);el('search').addEventListener('input',render);
+document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>{
+ document.querySelectorAll('[data-view]').forEach(t=>t.classList.toggle('active',t===b));
+ const v=b.dataset.view;el('filter').value=v; if(v!=='all'){el('kind').value=v;el('kind').dispatchEvent(new Event('change'));}
+ render();
+}));
+el('filter').addEventListener('change',()=>{
+ document.querySelectorAll('[data-view]').forEach(t=>t.classList.toggle('active',t.dataset.view===el('filter').value));
+ render();
+});el('statusFilter').addEventListener('change',render);el('search').addEventListener('input',render);
 el('refresh').addEventListener('click',async()=>{try{await load();message('Question bank refreshed.');}catch(err){message('Refresh failed: '+err.message);}});
 function edit(r){selectedId=r.id;el('editorHeading').textContent='Edit question';for(const key of ['kind','stage','level','order','prompt','hint','explanation'])if(el(key))el(key).value=r[key]??'';['a','b','c','d'].forEach((k,i)=>el(k).value=(r.choices||[])[i]||'');el('answer').value=String(r.correct??0);el('kind').dispatchEvent(new Event('change'));window.scrollTo({top:0,behavior:'smooth'});message('Editing question; Save draft before publishing.');}
 function dataFromForm(){const kind=el('kind').value,choices=['a','b','c','d'].map(k=>el(k).value.trim()),correct=Number(el('answer').value);if(!choices[correct])throw Error('Correct answer must have text.');if(kind!=='bow'&&choices.some(x=>!x))throw Error('Pre/Post-test requires all four choices.');if(kind==='bow'&&(!choices[0]||!choices[1]))throw Error('BOW requires at least A and B.');
@@ -135,11 +143,128 @@ el('questionForm').addEventListener('submit',async e=>{
     throw Error('A question already exists at this assessment, stage, level and order. Edit that question or choose another order.');
   saving=true;el('questionForm').querySelector('button[type=submit]').disabled=true;
   message('Saving draft…');
-  if(selectedId)await updateDoc(doc(db,'questionBank',selectedId),data);
+  if(selectedId){
+   const previous=records.find(r=>r.id===selectedId);
+   const historyEntries=previous?.revisions||[];
+   await updateDoc(doc(db,'questionBank',selectedId),{...data,revisions:[...historyEntries.slice(-19),revisionOf(previous,'edited')]});
+  }
   else await addDoc(collection(db,'questionBank'),{...data,createdAt:serverTimestamp()});
   resetEditor();await load();message('Draft saved. Publish after review.');
  }catch(err){message('Save failed: '+err.message);}
  finally{saving=false;el('questionForm').querySelector('button[type=submit]').disabled=false;}
 });
-async function publish(r){if(!isAdmin||!confirm('Publish this approved question to the question bank?'))return;try{await updateDoc(doc(db,'questionBank',r.id),{status:'published',updatedAt:serverTimestamp()});await load();message('Question published. Unity synchronization is not yet connected.');}catch(err){message('Publish failed: '+err.message);}}
+function revisionOf(r,operation){
+ return {operation,at:new Date().toISOString(),by:auth.currentUser?.email||'admin',
+ kind:r.kind,stage:r.stage,level:r.level??null,order:r.order,prompt:r.prompt,choices:[...(r.choices||[])],
+ correct:r.correct,hint:r.hint||'',explanation:r.explanation||'',status:r.status||'draft'};
+}
+async function setStatus(r,status){
+ if(!isAdmin||!confirm((status==='published'?'Publish approved':'Unpublish')+' question #'+r.order+'?'))return;
+ try{await updateDoc(doc(db,'questionBank',r.id),{status,updatedAt:serverTimestamp(),
+ revisions:[...(r.revisions||[]).slice(-19),revisionOf(r,'status change')]});
+ await load();message(status==='published'?'Question marked published. Unity sync not yet connected.':'Question returned to draft.');
+ }catch(err){message('Status change failed: '+err.message);}
+}
+const publish=r=>setStatus(r,'published'),unpublish=r=>setStatus(r,'draft');
+async function history(r){
+ const revs=r.revisions||[];
+ if(!revs.length){alert('No previous saved revisions for this question yet.');return;}
+ const info=revs.map((x,i)=> (i+1)+'. '+x.at+' — '+x.operation+' — '+x.status+' — '+x.prompt.slice(0,65)).join('\n');
+ const choice=prompt('PREVIOUS REVISIONS (oldest to newest):\n'+info+'\n\nEnter a revision number to RESTORE it as a DRAFT, or Cancel:');
+ if(choice===null)return;
+ const index=Number(choice)-1;if(!Number.isInteger(index)||index<0||index>=revs.length){message('Invalid revision number.');return;}
+ const old=revs[index];if(!confirm('Restore revision '+(index+1)+' as a draft? Current content will be saved in history.'))return;
+ const data={kind:old.kind,stage:old.stage,level:old.level,order:old.order,prompt:old.prompt,choices:old.choices,
+ correct:old.correct,hint:old.hint,explanation:old.explanation,status:'draft',updatedAt:serverTimestamp(),
+ revisions:[...revs.slice(-19),revisionOf(r,'before restore')]};
+ if(records.some(x=>x.id!==r.id&&sameSlot(x,data))){message('Restore blocked: another question occupies this slot.');return;}
+ try{await updateDoc(doc(db,'questionBank',r.id),data);await load();message('Previous revision restored as draft.');}
+ catch(err){message('Restore failed: '+err.message);}
+}
+const csvColumns=['kind','stage','level','order','prompt','a','b','c','d','correct','hint','explanation'];
+function csvEncode(value){const s=String(value??'');return /[",\r\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}
+function csvText(rows){return [csvColumns.join(','),...rows.map(r=>csvColumns.map(k=>csvEncode(r[k])).join(','))].join('\r\n');}
+function downloadCsv(filename,contents){
+ const url=URL.createObjectURL(new Blob(['\uFEFF'+contents],{type:'text/csv;charset=utf-8;'}));
+ const a=document.createElement('a');a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+el('template').addEventListener('click',()=>downloadCsv('ChemQuest_Question_Template.csv',csvText([{
+ kind:'bow',stage:1,level:1,order:1,prompt:'Example: What indicates a chemical change?',
+ a:'Gas forms',b:'Object moves',c:'',d:'',correct:'A',hint:'Think about evidence.',explanation:'Gas formation can indicate a chemical reaction.'
+}])));
+el('exportButton').addEventListener('click',()=>{
+ if(!isAdmin)return;
+ downloadCsv('ChemQuest_Question_Backup_'+new Date().toISOString().slice(0,10)+'.csv',csvText(records.map(r=>({
+ kind:r.kind,stage:r.stage,level:r.level,order:r.order,prompt:r.prompt,
+ a:r.choices?.[0],b:r.choices?.[1],c:r.choices?.[2],d:r.choices?.[3],
+ correct:['A','B','C','D'][r.correct],hint:r.hint,explanation:r.explanation
+ }))));
+ message('CSV backup downloaded. Keep it private because it includes answer keys.');
+});
+function parseCsv(raw){
+ const rows=[];let row=[],field='',quoted=false;
+ raw=raw.replace(/^\uFEFF/,'');
+ for(let i=0;i<raw.length;i++){
+  const c=raw[i];
+  if(quoted){if(c==='"'&&raw[i+1]==='"'){field+='"';i++;}else if(c==='"')quoted=false;else field+=c;}
+  else if(c==='"'){if(field!=='')throw Error('Unexpected quote at position '+i);quoted=true;}
+  else if(c===','){row.push(field);field='';}
+  else if(c==='\n'||c==='\r'){if(c==='\r'&&raw[i+1]==='\n')i++;row.push(field);if(row.some(v=>v.trim()))rows.push(row);row=[];field='';}
+  else field+=c;
+ }
+ if(quoted)throw Error('Unclosed CSV quote');
+ row.push(field);if(row.some(v=>v.trim()))rows.push(row);
+ if(!rows.length)throw Error('Empty CSV');
+ const headers=rows.shift().map(x=>x.trim().toLowerCase());
+ if(csvColumns.some(k=>!headers.includes(k)))throw Error('CSV headers must be: '+csvColumns.join(','));
+ return rows.map((values,i)=>{
+ const obj=Object.fromEntries(headers.map((k,j)=>[k,(values[j]||'').trim()]));
+ if(values.length!==headers.length)throw Error('Row '+(i+2)+': column count mismatch');
+ const kind=obj.kind.toLowerCase(),stage=Number(obj.stage),level=kind==='bow'?Number(obj.level):null,order=Number(obj.order);
+ const correct=['A','B','C','D'].indexOf(obj.correct.toUpperCase());
+ const choices=['a','b','c','d'].map(k=>obj[k]);
+ if(!['pre','bow','post'].includes(kind)||!Number.isInteger(stage)||stage<1||stage>5||
+ (kind==='bow'&&(!Number.isInteger(level)||level<1||level>3))||
+ !Number.isInteger(order)||order<1||order>999||!obj.prompt||obj.prompt.length>800||
+ choices.some(x=>x.length>400)||obj.hint.length>600||obj.explanation.length>800||
+ correct<0||!choices[correct]||!choices[0]||!choices[1]||
+ (kind!=='bow'&&choices.some(x=>!x)))
+ throw Error('Row '+(i+2)+': invalid assessment, stage, level, order, answer, or text.');
+ return {kind,stage,level,order,prompt:obj.prompt,choices,correct,hint:obj.hint,explanation:obj.explanation};
+ });
+}
+el('importFile').addEventListener('change',async()=>{
+ importRows=[];el('importButton').disabled=true;el('importPreview').hidden=true;
+ const file=el('importFile').files?.[0];if(!file){el('importSummary').textContent='No CSV selected.';return;}
+ try{
+ if(file.size>2_000_000)throw Error('CSV exceeds 2 MB.');
+ const rows=parseCsv(await file.text());
+ const collisions=[];
+ rows.forEach((r,i)=>{
+  if(records.some(x=>sameSlot(x,r))||rows.slice(0,i).some(x=>sameSlot(x,r)))collisions.push('Line '+(i+2)+': '+r.kind+' Stage '+r.stage+' #'+r.order);
+ });
+ if(collisions.length)throw Error('Duplicate question slots detected: '+collisions.slice(0,5).join('; '));
+ if(rows.length>300)throw Error('Import max 300 questions per file.');
+ importRows=rows;
+ el('importSummary').textContent=rows.length+' valid questions ready to import as drafts. Review before importing.';
+ el('importPreview').hidden=false;
+ el('importPreview').textContent=rows.slice(0,12).map((r,i)=>(i+1)+'. '+r.kind+' / Stage '+r.stage+(r.kind==='bow'?' Level '+r.level:'')+' / #'+r.order+': '+r.prompt).join('\n')+(rows.length>12?'\n…':'');
+ el('importButton').disabled=!rows.length;
+ }catch(err){el('importSummary').textContent='Cannot import: '+err.message;}
+});
+el('importButton').addEventListener('click',async()=>{
+ if(!isAdmin||!importRows.length)return;
+ if(!confirm('Import '+importRows.length+' questions as DRAFTS? This does not publish them.'))return;
+ el('importButton').disabled=true;const rows=importRows;let count=0;
+ try{
+ await load();
+ for(const r of rows){
+  if(records.some(x=>sameSlot(x,r)))throw Error('A duplicate slot exists. Imported '+count+' questions before stopping.');
+  await addDoc(collection(db,'questionBank'),{...r,status:'draft',createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
+  records.push({...r,id:'local-import-'+count});count++;
+ }
+ importRows=[];el('importFile').value='';el('importPreview').hidden=true;
+ await load();message(count+' questions imported as drafts.');
+ }catch(err){await load();message('Import stopped after '+count+' rows: '+err.message+' Re-export and check before retrying.');}
+});
 </script></body></html>
