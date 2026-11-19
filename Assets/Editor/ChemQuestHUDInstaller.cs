@@ -17,6 +17,60 @@ public static class ChemQuestHUDInstaller
     private static readonly Color Gold = new Color32(255, 205, 92, 255);
     private static readonly Color Cyan = new Color32(28, 226, 255, 255);
 
+    [MenuItem("ChemQuest/HUD/Restore Original HUD In All Gameplay Scenes")]
+    private static void RestoreOriginal()
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            EditorUtility.DisplayDialog("Stop Play Mode",
+                "Stop Play Mode before restoring the saved HUD.", "OK");
+            return;
+        }
+        if (!EditorUtility.DisplayDialog("Restore Original ChemQuest HUD",
+            "Remove ONLY the added ChemQuestUnifiedHUD root from each " +
+            "StageNLevelM scene. Existing Menu, Energy and Score objects remain " +
+            "untouched. All affected scenes will be SAVED. Make sure you have " +
+            "a Git commit or backup first.", "Restore original HUD", "Cancel"))
+            return;
+        var activePath=SceneManager.GetActiveScene().path;
+        if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+        var ids=AssetDatabase.FindAssets("t:Scene",new[]{"Assets/Scenes"});
+        int restored=0;
+        try
+        {
+            for(int i=0;i<ids.Length;i++)
+            {
+                var path=AssetDatabase.GUIDToAssetPath(ids[i]);
+                string sceneName=System.IO.Path.GetFileNameWithoutExtension(path);
+                if(!Regex.IsMatch(sceneName,@"^Stage[1-9]\d*Level[1-9]\d*$"))
+                    continue;
+                EditorUtility.DisplayProgressBar("Restore original ChemQuest HUD",
+                    sceneName,(float)i/Mathf.Max(1,ids.Length));
+                var scene=EditorSceneManager.OpenScene(path,OpenSceneMode.Single);
+                foreach(var go in scene.GetRootGameObjects())
+                {
+                    if(go.name!=HudRoot || go.GetComponent<ChemQuestUnifiedHUD>()==null)
+                        continue;
+                    UnityEngine.Object.DestroyImmediate(go);
+                    EditorSceneManager.MarkSceneDirty(scene);
+                    EditorSceneManager.SaveScene(scene);
+                    restored++;
+                    break;
+                }
+            }
+        }
+        finally
+        {
+            EditorUtility.ClearProgressBar();
+            if(!string.IsNullOrEmpty(activePath))
+                EditorSceneManager.OpenScene(activePath,OpenSceneMode.Single);
+        }
+        EditorUtility.DisplayDialog("Original HUD Restored",
+            "Removed duplicate shared HUD from " + restored +
+            " scenes. Test original menu, energy and score before continuing.",
+            "OK");
+    }
+
     [MenuItem("ChemQuest/HUD/Apply Unified HUD To All Gameplay Scenes")]
     private static void Apply()
     {
@@ -48,6 +102,27 @@ public static class ChemQuestHUDInstaller
                 EditorUtility.DisplayProgressBar("ChemQuest HUD",
                     "Updating " + sceneName, (float)i/Mathf.Max(1,ids.Length));
                 var scene=EditorSceneManager.OpenScene(path,OpenSceneMode.Single);
+                // A Stage 5 scene already has an exact reference HUD.
+                // Never layer a second Pause/Energy/Score bar over it.
+                if(sceneName.StartsWith("Stage5Level",StringComparison.Ordinal))
+                    continue;
+                // Existing authored HUDs may also have their own controls;
+                // do not overwrite or duplicate these by default.
+                bool hasExistingHUD=false;
+                foreach(var go in scene.GetRootGameObjects())
+                {
+                    if(go.name==HudRoot) {hasExistingHUD=true;break;}
+                    var texts=go.GetComponentsInChildren<TMP_Text>(true);
+                    bool score=false,energy=false;
+                    foreach(var t in texts)
+                    {
+                        string name=t.name.ToLowerInvariant();
+                        if(name=="score" || name=="scoretext")score=true;
+                        if(name=="energycount" || name=="energylabel")energy=true;
+                    }
+                    if(score && energy) {hasExistingHUD=true;break;}
+                }
+                if(hasExistingHUD)continue;
                 Build(scene);
                 EditorSceneManager.MarkSceneDirty(scene);
                 EditorSceneManager.SaveScene(scene);
