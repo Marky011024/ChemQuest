@@ -94,8 +94,14 @@ public sealed class ChemQuestUnifiedHUD : MonoBehaviour
         if (energyCounter != null)
             energyCounter.text = energy + " / " + EnergyManager.MaxEnergy;
         for (int i = 0; i < lightningIcons.Length; i++)
-            if (lightningIcons[i] != null)
-                lightningIcons[i].color = i < energy ? poweredColor : depletedColor;
+        {
+            if (lightningIcons[i] == null) continue;
+            Color tint = i < energy ? poweredColor : depletedColor;
+            // The visible glyph lives in a TextMeshPro child. Tint that
+            // glyph; a fully transparent backing Image cannot show a fill.
+            var glyph = lightningIcons[i].GetComponentInChildren<TMP_Text>(true);
+            if (glyph != null) glyph.color = tint;
+        }
         int points = 0;
         if (sourceScore != null)
         {
