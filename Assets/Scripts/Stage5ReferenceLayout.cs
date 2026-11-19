@@ -26,6 +26,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     private Image[] mechanicalShards;
     private Image[] pressCrystalShards;
     private Image mechanicalFlattened;
+    private static Sprite copperPlateSprite;
     private Image copperStrikeDent;
     private Image copperFlattenedShine;
     private Image waxStrikeDent;
@@ -620,7 +621,7 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         }
         EnsurePressCrystalShards();
         mechanicalFlattened=NewImage(canvas,"MechanicalFlattenedMetal",
-            MakeOvalSprite(),new Color32(194,91,51,255));
+            MakeCopperPlateSprite(),Color.white);
         Rect(mechanicalFlattened.transform,new Vector2(152,-102),
             new Vector2(14,10));
         mechanicalFlattened.gameObject.SetActive(false);
@@ -677,14 +678,70 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         copperFlattenedShine=shine;
         if(newShine)Rect(shine.transform,new Vector2(150,-98),new Vector2(12,4));
         shine.raycastTarget=false;
+        // The plated sprite contains its own bevel and specular reflection.
+        // Keep the old highlight object disabled to avoid a flat white oval.
         shine.gameObject.SetActive(false);
         if(mechanicalFlattened!=null)
         {
-            mechanicalFlattened.sprite=MakeOvalSprite();
+            mechanicalFlattened.sprite=MakeCopperPlateSprite();
             mechanicalFlattened.overrideSprite=null;
-            mechanicalFlattened.color=new Color32(194,91,51,255);
+            mechanicalFlattened.color=Color.white;
+            mechanicalFlattened.type=Image.Type.Simple;
+            mechanicalFlattened.preserveAspect=false;
             mechanicalFlattened.raycastTarget=false;
         }
+    }
+
+    // A beveled copper plate sprite: broad flat top, visible dark front
+    // thickness and a metallic specular line. Self-generated to avoid missing
+    // external PNGs and broken Sprite Editor slicing metadata.
+    private static Sprite MakeCopperPlateSprite()
+    {
+        if(copperPlateSprite!=null)return copperPlateSprite;
+        const int width=160,height=56;
+        var texture=new Texture2D(width,height,TextureFormat.RGBA32,false);
+        texture.name="Stage5CopperPressedPlate";
+        texture.filterMode=FilterMode.Bilinear;
+        texture.wrapMode=TextureWrapMode.Clamp;
+        Color transparent=Color.clear;
+        Color topLight=new Color32(244,150,85,255);
+        Color topDark=new Color32(190,72,36,255);
+        Color side=new Color32(116,47,31,255);
+        Color bottom=new Color32(89,38,30,255);
+        for(int y=0;y<height;y++)
+        for(int x=0;x<width;x++)
+        {
+            float u=(x+.5f)/width;
+            float v=(y+.5f)/height;
+            // Rounded bevel, with the lower band showing thickness.
+            float edge=Mathf.Min(u,1f-u);
+            bool inside=edge>.025f && v>.17f && v<.82f &&
+                        !(edge<.065f && (v<.26f || v>.73f));
+            Color pixel=transparent;
+            if(inside)
+            {
+                if(v<.36f)
+                    pixel=Color.Lerp(bottom,side,(v-.17f)/.19f);
+                else if(v<.48f)
+                    pixel=Color.Lerp(side,topDark,(v-.36f)/.12f);
+                else
+                {
+                    pixel=Color.Lerp(topDark,topLight,
+                        Mathf.Clamp01((v-.48f)/.30f));
+                    // Controlled warm metallic streak across upper face.
+                    float glint=Mathf.Exp(-Mathf.Pow((u-.37f)*5f,2f));
+                    if(v>.67f && v<.74f)
+                        pixel=Color.Lerp(pixel,new Color32(255,214,152,255),.48f*glint);
+                }
+                if(edge<.045f)
+                    pixel=Color.Lerp(pixel,side,.35f);
+            }
+            texture.SetPixel(x,y,pixel);
+        }
+        texture.Apply(false,false);
+        copperPlateSprite=Sprite.Create(texture,new Rect(0,0,width,height),
+            new Vector2(.5f,.5f),100f);
+        return copperPlateSprite;
     }
 
     // An independent group for brittle crystals crushed by the hydraulic
@@ -1120,14 +1177,10 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             mechanicalFlattened.gameObject.SetActive(flatten>.01f);
             Rect(mechanicalFlattened.transform,
                 pressSampleStart+new Vector2(0,-49),
-                new Vector2(20+120*flatten,8+15*flatten));
+                new Vector2(22+104*flatten,12+16*flatten));
+            // Do not layer the previous bright oval over the new metal plate.
             if(copperFlattenedShine!=null)
-            {
-                copperFlattenedShine.gameObject.SetActive(flatten>.01f);
-                Rect(copperFlattenedShine.transform,
-                    pressSampleStart+new Vector2(0,-46),
-                    new Vector2(12+94*flatten,3+5*flatten));
-            }
+                copperFlattenedShine.gameObject.SetActive(false);
             if(t>=1f && mechanicalCube!=null)
                 mechanicalCube.gameObject.SetActive(false);
         }
