@@ -114,12 +114,6 @@
         "com.unity.test-framework.performance": "3.2.0"
       }
     },
-    "com.unity.editorcoroutines": {
-      "version": "6.6.0",
-      "depth": 1,
-      "source": "builtin",
-      "dependencies": {}
-    },
     "com.unity.ext.nunit": {
       "version": "2.1.0",
       "depth": 1,
@@ -154,16 +148,6 @@
       "source": "registry",
       "dependencies": {
         "com.unity.modules.uielements": "1.0.0"
-      },
-      "url": "https://packages.unity.com"
-    },
-    "com.unity.learn.iet-framework": {
-      "version": "6.0.7",
-      "depth": 0,
-      "source": "registry",
-      "dependencies": {
-        "com.unity.editorcoroutines": "1.0.0",
-        "com.unity.settings-manager": "1.0.3"
       },
       "url": "https://packages.unity.com"
     },
@@ -223,20 +207,13 @@
       "dependencies": {},
       "url": "https://packages.unity.com"
     },
-    "com.unity.settings-manager": {
-      "version": "2.1.1",
-      "depth": 1,
-      "source": "registry",
-      "dependencies": {},
-      "url": "https://packages.unity.com"
-    },
     "com.unity.shadergraph": {
       "version": "17.6.0",
       "depth": 1,
       "source": "builtin",
       "dependencies": {
         "com.unity.render-pipelines.core": "17.6.0",
-        "com.unity.searcher": "4.9.5",
+        "com.unity.searcher": "4.9.3",
         "com.unity.graph-authoring": "1.0.0"
       }
     },
