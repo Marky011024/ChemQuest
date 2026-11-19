@@ -17,6 +17,76 @@ public static class ChemQuestExistingHUDStyle
     private static readonly Color ScoreGold = new Color32(255, 204, 85, 255);
     private static readonly Color BorderGold = new Color32(255, 201, 90, 255);
 
+    // This is the repair command for scenes affected by the older installer.
+    // Removes the unwanted overlaid HUD and styles ONLY original HUD objects.
+    // No changes to game logic, scoring, pause events or energy penalties.
+    [MenuItem("ChemQuest/HUD/Fix Overlapping HUDs In All Stages")]
+    private static void FixOverlappingHUDs()
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            EditorUtility.DisplayDialog("Stop Play",
+                "Stop Play Mode before repairing the scene HUDs.", "OK");
+            return;
+        }
+        if (!EditorUtility.DisplayDialog("Repair ChemQuest HUDs",
+            "Remove the duplicate ChemQuestUnifiedHUD from every Stage 1-5 " +
+            "level and restyle existing controls in Stages 1-4. " +
+            "Stage 5's original reference HUD will not be restyled. " +
+            "All changed scenes will be saved. Back up or commit your current " +
+            "scene changes first.", "Repair HUDs", "Cancel")) return;
+        if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            return;
+
+        var original=SceneManager.GetActiveScene().path;
+        var ids=AssetDatabase.FindAssets("t:Scene",new[]{"Assets/Scenes"});
+        int removed=0,styled=0;
+        try
+        {
+            for(int i=0;i<ids.Length;i++)
+            {
+                var path=AssetDatabase.GUIDToAssetPath(ids[i]);
+                var sceneName=System.IO.Path.GetFileNameWithoutExtension(path);
+                var match=Regex.Match(sceneName,@"^Stage([1-5])Level([1-9]\\d*)$");
+                if(!match.Success) continue;
+                EditorUtility.DisplayProgressBar("Repair ChemQuest HUD",
+                    sceneName,(float)i/Mathf.Max(1,ids.Length));
+                var scene=EditorSceneManager.OpenScene(path,OpenSceneMode.Single);
+                bool changed=false;
+                foreach(var root in scene.GetRootGameObjects())
+                {
+                    if(root.name!="ChemQuestUnifiedHUD" ||
+                        root.GetComponent<ChemQuestUnifiedHUD>()==null)continue;
+                    UnityEngine.Object.DestroyImmediate(root);
+                    changed=true;
+                    removed++;
+                    break;
+                }
+                // Reuse existing artwork and bindings. Never make a new canvas.
+                if(match.Groups[1].Value!="5" && StyleScene(scene))
+                {
+                    changed=true;
+                    styled++;
+                }
+                if(changed)
+                {
+                    EditorSceneManager.MarkSceneDirty(scene);
+                    EditorSceneManager.SaveScene(scene);
+                }
+            }
+        }
+        finally
+        {
+            EditorUtility.ClearProgressBar();
+            if(!string.IsNullOrEmpty(original))
+                EditorSceneManager.OpenScene(original,OpenSceneMode.Single);
+        }
+        EditorUtility.DisplayDialog("HUD Repair Complete",
+            "Removed "+removed+" duplicate HUD canvases and updated existing " +
+            "HUD styling in "+styled+" scenes. Test the Menu, Energy and " +
+            "Score in Game View before committing.","OK");
+    }
+
     [MenuItem("ChemQuest/HUD/Style Existing HUDs (Stages 1-4, No Duplicates)")]
     private static void Apply()
     {
