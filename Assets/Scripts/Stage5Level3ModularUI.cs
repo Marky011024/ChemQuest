@@ -339,17 +339,8 @@ public sealed class Stage5Level3ModularUI : MonoBehaviour
                 MaterialNames[index]:"CHOOSE A MATERIAL";
         if(droppedSample!=null)
         {
-            var sprite=index>=0 && index<3?
-                Resources.Load<Sprite>("ChemQuestStage5Reference/DragSample"+index):null;
-            if(sprite==null && index>=0 && index<3)
-            {
-                var texture=Resources.Load<Texture2D>(
-                    "ChemQuestStage5Reference/DragSample"+index);
-                if(texture!=null)
-                    sprite=Sprite.Create(texture,
-                        new Rect(0,0,texture.width,texture.height),
-                        new Vector2(.5f,.5f),100f);
-            }
+            // Match the same three actual-material cubes used by Levels 1-2.
+            var sprite=Stage5MaterialCubeSprites.Get(index);
             droppedSample.sprite=sprite;
             droppedSample.color=Color.white;
             droppedSample.gameObject.SetActive(sprite!=null);
