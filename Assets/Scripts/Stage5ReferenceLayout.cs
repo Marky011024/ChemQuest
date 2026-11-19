@@ -551,7 +551,8 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     private static void SetActionOutline(Transform button,bool active)
     {
         if(button==null)return;
-        var image=Find(button,"ButtonImage")?.GetComponent<Image>();
+        var image=Find(button,"ButtonSurface")?.GetComponent<Image>();
+        if(image==null)image=Find(button,"ButtonImage")?.GetComponent<Image>();
         if(image==null)image=button.GetComponent<Image>();
         if(image==null)return;
         var outline=image.GetComponent<Outline>();
