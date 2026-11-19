@@ -97,6 +97,8 @@ public static class ChemQuestHUDInstaller
         var edge=menuFace.GetComponent<Outline>();
         if(edge==null)edge=menuFace.gameObject.AddComponent<Outline>();
         edge.effectColor=Gold;edge.effectDistance=new Vector2(2,-2);
+        // The visible MenuFace itself must receive pointer events.
+        menuFace.raycastTarget=true;
         var menu=menuFace.GetComponent<Button>();
         if(menu==null)menu=menuFace.gameObject.AddComponent<Button>();
         menu.targetGraphic=menuFace;
