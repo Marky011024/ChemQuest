@@ -15,12 +15,46 @@ button{border:0;border-radius:7px;background:#17a6b4;color:#071729;font-weight:7
 .itemHead{display:flex;align-items:center;justify-content:space-between;gap:12px}.tag{font-size:12px;border:1px solid #8fb5c7;border-radius:16px;padding:3px 9px}
 #message{min-height:24px;color:#f2c65d}small{color:#bdd0dd}#logout{display:none}#workspace{display:none}
 @media(max-width:760px){.grid,.fields{grid-template-columns:1fr}header{align-items:flex-start;flex-direction:column}}
+/* Admin UI refresh: readable, responsive, and usable on small screens */
+:root{color-scheme:dark;--ink:#f0f7ff;--muted:#a8c4d9;--accent:#60e0d7}
+body{background:radial-gradient(circle at 80% 0%,#153961 0,transparent 46%),#081626;min-height:100vh}
+header{position:sticky;top:0;z-index:10;background:rgba(12,35,61,.97);backdrop-filter:blur(12px);padding:16px max(22px,calc((100% - 1300px)/2));box-shadow:0 8px 30px #0003}
+main{max-width:1300px}
+h1{font-size:clamp(21px,3vw,27px);letter-spacing:.2px}
+h2{font-size:19px;margin-top:0}
+.panel{background:linear-gradient(145deg,#122f50,#0d233c);box-shadow:0 12px 35px #0002;border-color:#365a79}
+button{transition:filter .15s,transform .15s;min-height:40px}
+button:hover{filter:brightness(1.13);transform:translateY(-1px)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid #59e5de;outline-offset:2px}
+input,select,textarea{min-height:44px}
+textarea{line-height:1.5}
+.tag{font-weight:650;text-transform:capitalize}
+.item{border-color:#3b6482;transition:border-color .2s}
+.item:hover{border-color:#71b3ce}
+#message{padding:10px 14px;border-left:3px solid #f2c65d;background:#122a43;border-radius:5px;margin-bottom:16px}
+#message:empty{display:none}
+.dashboard{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 18px}
+.metric{background:#112d4a;border:1px solid #355978;border-radius:12px;padding:16px}
+.metric .value{font-size:28px;font-weight:800;color:#ffe09a;margin-top:8px}
+.metric small{font-size:12px}
+.tool-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.hint-text{color:#b5cfe0;font-size:13px}
+.pill{background:#22445f;border-radius:99px;padding:5px 12px;font-size:12px;font-weight:700}
+.item p{color:#d0e7f4;margin-bottom:8px}
+#questionList:empty::after{content:"No questions match the selected filters.";display:block;color:#bbd0e0;text-align:center;padding:36px 12px;border:1px dashed #50738c;border-radius:8px}
+@media(max-width:920px){.grid{grid-template-columns:1fr}.dashboard{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){header{padding:12px 16px}.panel{padding:16px}.dashboard{gap:8px}.metric{padding:12px}.metric .value{font-size:24px}.actions button{flex:1}}
 </style></head><body>
 <header><div><h1>⚗ ChemQuest Admin</h1><small>Question Bank Management • Pre-test / BOW / Post-test</small></div><button id="logout" class="secondary">Sign out</button></header>
 <main><p id="message" role="status"></p>
 <section id="loginPanel" class="panel"><h2>Administrator sign in</h2><p>Use an approved Firebase Authentication account. Only accounts with an administrator role in Firestore may edit questions.</p>
 <form id="loginForm" class="fields"><label>Email<input id="email" type="email" autocomplete="username" required></label><label>Password<input id="password" type="password" autocomplete="current-password" required></label><div class="wide"><button type="submit">Sign in</button></div></form></section>
-<div id="workspace"><div class="grid"><section class="panel"><h2>Question editor</h2>
+<div id="workspace"><div class="dashboard" aria-label="Question statistics">
+<div class="metric"><small>Total questions</small><div class="value" id="totalMetric">0</div></div>
+<div class="metric"><small>Published</small><div class="value" id="publishedMetric">0</div></div>
+<div class="metric"><small>Drafts</small><div class="value" id="draftMetric">0</div></div>
+<div class="metric"><small>BOW questions</small><div class="value" id="bowMetric">0</div></div>
+</div><div class="grid"><section class="panel"><div class="tool-heading"><h2 id="editorHeading">Create a question</h2><span class="pill">Science • Grade 9</span></div><p class="hint-text">Choose an assessment, provide the choices and correct answer, then save as a draft.</p>
 <form id="questionForm" class="fields">
 <label>Assessment<select id="kind"><option value="pre">Pre-test</option><option value="bow">BOW</option><option value="post">Post-test</option></select></label>
 <label>Stage<select id="stage"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
@@ -35,7 +69,8 @@ button{border:0;border-radius:7px;background:#17a6b4;color:#071729;font-weight:7
 <div class="wide actions"><button type="submit">Save draft</button><button id="clear" type="button" class="secondary">New question</button></div>
 </form><small>Changing an existing published question saves it as a draft. Publish separately after approval.</small>
 </section>
-<section class="panel"><h2>Question bank</h2><div class="fields"><label>Assessment filter<select id="filter"><option value="all">All</option><option value="pre">Pre-test</option><option value="bow">BOW</option><option value="post">Post-test</option></select></label><label>Search<input id="search" placeholder="Question text"></label></div><p id="count"></p><div id="questionList"></div></section></div>
+<section class="panel"><div class="tool-heading"><h2>Question bank</h2><button id="refresh" type="button" class="secondary">↻ Refresh</button></div>
+<div class="fields"><label>Assessment filter<select id="filter"><option value="all">All assessments</option><option value="pre">Pre-test</option><option value="bow">BOW</option><option value="post">Post-test</option></select></label><label>Status<select id="statusFilter"><option value="all">All statuses</option><option value="draft">Draft</option><option value="published">Published</option></select></label><label class="wide">Search questions<input id="search" placeholder="Search by question text or choices"></label></div><p class="hint-text" id="count"></p><div id="questionList"></div></section></div>
 <section class="panel"><h2>Important for school assessments</h2><p>Publish only questions approved by your Science teacher. Do not change an assessment version while students are taking a pre-test or post-test. The Unity offline reader and published-version locking still need to be integrated and tested before use with respondents.</p></section></div></main>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js';
@@ -46,7 +81,7 @@ const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
 const el=id=>document.getElementById(id),message=s=>{el('message').textContent=s;};
 let records=[],selectedId=null,isAdmin=false;
 const escapeText=t=>String(t??'');
-function resetEditor(){selectedId=null;el('questionForm').reset();el('order').value='1';el('kind').dispatchEvent(new Event('change'));}
+function resetEditor(){selectedId=null;el('questionForm').reset();el('order').value='1';el('editorHeading').textContent='Create a question';el('kind').dispatchEvent(new Event('change'));}
 el('kind').addEventListener('change',()=>{let isBow=el('kind').value==='bow';el('level').disabled=!isBow;});
 el('kind').dispatchEvent(new Event('change'));
 el('clear').addEventListener('click',resetEditor);
@@ -62,13 +97,18 @@ isAdmin=true;el('workspace').style.display='block';message('Signed in as authori
 async function load(){if(!isAdmin)return;const snap=await getDocs(collection(db,'questionBank'));records=snap.docs.map(d=>({id:d.id,...d.data()}));render();}
 function makeButton(label,fn,className='secondary'){const b=document.createElement('button');b.type='button';b.className=className;b.textContent=label;b.addEventListener('click',fn);return b;}
 function render(){
-const q=el('search').value.trim().toLowerCase(),filter=el('filter').value;
-const list=records.filter(r=>(filter==='all'||r.kind===filter)&&escapeText(r.prompt).toLowerCase().includes(q)).sort((a,b)=>String(a.kind).localeCompare(String(b.kind))||Number(a.stage)-Number(b.stage)||Number(a.level)-Number(b.level)||Number(a.order)-Number(b.order));
+const q=el('search').value.trim().toLowerCase(),filter=el('filter').value,status=el('statusFilter').value;
+el('totalMetric').textContent=records.length;
+el('publishedMetric').textContent=records.filter(r=>r.status==='published').length;
+el('draftMetric').textContent=records.filter(r=>r.status!=='published').length;
+el('bowMetric').textContent=records.filter(r=>r.kind==='bow').length;
+const list=records.filter(r=>(filter==='all'||r.kind===filter)&&(status==='all'||(r.status||'draft')===status)&&([r.prompt,...(r.choices||[])].join(' ').toLowerCase().includes(q))).sort((a,b)=>String(a.kind).localeCompare(String(b.kind))||Number(a.stage)-Number(b.stage)||Number(a.level)-Number(b.level)||Number(a.order)-Number(b.order));
 el('count').textContent=list.length+' questions';el('questionList').replaceChildren();
 for(const r of list){const card=document.createElement('div');card.className='item';const hd=document.createElement('div');hd.className='itemHead';const title=document.createElement('strong');title.textContent=(r.kind||'').toUpperCase()+' • Stage '+r.stage+(r.kind==='bow'?' / Level '+r.level:'')+' • #'+r.order;const status=document.createElement('span');status.className='tag';status.textContent=r.status||'draft';hd.append(title,status);card.append(hd);const p=document.createElement('p');p.textContent=escapeText(r.prompt);card.append(p);const actions=document.createElement('div');actions.className='actions';actions.append(makeButton('Edit',()=>edit(r)));actions.append(makeButton('Preview',()=>preview(r)));if(r.status!=='published')actions.append(makeButton('Publish',()=>publish(r),'gold'));actions.append(makeButton('Delete',()=>removeQuestion(r),'danger'));card.append(actions);el('questionList').append(card);}
 }
-el('filter').addEventListener('change',render);el('search').addEventListener('input',render);
-function edit(r){selectedId=r.id;for(const key of ['kind','stage','level','order','prompt','hint','explanation'])if(el(key))el(key).value=r[key]??'';['a','b','c','d'].forEach((k,i)=>el(k).value=(r.choices||[])[i]||'');el('answer').value=String(r.correct??0);el('kind').dispatchEvent(new Event('change'));window.scrollTo({top:0,behavior:'smooth'});message('Editing question; Save draft before publishing.');}
+el('filter').addEventListener('change',render);el('statusFilter').addEventListener('change',render);el('search').addEventListener('input',render);
+el('refresh').addEventListener('click',async()=>{try{await load();message('Question bank refreshed.');}catch(err){message('Refresh failed: '+err.message);}});
+function edit(r){selectedId=r.id;el('editorHeading').textContent='Edit question';for(const key of ['kind','stage','level','order','prompt','hint','explanation'])if(el(key))el(key).value=r[key]??'';['a','b','c','d'].forEach((k,i)=>el(k).value=(r.choices||[])[i]||'');el('answer').value=String(r.correct??0);el('kind').dispatchEvent(new Event('change'));window.scrollTo({top:0,behavior:'smooth'});message('Editing question; Save draft before publishing.');}
 function dataFromForm(){const kind=el('kind').value,choices=['a','b','c','d'].map(k=>el(k).value.trim()),correct=Number(el('answer').value);if(!choices[correct])throw Error('Correct answer must have text.');if(kind!=='bow'&&choices.some(x=>!x))throw Error('Pre/Post-test requires all four choices.');if(kind==='bow'&&(!choices[0]||!choices[1]))throw Error('BOW requires at least A and B.');
 return {kind,stage:Number(el('stage').value),level:kind==='bow'?Number(el('level').value):null,order:Number(el('order').value),prompt:el('prompt').value.trim(),choices,correct,hint:el('hint').value.trim(),explanation:el('explanation').value.trim(),status:'draft',updatedAt:serverTimestamp()};}
 let saving=false;
