@@ -184,7 +184,10 @@ public static class Stage5LevelsHUDPolish
             bolt.color=new Color32(20,218,255,255);
             bolt.preserveAspect=true;
             bolt.raycastTarget=false;
-            bolt.enabled=i<PlayerPrefs.GetInt("PlayerEnergy",5);
+            // Edit Mode is a design preview: always show five full bolts.
+            // On Play, Stage5ElementCrucibleGame.RefreshEnergy() will
+            // enable only the actual remaining bolts from EnergyManager.
+            bolt.enabled=true;
         }
 
         // Reuse the LIVE TextMeshPro object that Stage5ReferenceLayout
