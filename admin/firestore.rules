@@ -19,6 +19,15 @@ service cloud.firestore {
       // rather than exposing drafts/answer keys to student clients.
       allow read, create, update, delete: if admin();
     }
+    // PILOT ONLY: one teacher-approved non-assessment test question.
+    // Authentication required; drafts are not visible to students.
+    // Never add confidential assessment answer keys to this test document.
+    match /syncPilot/{pilotId} {
+      allow get: if pilotId == "demo" && signedIn() &&
+        resource.data.status == "published";
+      allow list: if false;
+      allow create, update, delete: if admin() && pilotId == "demo";
+    }
     match /{document=**} { allow read, write: if false; }
   }
 }
