@@ -196,7 +196,14 @@ public sealed class Stage5ReferenceTouchController : MonoBehaviour,
                         game.ReferenceChoosePhase(action-20);
                         skin.ReferencePhaseSelected(action-20);
                     }
-                    else game.ReferenceAction(action);
+                    else
+                    {
+                        game.ReferenceAction(action);
+                        // Highlight only a successfully tapped STRIKE or PRESS.
+                        // The new border is decorative and does not intercept UI events.
+                        if(skin!=null && level==2 && (action==1 || action==2))
+                            skin.HighlightAction(action);
+                    }
                 }
             }
         }
