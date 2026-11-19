@@ -99,15 +99,9 @@ public class Stage5SampleDrag : MonoBehaviour, IBeginDragHandler, IDragHandler, 
         }
         else img.color = new Color32(65, 130, 175, 255);
 
-        // With the exact reference-screen skin, the sample buttons are
-        // transparent hitboxes; show the actual illustrated cube when dragging.
-        var special=Resources.Load<Sprite>("ChemQuestStage5Reference/DragSample"+SampleIndex);
-        if(special==null)
-        {
-            var texture=Resources.Load<Texture2D>("ChemQuestStage5Reference/DragSample"+SampleIndex);
-            if(texture!=null)special=Sprite.Create(texture,
-                new Rect(0,0,texture.width,texture.height),new Vector2(.5f,.5f),100f);
-        }
+        // Always drag the same identified material cube in every Stage 5
+        // level, not an old generic Sample A/B/C card or texture atlas.
+        var special=Stage5MaterialCubeSprites.Get(SampleIndex);
         if(special!=null)
         {
             img.sprite=special;img.color=Color.white;img.preserveAspect=true;
