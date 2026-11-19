@@ -163,9 +163,48 @@ public static class ChemQuestHUDInstaller
         var rt=Rect(parent,name,new Vector2(.5f,.5f),pos,size);
         var img=rt.GetComponent<Image>();
         if(img==null)img=rt.gameObject.AddComponent<Image>();
+        img.sprite=RoundedBackdrop();
+        img.type=Image.Type.Sliced;
         img.color=color;
         img.raycastTarget=false;
         return img;
+    }
+
+    // Editor-baked sprite asset: rounded borders remain visible in Edit Mode,
+    // unlike temporary Texture2D sprites generated only during Play.
+    private static Sprite RoundedBackdrop()
+    {
+        const string path="Assets/ChemQuestSharedHUD/RoundedHUD.png";
+        var existing=AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        if(existing!=null)return existing;
+        if(!System.IO.Directory.Exists("Assets/ChemQuestSharedHUD"))
+            System.IO.Directory.CreateDirectory("Assets/ChemQuestSharedHUD");
+        const int size=64;
+        const float radius=15f;
+        var texture=new Texture2D(size,size,TextureFormat.RGBA32,false);
+        for(int y=0;y<size;y++)
+        for(int x=0;x<size;x++)
+        {
+            float dx=Mathf.Max(Mathf.Abs(x+.5f-size*.5f)-(size*.5f-radius),0f);
+            float dy=Mathf.Max(Mathf.Abs(y+.5f-size*.5f)-(size*.5f-radius),0f);
+            float alpha=Mathf.Clamp01(radius+.5f-Mathf.Sqrt(dx*dx+dy*dy));
+            texture.SetPixel(x,y,new Color(1,1,1,alpha));
+        }
+        texture.Apply();
+        System.IO.File.WriteAllBytes(path,texture.EncodeToPNG());
+        UnityEngine.Object.DestroyImmediate(texture);
+        AssetDatabase.ImportAsset(path,ImportAssetOptions.ForceUpdate);
+        var importer=AssetImporter.GetAtPath(path) as TextureImporter;
+        if(importer!=null)
+        {
+            importer.textureType=TextureImporterType.Sprite;
+            importer.spriteImportMode=SpriteImportMode.Single;
+            importer.spritePixelsPerUnit=64;
+            importer.spriteBorder=new Vector4(16,16,16,16);
+            importer.alphaIsTransparency=true;
+            importer.SaveAndReimport();
+        }
+        return AssetDatabase.LoadAssetAtPath<Sprite>(path);
     }
 
     private static TextMeshProUGUI Label(Transform parent,string name,string value,
