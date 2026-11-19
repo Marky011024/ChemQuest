@@ -121,38 +121,31 @@ public static class Stage1Level2And3HUDPolish
         scoreLabel.raycastTarget=false;
         // Never overwrite its text: the existing ScoreManager owns that.
 
-        // Prefer the prefab's already-working pause Button, preserving its
-        // onClick. If it isn't exposed, create a single serialized button
-        // wired to the existing PauseMenuManager.
+        // A new *scene-authored* button is needed because the old Pause button
+        // is nested inside a prefab. Reparenting prefab children is blocked by
+        // Unity, so leave the prefab intact and hide ONLY its old button.
         var manager=FindPauseManager(scene);
         if(manager==null)throw new Exception("PauseMenuManager missing in "+scene.name);
-        Button button=null;
-        foreach(var b in AllButtons(scene))
+        var menu=Ensure(parent,"Stage1StyledPauseButton",
+            new Vector2(0,1),new Vector2(70,-72),new Vector2(94,86));
+        var button=menu.GetComponent<Button>();
+        if(button==null)button=menu.gameObject.AddComponent<Button>();
+        button.onClick.RemoveAllListeners();
+        UnityEventTools.AddPersistentListener(button.onClick,manager.PauseGame);
+        foreach(var oldButton in AllButtons(scene))
         {
-            if(b==null)continue;
-            string name=b.name.ToLowerInvariant();
-            if(name=="pausebutton"||name=="stage1pausebutton")
+            if(oldButton==null || oldButton==button)continue;
+            string oldName=oldButton.name.ToLowerInvariant();
+            if(oldName=="pausebutton" || oldName=="stage1pausebutton")
             {
-                button=b;
-                break;
+                // Don't delete/reparent the existing prefab or pause panel.
+                // Disabling its click and visual avoids overlapping controls.
+                oldButton.interactable=false;
+                var oldGraphic=oldButton.targetGraphic as Image;
+                if(oldGraphic!=null)oldGraphic.enabled=false;
+                foreach(var graphic in oldButton.GetComponentsInChildren<Graphic>(true))
+                    graphic.enabled=false;
             }
-        }
-        RectTransform menu;
-        if(button==null)
-        {
-            menu=Ensure(parent,"Stage1StyledPauseButton",
-                new Vector2(0,1),new Vector2(70,-72),new Vector2(94,86));
-            button=menu.GetComponent<Button>();
-            if(button==null)button=menu.gameObject.AddComponent<Button>();
-            button.onClick.RemoveAllListeners();
-            UnityEventTools.AddPersistentListener(button.onClick,manager.PauseGame);
-        }
-        else
-        {
-            menu=button.GetComponent<RectTransform>();
-            // Stay on original Canvas to avoid changing popup order.
-            menu.SetParent(parent,false);
-            Place(menu,new Vector2(70,-72),new Vector2(94,86),new Vector2(0,1));
         }
         var face=menu.GetComponent<Image>();
         if(face==null)face=menu.gameObject.AddComponent<Image>();
