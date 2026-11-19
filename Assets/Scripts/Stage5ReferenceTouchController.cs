@@ -199,9 +199,15 @@ public sealed class Stage5ReferenceTouchController : MonoBehaviour,
                     else
                     {
                         game.ReferenceAction(action);
-                        // Highlight only a successfully tapped STRIKE or PRESS.
-                        // The new border is decorative and does not intercept UI events.
-                        if(skin!=null && level==2 && (action==1 || action==2))
+                        // Selection feedback for every Stage 5 level:
+                        // Level 1 APPLY HEAT; Level 2 STRIKE/PRESS;
+                        // Level 3 TEST PROBE/CHECK CLASSIFICATION.
+                        // Existing phase, material and bonding-choice highlights
+                        // remain handled by their respective UI components.
+                        if(skin!=null &&
+                            ((level==1 && action==0) ||
+                             (level==2 && (action==1 || action==2)) ||
+                             (level==3 && (action==3 || action==4))))
                             skin.HighlightAction(action);
                     }
                 }
@@ -228,14 +234,9 @@ public sealed class Stage5ReferenceTouchController : MonoBehaviour,
             ghost.rectTransform.anchorMin=ghost.rectTransform.anchorMax=new Vector2(.5f,.5f);
             ghost.rectTransform.sizeDelta=new Vector2(88,88);
         }
-        var sprite=Resources.Load<Sprite>("ChemQuestStage5Reference/DragSample"+sample);
-        if(sprite==null)
-        {
-            var texture=Resources.Load<Texture2D>("ChemQuestStage5Reference/DragSample"+sample);
-            if(texture!=null)
-                sprite=Sprite.Create(texture,new Rect(0,0,texture.width,texture.height),
-                    new Vector2(.5f,.5f),100f);
-        }
+        // Use the same three material cubes seen in the heating, mechanical
+        // and conductivity workbenches.
+        var sprite=Stage5MaterialCubeSprites.Get(sample);
         ghost.sprite=sprite;
         ghost.color=Color.white;
         ghost.type=Image.Type.Simple;
