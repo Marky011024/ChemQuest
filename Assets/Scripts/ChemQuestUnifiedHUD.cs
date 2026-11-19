@@ -34,6 +34,10 @@ public sealed class ChemQuestUnifiedHUD : MonoBehaviour
             menuButton.onClick.RemoveListener(OpenExistingPause);
             menuButton.onClick.AddListener(OpenExistingPause);
         }
+        // Directly launching any gameplay scene must still get the
+        // persistent EnergyManager (and its 15-minute regeneration clock).
+        if (Application.isPlaying && EnergyManager.Instance == null)
+            new GameObject("SharedEnergyManager",typeof(EnergyManager));
         FindSourceScore();
         HookEnergy();
         Draw();
