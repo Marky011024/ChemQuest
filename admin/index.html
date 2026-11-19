@@ -44,11 +44,55 @@ textarea{line-height:1.5}
 #questionList:empty::after{content:"No questions match the selected filters.";display:block;color:#bbd0e0;text-align:center;padding:36px 12px;border:1px dashed #50738c;border-radius:8px}
 @media(max-width:920px){.grid{grid-template-columns:1fr}.dashboard{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){header{padding:12px 16px}.panel{padding:16px}.dashboard{gap:8px}.metric{padding:12px}.metric .value{font-size:24px}.actions button{flex:1}}
+
+/* Chemistry-themed administrator sign-in */
+#loginPanel{background:transparent;border:0;box-shadow:none;padding:0;margin:42px auto 26px;max-width:1130px}
+.login-shell{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:stretch}
+.login-intro,.login-card{background:linear-gradient(155deg,#143554,#0c233a);border:1px solid #3a5e79;border-radius:18px;padding:clamp(23px,4vw,42px);box-shadow:0 20px 50px #0003}
+.login-intro{position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:center;min-height:400px}
+.login-intro::after{content:"";position:absolute;width:260px;height:260px;border:1px solid #66dfe644;border-radius:50%;top:-112px;right:-100px;box-shadow:0 0 0 37px #54b5cc0a,0 0 0 76px #54b5cc07;pointer-events:none}
+.science-mark{font-size:40px;color:#f5cc69;line-height:1;margin-bottom:20px}
+.login-eyebrow{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#6ce1dc;font-weight:800}
+.login-intro h2{font-size:clamp(25px,3vw,35px);line-height:1.2;margin:13px 0;color:#ffdc80}
+.login-intro p{max-width:38ch}
+.login-feature{display:flex;gap:11px;align-items:center;color:#d4e5f1;font-size:14px;margin-top:16px}
+.login-feature::before{content:"✓";font-weight:bold;color:#73ecd6}
+.login-card{display:flex;flex-direction:column;justify-content:center}
+.login-card h2{font-size:26px;margin:0 0 8px}
+.login-card p{margin-top:0}
+.login-fields{display:grid;gap:16px}
+.login-fields label{font-size:13px}
+.login-fields input{min-height:48px}
+.password-row{display:flex;align-items:stretch;gap:8px}
+.password-row input{flex:1;min-width:0}
+.password-row button{margin-top:6px;padding:8px 12px;min-width:75px;font-size:12px}
+.login-submit{background:#efc660;color:#102039;width:100%;margin-top:4px;min-height:46px}
+.forgot-link{background:none;color:#8ddbe4;border:0;padding:5px 0;min-height:auto;text-decoration:underline}
+.login-help{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.login-footer{text-align:center;color:#99b8cd;font-size:12px;margin-top:22px}
+#loginFeedback{min-height:24px;color:#ffde8c;font-size:13px;line-height:1.4}
+@media(max-width:780px){.login-shell{grid-template-columns:1fr}#loginPanel{margin:20px auto}.login-intro{min-height:0}.login-intro,.login-card{padding:23px}}
 </style></head><body>
 <header><div><h1>⚗ ChemQuest Admin</h1><small>Question Bank Management • Pre-test / BOW / Post-test</small></div><button id="logout" class="secondary">Sign out</button></header>
 <main><p id="message" role="status"></p>
-<section id="loginPanel" class="panel"><h2>Administrator sign in</h2><p>Use an approved Firebase Authentication account. Only accounts with an administrator role in Firestore may edit questions.</p>
-<form id="loginForm" class="fields"><label>Email<input id="email" type="email" autocomplete="username" required></label><label>Password<input id="password" type="password" autocomplete="current-password" required></label><div class="wide"><button type="submit">Sign in</button></div></form></section>
+<section id="loginPanel" aria-label="Administrator sign in">
+<div class="login-shell">
+<div class="login-intro"><div class="science-mark" aria-hidden="true">⚛</div><span class="login-eyebrow">ChemQuest • Grade 9 Science</span>
+<h2>Manage Learning Assessments</h2><p>A centralized question management portal for your chemistry learning experience.</p>
+<div class="login-feature">Pre-test and Post-test question banks</div>
+<div class="login-feature">BOW formative assessments</div>
+<div class="login-feature">Secure question review and publishing</div></div>
+<div class="login-card"><span class="login-eyebrow">Administrator portal</span><h2>Welcome back!</h2>
+<p>Sign in with your authorized ChemQuest administrator account.</p>
+<form id="loginForm" class="login-fields">
+<label>Email address<input id="email" type="email" autocomplete="username" placeholder="Enter your email" required></label>
+<label>Password<div class="password-row"><input id="password" type="password" autocomplete="current-password" placeholder="Enter your password" required><button id="togglePassword" class="secondary" type="button" aria-label="Show password" aria-pressed="false">Show</button></div></label>
+<div class="login-help"><small>Authorized administrators only</small><button id="resetPassword" type="button" class="forgot-link">Forgot password?</button></div>
+<button id="loginSubmit" class="login-submit" type="submit">Sign in securely</button>
+<div id="loginFeedback" role="status" aria-live="polite"></div>
+</form></div>
+</div><div class="login-footer">ChemQuest • Educational Assessment Management System</div>
+</section>
 <div id="workspace"><nav class="assessment-tabs" aria-label="Question assessment views"><button type="button" class="active" data-view="all">Overview</button><button type="button" data-view="pre">Pre-test</button><button type="button" data-view="bow">BOW</button><button type="button" data-view="post">Post-test</button></nav><div class="dashboard" aria-label="Question statistics">
 <div class="metric"><small>Total questions</small><div class="value" id="totalMetric">0</div></div>
 <div class="metric"><small>Published</small><div class="value" id="publishedMetric">0</div></div>
@@ -74,7 +118,7 @@ textarea{line-height:1.5}
 <section class="panel"><h2>Important for school assessments</h2><p>Publish only questions approved by your Science teacher. Do not change an assessment version while students are taking a pre-test or post-test. The Unity offline reader and published-version locking still need to be integrated and tested before use with respondents.</p></section></div></main>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js';
-import { getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
+import { getAuth,signInWithEmailAndPassword,sendPasswordResetEmail,signOut,onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 import { getFirestore,doc,getDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
 import { firebaseConfig } from './firebase-config.js';
 const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
@@ -86,7 +130,35 @@ el('kind').addEventListener('change',()=>{let isBow=el('kind').value==='bow';el(
 el('kind').dispatchEvent(new Event('change'));
 el('clear').addEventListener('click',resetEditor);
 el('logout').addEventListener('click',()=>signOut(auth));
-el('loginForm').addEventListener('submit',async e=>{e.preventDefault();try{message('Signing in…');await signInWithEmailAndPassword(auth,el('email').value,el('password').value);el('password').value='';}catch(err){message('Sign-in failed: '+err.message);}});
+const loginFeedback=s=>{el('loginFeedback').textContent=s;};
+el('togglePassword').addEventListener('click',()=>{
+ const hidden=el('password').type==='password';el('password').type=hidden?'text':'password';
+ el('togglePassword').textContent=hidden?'Hide':'Show';
+ el('togglePassword').setAttribute('aria-pressed',String(hidden));
+ el('togglePassword').setAttribute('aria-label',hidden?'Hide password':'Show password');
+});
+el('resetPassword').addEventListener('click',async()=>{
+ const email=el('email').value.trim();
+ if(!email){loginFeedback('Enter your registered email address first.');el('email').focus();return;}
+ if(!confirm('Send password reset instructions to '+email+'?'))return;
+ el('resetPassword').disabled=true;
+ try{await sendPasswordResetEmail(auth,email);loginFeedback('If this address is registered and eligible, password reset instructions will be sent.');}
+ catch(err){loginFeedback('Could not request password reset. Try again later or contact your administrator.');}
+ finally{el('resetPassword').disabled=false;}
+});
+function readableLoginError(code){
+ if(code==='auth/invalid-email')return 'Enter a valid email address.';
+ if(code==='auth/too-many-requests')return 'Too many attempts. Try again later.';
+ if(code==='auth/network-request-failed')return 'Connection problem. Check your internet and try again.';
+ return 'Sign-in failed. Check your email/password and administrator access.';
+}
+el('loginForm').addEventListener('submit',async e=>{
+ e.preventDefault();const button=el('loginSubmit');if(button.disabled)return;
+ button.disabled=true;button.textContent='Signing in…';loginFeedback('Checking your credentials…');
+ try{await signInWithEmailAndPassword(auth,el('email').value.trim(),el('password').value);el('password').value='';loginFeedback('');}
+ catch(err){loginFeedback(readableLoginError(err.code));}
+ finally{button.disabled=false;button.textContent='Sign in securely';}
+});
 onAuthStateChanged(auth,async user=>{
 isAdmin=false;el('workspace').style.display='none';el('logout').style.display=user?'block':'none';el('loginPanel').style.display=user?'none':'block';
 if(!user){message('');return;}
