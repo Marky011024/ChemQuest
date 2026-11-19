@@ -73,44 +73,61 @@ public static class Stage5LevelsHUDPolish
         var menu=Find(canvas,"MenuButton")?.GetComponent<Button>();
         var energy=Find(canvas,"ReferenceLiveEnergy")?.GetComponent<TMP_Text>();
         var score=Find(canvas,"ReferenceLiveScore")?.GetComponent<TMP_Text>();
-        if(menu==null||energy==null||score==null)
-            throw new Exception(scene.name+" needs baked reference HUD controls. "+
-                "First use ChemQuest > Stage 5 > Bake Playable UI Into Open Scene.");
+        // Stage 5 reference-art scenes use one full-screen mapped touch
+        // controller to handle the top-left Menu hotspot (action 50 -> Pause).
+        // They intentionally do not have a separate MenuButton GameObject.
+        var mappedTouch=Find(canvas,"Stage5MappedTouchSurface")
+            ?.GetComponent<Stage5ReferenceTouchController>();
+        if(energy==null||score==null||(menu==null && mappedTouch==null))
+            throw new Exception(scene.name+" needs the saved Stage 5 reference HUD "+
+                "and menu input. Use ChemQuest > Stage 5 > Bake Playable UI "+
+                "Into Open Scene, then check the scene hierarchy.");
 
-        // The existing MenuButton is already wired to the right pause handler.
-        // Its 67 x 65 reference-art hitbox stays in the same location.
-        var parent=menu.GetComponent<RectTransform>();
-        var face=Ensure(parent,"Stage5CompactMenuFace",
-            new Vector2(0,0),new Vector2(63,61));
-        var background=face.GetComponent<Image>();
-        if(background==null)background=face.gameObject.AddComponent<Image>();
-        background.sprite=rounded;
-        background.type=Image.Type.Sliced;
-        background.color=Navy;
-        background.raycastTarget=false;
-        var outline=background.GetComponent<Outline>();
-        if(outline==null)outline=background.gameObject.AddComponent<Outline>();
-        outline.effectColor=Gold;
-        outline.effectDistance=new Vector2(2,-2);
-        outline.useGraphicAlpha=false;
-        outline.enabled=true;
-        // No Unicode hamburger character: physical lines won't produce
-        // missing-glyph white squares.
-        for(int i=0;i<3;i++)
+        // Only style an actual Button when the scene contains one.
+        // With mapped-touch reference artwork, keep the already painted
+        // compact Menu icon. Do not introduce a second raycast hitbox.
+        if(menu!=null)
         {
-            var rt=Ensure(face,"Stage5MenuLine"+(i+1),
-                new Vector2(0,11-i*11),new Vector2(34,5));
-            var img=rt.GetComponent<Image>();
-            if(img==null)img=rt.gameObject.AddComponent<Image>();
-            img.sprite=null;
-            img.type=Image.Type.Simple;
-            img.color=Color.white;
-            img.raycastTarget=false;
+            // The existing MenuButton is already wired to the right pause handler.
+            // Its 67 x 65 reference-art hitbox stays in the same location.
+            var parent=menu.GetComponent<RectTransform>();
+            var face=Ensure(parent,"Stage5CompactMenuFace",
+                new Vector2(0,0),new Vector2(63,61));
+            var background=face.GetComponent<Image>();
+            if(background==null)background=face.gameObject.AddComponent<Image>();
+            background.sprite=rounded;
+            background.type=Image.Type.Sliced;
+            background.color=Navy;
+            background.raycastTarget=false;
+            var outline=background.GetComponent<Outline>();
+            if(outline==null)outline=background.gameObject.AddComponent<Outline>();
+            outline.effectColor=Gold;
+            outline.effectDistance=new Vector2(2,-2);
+            outline.useGraphicAlpha=false;
+            outline.enabled=true;
+            // No Unicode hamburger character: physical lines won't produce
+            // missing-glyph white squares.
+            for(int i=0;i<3;i++)
+            {
+                var rt=Ensure(face,"Stage5MenuLine"+(i+1),
+                    new Vector2(0,11-i*11),new Vector2(34,5));
+                var img=rt.GetComponent<Image>();
+                if(img==null)img=rt.gameObject.AddComponent<Image>();
+                img.sprite=null;
+                img.type=Image.Type.Simple;
+                img.color=Color.white;
+                img.raycastTarget=false;
+            }
+            face.SetAsLastSibling();
+            // Keep the actual button clickable even if it uses transparent
+            // artwork (Stage5ReferenceLayout manages its hit surface).
+            menu.interactable=true;
         }
-        face.SetAsLastSibling();
-        // Keep the actual button clickable even if it uses transparent
-        // artwork (Stage5ReferenceLayout manages its hit surface).
-        menu.interactable=true;
+        else
+        {
+            Debug.Log("CHEMQUEST Stage 5: "+scene.name+
+                " uses the existing mapped Menu hotspot; no duplicate button added.");
+        }
 
         // Reference masks cover PRE-PAINTED numerals in the artwork.
         // Their positions are intentional, so restyling text does not
