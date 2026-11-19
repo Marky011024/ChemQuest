@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ChemQuest | Admin Question Bank</title>
+<style>
+:root{font-family:Inter,system-ui,Arial,sans-serif;color:#eaf5fc;background:#09182a}
+*{box-sizing:border-box}body{margin:0}header{background:#102d4d;border-bottom:2px solid #cfad58;padding:18px 26px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+h1{font-size:22px;margin:0;color:#ffda7b}h2{font-size:18px;color:#ffda7b}p{line-height:1.5;color:#b7cede}main{max-width:1200px;margin:24px auto;padding:0 16px}
+.panel{background:#112b48;border:1px solid #345570;border-radius:12px;padding:20px;margin-bottom:18px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+label{display:block;font-weight:600;font-size:13px;color:#cfe5ef}input,select,textarea{display:block;width:100%;margin-top:6px;background:#081d34;color:white;border:1px solid #5b8098;border-radius:7px;padding:11px;font:inherit}
+textarea{min-height:75px;resize:vertical}.wide{grid-column:1/-1}
+button{border:0;border-radius:7px;background:#17a6b4;color:#071729;font-weight:700;padding:10px 16px;cursor:pointer}button.secondary{background:#284967;color:white}button.gold{background:#f2c65d}button.danger{background:#b94c55;color:white}button:disabled{opacity:.5;cursor:not-allowed}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.item{padding:14px;border:1px solid #385b77;border-radius:9px;margin-top:10px;background:#0b2239}
+.itemHead{display:flex;align-items:center;justify-content:space-between;gap:12px}.tag{font-size:12px;border:1px solid #8fb5c7;border-radius:16px;padding:3px 9px}
+#message{min-height:24px;color:#f2c65d}small{color:#bdd0dd}#logout{display:none}#workspace{display:none}
+@media(max-width:760px){.grid,.fields{grid-template-columns:1fr}header{align-items:flex-start;flex-direction:column}}
+</style></head><body>
+<header><div><h1>⚗ ChemQuest Admin</h1><small>Question Bank Management • Pre-test / BOW / Post-test</small></div><button id="logout" class="secondary">Sign out</button></header>
+<main><p id="message" role="status"></p>
+<section id="loginPanel" class="panel"><h2>Administrator sign in</h2><p>Use an approved Firebase Authentication account. Only accounts with an administrator role in Firestore may edit questions.</p>
+<form id="loginForm" class="fields"><label>Email<input id="email" type="email" autocomplete="username" required></label><label>Password<input id="password" type="password" autocomplete="current-password" required></label><div class="wide"><button type="submit">Sign in</button></div></form></section>
+<div id="workspace"><div class="grid"><section class="panel"><h2>Question editor</h2>
+<form id="questionForm" class="fields">
+<label>Assessment<select id="kind"><option value="pre">Pre-test</option><option value="bow">BOW</option><option value="post">Post-test</option></select></label>
+<label>Stage<select id="stage"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+<label>Level (BOW only)<select id="level"><option>1</option><option>2</option><option>3</option></select></label>
+<label>Question order<input id="order" type="number" min="1" max="999" value="1" required></label>
+<label class="wide">Question<textarea id="prompt" maxlength="800" required></textarea></label>
+<label>Choice A<input id="a" maxlength="400" required></label><label>Choice B<input id="b" maxlength="400" required></label>
+<label>Choice C<input id="c" maxlength="400"></label><label>Choice D<input id="d" maxlength="400"></label>
+<label>Correct answer<select id="answer"><option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option></select></label>
+<label class="wide">Hint (BOW)<textarea id="hint" maxlength="600"></textarea></label>
+<label class="wide">Explanation (BOW)<textarea id="explanation" maxlength="800"></textarea></label>
+<div class="wide actions"><button type="submit">Save draft</button><button id="clear" type="button" class="secondary">New question</button></div>
+</form><small>Changing an existing published question saves it as a draft. Publish separately after approval.</small>
+</section>
+<section class="panel"><h2>Question bank</h2><div class="fields"><label>Assessment filter<select id="filter"><option value="all">All</option><option value="pre">Pre-test</option><option value="bow">BOW</option><option value="post">Post-test</option></select></label><label>Search<input id="search" placeholder="Question text"></label></div><p id="count"></p><div id="questionList"></div></section></div>
+<section class="panel"><h2>Important for school assessments</h2><p>Publish only questions approved by your Science teacher. Do not change an assessment version while students are taking a pre-test or post-test. The Unity offline reader and published-version locking still need to be integrated and tested before use with respondents.</p></section></div></main>
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js';
+import { getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
+import { getFirestore,doc,getDoc,collection,getDocs,addDoc,updateDoc,serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
+import { firebaseConfig } from './firebase-config.js';
+const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
+const el=id=>document.getElementById(id),message=s=>{el('message').textContent=s;};
+let records=[],selectedId=null,isAdmin=false;
+const escapeText=t=>String(t??'');
+function resetEditor(){selectedId=null;el('questionForm').reset();el('order').value='1';el('kind').dispatchEvent(new Event('change'));}
+el('kind').addEventListener('change',()=>{let isBow=el('kind').value==='bow';el('level').disabled=!isBow;});
+el('kind').dispatchEvent(new Event('change'));
+el('clear').addEventListener('click',resetEditor);
+el('logout').addEventListener('click',()=>signOut(auth));
+el('loginForm').addEventListener('submit',async e=>{e.preventDefault();try{message('Signing in…');await signInWithEmailAndPassword(auth,el('email').value,el('password').value);el('password').value='';}catch(err){message('Sign-in failed: '+err.message);}});
+onAuthStateChanged(auth,async user=>{
+isAdmin=false;el('workspace').style.display='none';el('logout').style.display=user?'block':'none';el('loginPanel').style.display=user?'none':'block';
+if(!user){message('');return;}
+try{const role=await getDoc(doc(db,'admins',user.uid));if(!role.exists()||role.data().active!==true){message('This account is not authorized as an administrator.');await signOut(auth);return;}
+isAdmin=true;el('workspace').style.display='block';message('Signed in as authorized administrator.');await load();
+}catch(err){message('Could not verify administrator access: '+err.message);}
+});
+async function load(){if(!isAdmin)return;const snap=await getDocs(collection(db,'questionBank'));records=snap.docs.map(d=>({id:d.id,...d.data()}));render();}
+function makeButton(label,fn,className='secondary'){const b=document.createElement('button');b.type='button';b.className=className;b.textContent=label;b.addEventListener('click',fn);return b;}
+function render(){
+const q=el('search').value.trim().toLowerCase(),filter=el('filter').value;
+const list=records.filter(r=>(filter==='all'||r.kind===filter)&&escapeText(r.prompt).toLowerCase().includes(q)).sort((a,b)=>String(a.kind).localeCompare(String(b.kind))||Number(a.stage)-Number(b.stage)||Number(a.level)-Number(b.level)||Number(a.order)-Number(b.order));
+el('count').textContent=list.length+' questions';el('questionList').replaceChildren();
+for(const r of list){const card=document.createElement('div');card.className='item';const hd=document.createElement('div');hd.className='itemHead';const title=document.createElement('strong');title.textContent=(r.kind||'').toUpperCase()+' • Stage '+r.stage+(r.kind==='bow'?' / Level '+r.level:'')+' • #'+r.order;const status=document.createElement('span');status.className='tag';status.textContent=r.status||'draft';hd.append(title,status);card.append(hd);const p=document.createElement('p');p.textContent=escapeText(r.prompt);card.append(p);const actions=document.createElement('div');actions.className='actions';actions.append(makeButton('Edit',()=>edit(r)));if(r.status!=='published')actions.append(makeButton('Publish',()=>publish(r),'gold'));card.append(actions);el('questionList').append(card);}
+}
+el('filter').addEventListener('change',render);el('search').addEventListener('input',render);
+function edit(r){selectedId=r.id;for(const key of ['kind','stage','level','order','prompt','hint','explanation'])if(el(key))el(key).value=r[key]??'';['a','b','c','d'].forEach((k,i)=>el(k).value=(r.choices||[])[i]||'');el('answer').value=String(r.correct??0);el('kind').dispatchEvent(new Event('change'));window.scrollTo({top:0,behavior:'smooth'});message('Editing question; Save draft before publishing.');}
+function dataFromForm(){const kind=el('kind').value,choices=['a','b','c','d'].map(k=>el(k).value.trim()),correct=Number(el('answer').value);if(!choices[correct])throw Error('Correct answer must have text.');if(kind!=='bow'&&choices.some(x=>!x))throw Error('Pre/Post-test requires all four choices.');if(kind==='bow'&&(!choices[0]||!choices[1]))throw Error('BOW requires at least A and B.');
+return {kind,stage:Number(el('stage').value),level:kind==='bow'?Number(el('level').value):null,order:Number(el('order').value),prompt:el('prompt').value.trim(),choices,correct,hint:el('hint').value.trim(),explanation:el('explanation').value.trim(),status:'draft',updatedAt:serverTimestamp()};}
+el('questionForm').addEventListener('submit',async e=>{e.preventDefault();if(!isAdmin)return;try{const data=dataFromForm();message('Saving draft…');if(selectedId)await updateDoc(doc(db,'questionBank',selectedId),data);else await addDoc(collection(db,'questionBank'),{...data,createdAt:serverTimestamp()});resetEditor();await load();message('Draft saved. Publish after review.');}catch(err){message('Save failed: '+err.message);}});
+async function publish(r){if(!isAdmin||!confirm('Publish this approved question to the question bank?'))return;try{await updateDoc(doc(db,'questionBank',r.id),{status:'published',updatedAt:serverTimestamp()});await load();message('Question published. Unity synchronization is not yet connected.');}catch(err){message('Publish failed: '+err.message);}}
+</script></body></html>
