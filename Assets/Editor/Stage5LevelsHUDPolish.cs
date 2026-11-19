@@ -37,11 +37,20 @@ public static class Stage5LevelsHUDPolish
                 "Assets/ChemQuestSharedHUD/RoundedHUD.png");
             if(rounded==null)throw new Exception(
                 "Missing RoundedHUD.png; run the approved Stage 1 Level 1 HUD setup first.");
+            // Read the ACTUAL Stage 4 Level 1 energy sprite before switching
+            // scenes; use it for the Stage 5 energy objects whenever available.
+            Sprite stage4Bolt=null;
+            const string stage4Path="Assets/Scenes/Stage4Level1.unity";
+            if(AssetDatabase.LoadAssetAtPath<SceneAsset>(stage4Path)!=null)
+            {
+                var reference=EditorSceneManager.OpenScene(stage4Path,OpenSceneMode.Single);
+                stage4Bolt=SceneObject(reference,"Energy1")?.GetComponent<Image>()?.sprite;
+            }
             for(int level=1;level<=3;level++)
             {
                 string path="Assets/Scenes/Stage5Level"+level+".unity";
                 var scene=EditorSceneManager.OpenScene(path,OpenSceneMode.Single);
-                Fix(scene,level,rounded);
+                Fix(scene,level,rounded,stage4Bolt);
                 EditorSceneManager.MarkSceneDirty(scene);
                 EditorSceneManager.SaveScene(scene);
                 saved++;
@@ -64,7 +73,7 @@ public static class Stage5LevelsHUDPolish
         }
     }
 
-    private static void Fix(Scene scene,int level,Sprite rounded)
+    private static void Fix(Scene scene,int level,Sprite rounded,Sprite stage4Bolt)
     {
         var canvas=SceneObject(scene,"Stage5Level"+level+"Canvas")?.transform;
         if(canvas==null)throw new Exception(
@@ -129,23 +138,67 @@ public static class Stage5LevelsHUDPolish
                 " uses the existing mapped Menu hotspot; no duplicate button added.");
         }
 
-        // The five blue lightning icons are painted into the reference PNG.
-        // Create editable, non-raycasting dark overlays so spent energy can
-        // visibly dim those icons as well as updating the numeric counter.
-        // No extra canvas or functional controls are introduced.
+        // Stage 4's working HUD uses ACTUAL Image objects for Energy1-5.
+        // Stage 5 had five fake lightning bolts painted into the background,
+        // so its 4/5 number changed while the picture still showed five.
+        // Cover only that upper-left energy strip with one dark panel and
+        // move the existing Energy1-5 images inside it. The gameplay
+        // controller already updates Image.enabled from EnergyManager.
+        var panel=Ensure(canvas,"Stage5EnergyPanel",
+            new Vector2(-400,318),new Vector2(318,63));
+        var panelImage=panel.GetComponent<Image>();
+        if(panelImage==null)panelImage=panel.gameObject.AddComponent<Image>();
+        panelImage.sprite=rounded;
+        panelImage.type=Image.Type.Sliced;
+        panelImage.color=new Color32(3,27,54,255);
+        panelImage.raycastTarget=false;
+        Place(panel,new Vector2(-400,318),new Vector2(318,63));
+
+        var title=Find(panel,"Stage5EnergyTitle")?.GetComponent<TMP_Text>();
+        if(title==null)
+        {
+            var go=new GameObject("Stage5EnergyTitle",
+                typeof(RectTransform),typeof(TextMeshProUGUI));
+            go.transform.SetParent(panel,false);
+            title=go.GetComponent<TextMeshProUGUI>();
+            title.font=energy.font;
+        }
+        Place(title.rectTransform,new Vector2(-105,17),new Vector2(83,19));
+        title.text="ENERGY";
+        title.fontSize=16;
+        title.fontStyle=FontStyles.Bold;
+        title.color=Color.white;
+        title.alignment=TextAlignmentOptions.Center;
+        title.raycastTarget=false;
+
         for(int i=0;i<5;i++)
         {
-            var rt=Ensure(canvas,"Stage5SpentEnergy"+(i+1),
-                new Vector2(-505+i*33,318),new Vector2(27,33));
-            var mask=rt.GetComponent<Image>();
-            if(mask==null)mask=rt.gameObject.AddComponent<Image>();
-            mask.sprite=null;
-            mask.type=Image.Type.Simple;
-            mask.color=new Color32(5,29,57,225);
-            mask.raycastTarget=false;
-            rt.SetAsLastSibling();
-            // The runtime will show spent slots based on EnergyManager.
-            rt.gameObject.SetActive(false);
+            var bolt=Find(canvas,"Energy"+(i+1))?.GetComponent<Image>();
+            if(bolt==null)
+                throw new Exception(scene.name+" is missing actual Energy"+(i+1)+
+                    " Image. Check the saved Stage 5 editable canvas.");
+            bolt.transform.SetParent(panel,false);
+            Place(bolt.rectTransform,new Vector2(-105+i*35,-6),
+                new Vector2(28,35));
+            if(stage4Bolt!=null)bolt.sprite=stage4Bolt;
+            bolt.color=new Color32(20,218,255,255);
+            bolt.preserveAspect=true;
+            bolt.raycastTarget=false;
+            bolt.enabled=i<PlayerPrefs.GetInt("PlayerEnergy",5);
+        }
+
+        // Reuse the LIVE TextMeshPro object that Stage5ReferenceLayout
+        // updates. Never make a duplicate counter with a static "5 / 5".
+        energy.transform.SetParent(panel,false);
+        Place(energy.rectTransform,new Vector2(125,-6),new Vector2(63,29));
+        energy.gameObject.SetActive(true);
+        panel.SetAsLastSibling();
+        // Older revisions added overlays that only obscured the PNG.
+        // The new Stage 4 approach no longer requires those fake masks.
+        for(int i=1;i<=5;i++)
+        {
+            var old=Find(canvas,"Stage5SpentEnergy"+i);
+            if(old!=null)UnityEngine.Object.DestroyImmediate(old.gameObject);
         }
 
         // Reference masks cover PRE-PAINTED numerals in the artwork.
@@ -163,6 +216,15 @@ public static class Stage5LevelsHUDPolish
         score.raycastTarget=false;
         // Do not replace label text or rebind references: Stage5ReferenceLayout
         // and EnergyManager continue updating both at runtime.
+    }
+
+    private static void Place(RectTransform rect,Vector2 position,Vector2 size)
+    {
+        rect.anchorMin=rect.anchorMax=new Vector2(.5f,.5f);
+        rect.pivot=new Vector2(.5f,.5f);
+        rect.anchoredPosition=position;
+        rect.sizeDelta=size;
+        rect.localScale=Vector3.one;
     }
 
     private static RectTransform Ensure(Transform parent,string name,
