@@ -62,6 +62,107 @@ public static class Stage3LevelsHUDPolish
         }
     }
 
+    // Repair only the Stage 3 Level 1 prefab-based white Menu button.
+    // Levels 2-3 are already approved, so this command never opens them.
+    [MenuItem("ChemQuest/HUD/Fix Stage 3 Level 1 Menu Only")]
+    public static void FixLevel1MenuOnly()
+    {
+        if(EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            EditorUtility.DisplayDialog("Stop Play","Stop Play Mode first.","OK");
+            return;
+        }
+        if(!EditorUtility.DisplayDialog("Fix Stage 3 Level 1 Menu",
+            "Replace the white prefab artwork with the compact dark-blue "+
+            "three-line menu. Only Stage3Level1.unity will be saved. "+
+            "Back up or commit the scene first.","Fix Menu","Cancel"))return;
+        if(!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())return;
+        string previous=SceneManager.GetActiveScene().path;
+        try
+        {
+            var sprite=AssetDatabase.LoadAssetAtPath<Sprite>(
+                "Assets/ChemQuestSharedHUD/RoundedHUD.png");
+            if(sprite==null)throw new Exception("RoundedHUD.png missing.");
+            var scene=EditorSceneManager.OpenScene(
+                "Assets/Scenes/Stage3Level1.unity",OpenSceneMode.Single);
+            var controller=SceneObject(scene,"Stage3Level1HUD")?.GetComponent<Stage3Level1HUD>();
+            if(controller==null)throw new Exception("Stage3Level1HUD missing.");
+            var serialized=new SerializedObject(controller);
+            var field=serialized.FindProperty("scenePauseButton");
+            var button=field!=null?field.objectReferenceValue as Button:null;
+            if(button==null)throw new Exception("Level 1 pause prefab button not linked.");
+            PolishLevel1PrefabButton(button,sprite);
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            AssetDatabase.SaveAssets();
+            EditorUtility.DisplayDialog("Stage 3 Level 1 Menu",
+                "Saved. Verify the compact three-line Menu in Edit and Play views.","OK");
+        }
+        catch(Exception ex)
+        {
+            Debug.LogException(ex);
+            EditorUtility.DisplayDialog("Menu fix error",ex.Message,"OK");
+        }
+        finally
+        {
+            if(!string.IsNullOrEmpty(previous))
+                EditorSceneManager.OpenScene(previous,OpenSceneMode.Single);
+        }
+    }
+
+    private static void PolishLevel1PrefabButton(Button menu,Sprite sprite)
+    {
+        var menuRT=menu.GetComponent<RectTransform>();
+        Place(menuRT,new Vector2(0,1),new Vector2(52,-47),
+            new Vector2(68,64));
+        // The prefab contains a large white UI graphic that sits on top
+        // of its root Image. Disable only the old decorative graphics.
+        // Keep the root Button, target Graphic and onClick unchanged.
+        foreach(var graphic in menu.GetComponentsInChildren<Graphic>(true))
+        {
+            if(graphic.gameObject==menu.gameObject)continue;
+            if(graphic.transform.IsChildOf(menu.transform) &&
+               graphic.name!="Stage3CompactMenuArtwork")
+                graphic.enabled=false;
+        }
+        var originalFace=menu.GetComponent<Image>();
+        if(originalFace==null)
+            originalFace=menu.gameObject.AddComponent<Image>();
+        originalFace.sprite=sprite;
+        originalFace.type=Image.Type.Sliced;
+        originalFace.color=new Color32(8,49,83,255);
+        originalFace.enabled=true;
+        originalFace.raycastTarget=true;
+        menu.targetGraphic=originalFace;
+        menu.interactable=true;
+
+        var overlay=Ensure(menuRT,"Stage3CompactMenuArtwork",
+            new Vector2(.5f,.5f),Vector2.zero,new Vector2(64,60));
+        var artwork=overlay.GetComponent<Image>();
+        if(artwork==null)artwork=overlay.gameObject.AddComponent<Image>();
+        Skin(artwork,sprite,new Color32(8,49,83,255),false);
+        var outline=artwork.GetComponent<Outline>();
+        if(outline==null)outline=artwork.gameObject.AddComponent<Outline>();
+        outline.effectColor=Gold;
+        outline.effectDistance=new Vector2(2,-2);
+        outline.useGraphicAlpha=false;
+        outline.enabled=true;
+        for(int i=0;i<3;i++)
+        {
+            var line=Ensure(overlay,"CompactLine"+(i+1),
+                new Vector2(.5f,.5f),new Vector2(0,10-i*10),
+                new Vector2(34,5));
+            var image=line.GetComponent<Image>();
+            if(image==null)image=line.gameObject.AddComponent<Image>();
+            image.sprite=null;
+            image.type=Image.Type.Simple;
+            image.color=Color.white;
+            image.enabled=true;
+            image.raycastTarget=false;
+        }
+        overlay.SetAsLastSibling();
+    }
+
     private static void Fix(Scene scene,int level,Sprite sprite)
     {
         string canvasName=level==1?"Stage3Level1Canvas":
@@ -175,6 +276,7 @@ public static class Stage3LevelsHUDPolish
             img.sprite=null;img.type=Image.Type.Simple;
             img.color=Color.white;img.raycastTarget=false;
         }
+        if(level==1)PolishLevel1PrefabButton(menu,sprite);
         energyPanel.SetAsLastSibling();
         scorePanel.SetAsLastSibling();
         menuRT.SetAsLastSibling();
