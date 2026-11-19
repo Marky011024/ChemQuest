@@ -486,12 +486,12 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     {
         if(level!=1 || canvas==null)return;
         var existing=Find(canvas,"Level1ApplyHeatSelectionRing");
-        if(existing==null)
-        {
+        bool newlyCreated=existing==null;
+        if(newlyCreated)
             level1HeatSelectionRing=NewImage(canvas,"Level1ApplyHeatSelectionRing",
                 GetLevel1HeatSelectionSprite(),Color.white);
-        }
-        else level1HeatSelectionRing=existing.GetComponent<Image>();
+        else
+            level1HeatSelectionRing=existing.GetComponent<Image>();
         if(level1HeatSelectionRing==null)return;
         level1HeatSelectionRing.sprite=GetLevel1HeatSelectionSprite();
         level1HeatSelectionRing.overrideSprite=null;
@@ -499,10 +499,18 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         level1HeatSelectionRing.preserveAspect=false;
         level1HeatSelectionRing.raycastTarget=false;
         level1HeatSelectionRing.color=Color.white;
-        // Match the visible 338 x 55 reference-art button in the 1280x720 UI.
-        Rect(level1HeatSelectionRing.rectTransform,
-            new Vector2(-349f,-316f),new Vector2(338f,55f));
+        // Crucial: only set default geometry for an unbaked/new object.
+        // Existing saved RectTransform edits in the Unity Hierarchy must
+        // survive Initialize/Rebind and subsequent Play sessions.
+        if(newlyCreated)
+            Rect(level1HeatSelectionRing.rectTransform,
+                new Vector2(-349f,-316f),new Vector2(338f,55f));
         level1HeatSelectionRing.gameObject.SetActive(false);
+        // Older baked scenes may still contain the obsolete four-sided
+        // square highlight, which appears as the extra yellow bar.
+        // Level 1 uses ONLY this rounded selection ring.
+        var legacy=Find(canvas,"Stage5ClickedActionHighlight");
+        if(legacy!=null)legacy.gameObject.SetActive(false);
     }
 
     private static Sprite GetLevel1HeatSelectionSprite()
