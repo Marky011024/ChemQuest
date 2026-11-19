@@ -1754,9 +1754,52 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         if(thermometerValue!=null) thermometerValue.text=reading;
         if(thermometerFill!=null)
         {
-            float h=129f*fraction;
-            Rect(thermometerFill.transform,new Vector2(194f,-27f+h*.5f),
-                new Vector2(8f,Mathf.Max(1f,h)));
+            // Follow the editable HEAT thermometer groove, not the original
+            // hard-coded 194/-27 coordinates. Otherwise adjusting the
+            // thermometer in Scene/Hierarchy is undone every Play and tick.
+            var mercury=thermometerFill.rectTransform;
+            var groove=Find(canvas,"HeatThermometerGroove") as RectTransform;
+            if(groove!=null)
+            {
+                // Both components are under the reference canvas in existing
+                // saved scenes. Convert groove corners to mercury's parent
+                // space so edited anchors, pivot and panel position survive.
+                var corners=new Vector3[4];
+                groove.GetWorldCorners(corners);
+                var parent=mercury.parent as RectTransform;
+                if(parent!=null)
+                {
+                    Vector3 bottomLeft=parent.InverseTransformPoint(corners[0]);
+                    Vector3 upperRight=parent.InverseTransformPoint(corners[2]);
+                    float grooveHeight=Mathf.Max(1f,upperRight.y-bottomLeft.y);
+                    float grooveWidth=Mathf.Max(1f,upperRight.x-bottomLeft.x);
+                    float height=Mathf.Max(1f,grooveHeight*fraction);
+                    // Keep the edited fill width when it fits the groove.
+                    float width=Mathf.Clamp(mercury.rect.width,1f,grooveWidth);
+                    Vector2 parentPoint=new Vector2(
+                        (bottomLeft.x+upperRight.x)*.5f,
+                        bottomLeft.y+height*mercury.pivot.y);
+                    // AnchoredPosition accounts for parent anchors and pivot.
+                    var anchorPoint=new Vector2(
+                        Mathf.Lerp(mercury.anchorMin.x,mercury.anchorMax.x,mercury.pivot.x),
+                        Mathf.Lerp(mercury.anchorMin.y,mercury.anchorMax.y,mercury.pivot.y));
+                    Vector2 anchorOffset=new Vector2(
+                        (anchorPoint.x-parent.pivot.x)*parent.rect.width,
+                        (anchorPoint.y-parent.pivot.y)*parent.rect.height);
+                    mercury.anchoredPosition=parentPoint-anchorOffset;
+                    mercury.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal,width);
+                    mercury.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,height);
+                }
+            }
+            else
+            {
+                // Fallback for older scenes without the separate groove.
+                float height=Mathf.Max(1f,129f*fraction);
+                var size=mercury.sizeDelta;
+                size.y=height;mercury.sizeDelta=size;
+                var p=mercury.anchoredPosition;
+                p.y=-27f+height*.5f;mercury.anchoredPosition=p;
+            }
         }
     }
 
