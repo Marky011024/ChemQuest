@@ -29,3 +29,13 @@ It is intentionally on a separate branch and does not modify Unity gameplay.
 - Production hosting and first-admin provisioning; deployment has NOT been completed.
 
 **Important:** Current Publish marks individual questions as approved within the ADMIN-ONLY Firestore collection. It does not yet trigger updates in the Unity app. No working online question synchronization or hosting is claimed.
+
+## Question management improvements (2026-11-20)
+- Separate Overview, Pre-test, BOW, and Post-test navigation tabs.
+- CSV template, preview, validation, draft-only bulk import (max 300 rows and 2 MB), and private answer-key CSV export.
+- Status filtering, publish/unpublish, question preview, duplicate slot warnings, and delete confirmation.
+- Per-question embedded revision history (keeps up to 20 previous states), with restore into **draft**. Deleting a question deletes its revision history, so use CSV exports for independent content backups.
+- The CSV header is: `kind,stage,level,order,prompt,a,b,c,d,correct,hint,explanation`. Use `pre`, `bow`, or `post`; stages 1–5; BOW levels 1–3; correct answer `A`, `B`, `C`, or `D`. Leave level blank for pre/post. Import always creates drafts and does not modify existing questions.
+- This is an admin client-side duplicate check, not a global concurrency lock. Coordinate multiple administrators and do not edit approved test content during active data gathering.
+- The existing Firebase Hosting manual deployment is independent of GitHub commits. Copy the latest `admin/index.html` to the local Hosting `public/index.html` and run `firebase deploy --only hosting --project chemquest-admin` from the Hosting folder.
+- No Unity offline sync is implemented by this website change; do not claim student games receive published questions.
