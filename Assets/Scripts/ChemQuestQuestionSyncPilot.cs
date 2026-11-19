@@ -29,6 +29,8 @@ public sealed class ChemQuestQuestionSyncPilot : MonoBehaviour
         public FirestoreInteger order;
     }
     [Serializable] private class DocumentReply { public string name; public Fields fields; }
+    [Serializable] private class BowFields { public FirestoreString status; public FirestoreString payload; public FirestoreString version; }
+    [Serializable] private class BowDocument { public BowFields fields; }
     public string LastDownloadedQuestion { get; private set; }
 
     private void Start() { if(runOnStart) StartPilot(); }
@@ -113,6 +115,35 @@ public sealed class ChemQuestQuestionSyncPilot : MonoBehaviour
                     " | kind=" + (doc.fields.kind?.stringValue ?? "unspecified") +
                     " | question=" + LastDownloadedQuestion +
                     " | No live assessment was changed.");
+                // Follow-on Stage 1 Level 1 pilot: fetch a separate approved two-item snapshot.
+                // Admin-only questionBank is NEVER read by this client.
+                string bowUrl="https://firestore.googleapis.com/v1/projects/" +
+                    UnityWebRequest.EscapeURL(projectId) +
+                    "/databases/(default)/documents/publishedBow/stage1-level1";
+                using(var bowRequest=UnityWebRequest.Get(bowUrl))
+                {
+                    bowRequest.SetRequestHeader("Authorization","Bearer "+auth.idToken);
+                    bowRequest.timeout=20;
+                    yield return bowRequest.SendWebRequest();
+                    if(bowRequest.result!=UnityWebRequest.Result.Success)
+                    {
+                        Debug.LogWarning("ChemQuest BOW snapshot not available ("+bowRequest.responseCode+
+                            "). Original BOW questions will be used if no cache exists.");
+                    }
+                    else
+                    {
+                        BowDocument approved=null;
+                        try {approved=JsonUtility.FromJson<BowDocument>(bowRequest.downloadHandler.text);}
+                        catch(Exception) {}
+                        if(approved?.fields?.status?.stringValue=="published" &&
+                            !string.IsNullOrEmpty(approved.fields.payload?.stringValue) &&
+                            Stage1BowLearningCheck.TryCacheApprovedLevel1(approved.fields.payload.stringValue))
+                            Debug.Log("CHEMQUEST BOW SNAPSHOT SYNC OK | version="+
+                                approved.fields.version.stringValue+
+                                " | Effective on NEXT BOW attempt (not during active question).");
+                        else Debug.LogWarning("ChemQuest BOW snapshot invalid; keeping existing cache/fallback.");
+                    }
+                }
             }
         }
     }
