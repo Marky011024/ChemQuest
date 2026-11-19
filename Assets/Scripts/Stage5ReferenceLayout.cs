@@ -11,6 +11,8 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     private int level, selected=-1, phase;
     private int highlightedAction=-1;
     private Image[] actionHighlightEdges;
+    private Image level1HeatSelectionRing;
+    private static Sprite level1HeatSelectionRingSprite;
     private Transform sceneRoot;
     private RectTransform canvas, station;
     private Image preview;
@@ -321,7 +323,8 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         {
             RefreshStage5MaterialButtons();
             RefreshMaterialHighlight();
-            EnsureActionHighlight();
+            if(level==1)EnsureLevel1HeatSelectionRing();
+            else EnsureActionHighlight();
         }
         // One mapped raycast surface handles both mouse and Android touch.
         // It sits above all artwork and legacy transparent controls.
@@ -474,6 +477,66 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     // An editable, non-raycasting four-sided selection border: deliberately
     // sits over the existing STRIKE/PRESS art, without adding another button.
     // The original touch mapping and gameplay logic stay authoritative.
+    // Artwork in Level 1 is embedded in the approved backdrop. Its button
+    // cannot be highlighted through a conventional Button Image, so use one
+    // rounded transparent ring calibrated to the 1280x720 reference canvas.
+    // Position is measured from the actual APPLY HEAT button, not its wider
+    // mapped touch region. This is independent of Level 2's STRIKE/PRESS rim.
+    private void EnsureLevel1HeatSelectionRing()
+    {
+        if(level!=1 || canvas==null)return;
+        var existing=Find(canvas,"Level1ApplyHeatSelectionRing");
+        if(existing==null)
+        {
+            level1HeatSelectionRing=NewImage(canvas,"Level1ApplyHeatSelectionRing",
+                GetLevel1HeatSelectionSprite(),Color.white);
+        }
+        else level1HeatSelectionRing=existing.GetComponent<Image>();
+        if(level1HeatSelectionRing==null)return;
+        level1HeatSelectionRing.sprite=GetLevel1HeatSelectionSprite();
+        level1HeatSelectionRing.overrideSprite=null;
+        level1HeatSelectionRing.type=Image.Type.Simple;
+        level1HeatSelectionRing.preserveAspect=false;
+        level1HeatSelectionRing.raycastTarget=false;
+        level1HeatSelectionRing.color=Color.white;
+        // Match the visible 338 x 55 reference-art button in the 1280x720 UI.
+        Rect(level1HeatSelectionRing.rectTransform,
+            new Vector2(-349f,-316f),new Vector2(338f,55f));
+        level1HeatSelectionRing.gameObject.SetActive(false);
+    }
+
+    private static Sprite GetLevel1HeatSelectionSprite()
+    {
+        if(level1HeatSelectionRingSprite!=null)return level1HeatSelectionRingSprite;
+        const int w=338,h=55;
+        const float radius=13f;
+        const float border=3f;
+        var texture=new Texture2D(w,h,TextureFormat.RGBA32,false);
+        texture.name="Stage5Level1RoundedSelectionOutline";
+        texture.filterMode=FilterMode.Bilinear;
+        texture.wrapMode=TextureWrapMode.Clamp;
+        var gold=new Color32(255,223,89,255);
+        for(int y=0;y<h;y++)
+        for(int x=0;x<w;x++)
+        {
+            float dx=Mathf.Max(Mathf.Abs(x+.5f-w*.5f)-(w*.5f-radius),0f);
+            float dy=Mathf.Max(Mathf.Abs(y+.5f-h*.5f)-(h*.5f-radius),0f);
+            float outerDistance=Mathf.Sqrt(dx*dx+dy*dy);
+            float ix=Mathf.Max(Mathf.Abs(x+.5f-w*.5f)-(w*.5f-radius-border),0f);
+            float iy=Mathf.Max(Mathf.Abs(y+.5f-h*.5f)-(h*.5f-radius-border),0f);
+            float innerDistance=Mathf.Sqrt(ix*ix+iy*iy);
+            float outerAlpha=Mathf.Clamp01(radius+.5f-outerDistance);
+            float innerAlpha=Mathf.Clamp01(radius-border+.5f-innerDistance);
+            var c=(Color)gold;
+            c.a=Mathf.Clamp01(outerAlpha-innerAlpha);
+            texture.SetPixel(x,y,c);
+        }
+        texture.Apply(false,false);
+        level1HeatSelectionRingSprite=Sprite.Create(texture,new Rect(0,0,w,h),
+            new Vector2(.5f,.5f),100f);
+        return level1HeatSelectionRingSprite;
+    }
+
     private void EnsureActionHighlight()
     {
         if((level!=1 && level!=2) || canvas==null)return;
@@ -513,7 +576,18 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             RefreshLevel3ActionHighlight(action);
             return;
         }
-        if(level==1 && action!=0)return;
+        if(level==1)
+        {
+            if(action!=0)return;
+            highlightedAction=action;
+            if(level1HeatSelectionRing==null)EnsureLevel1HeatSelectionRing();
+            if(level1HeatSelectionRing!=null)
+            {
+                level1HeatSelectionRing.gameObject.SetActive(true);
+                level1HeatSelectionRing.transform.SetAsLastSibling();
+            }
+            return;
+        }
         if(level==2 && action!=1 && action!=2)return;
         highlightedAction=action;
         if(actionHighlightEdges==null || actionHighlightEdges.Length!=4 ||
@@ -1610,7 +1684,8 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         {
             RefreshStage5MaterialButtons();
             RefreshMaterialHighlight();
-            EnsureActionHighlight();
+            if(level==1)EnsureLevel1HeatSelectionRing();
+            else EnsureActionHighlight();
         }
         if(level==3)RefreshLevel3ActionHighlight(-1);
         touchController=Find(canvas,"Stage5MappedTouchSurface")?.GetComponent<Stage5ReferenceTouchController>();
@@ -1710,6 +1785,8 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         if(!ready)return;
         selected=index;
         RefreshMaterialHighlight();
+        if(level==1 && level1HeatSelectionRing!=null)
+            level1HeatSelectionRing.gameObject.SetActive(false);
         if((level==1 || level==2) && actionHighlightEdges!=null &&
             actionHighlightEdges.Length>0 && actionHighlightEdges[0]!=null)
             actionHighlightEdges[0].transform.parent.gameObject.SetActive(false);
