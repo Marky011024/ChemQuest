@@ -62,6 +62,49 @@ public static class Stage3LevelsHUDPolish
         }
     }
 
+    // Safe repeatable patch for the current Level 1 scene without
+    // reopening or modifying the already-approved Levels 2 and 3.
+    [MenuItem("ChemQuest/HUD/Match Stage 3 Level 1 HUD To Level 2")]
+    public static void MatchLevel1HUD()
+    {
+        if(EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            EditorUtility.DisplayDialog("Stop Play","Stop Play Mode first.","OK");
+            return;
+        }
+        if(!EditorUtility.DisplayDialog("Match Stage 3 HUD",
+            "Match Stage 3 Level 1 Energy and Score proportions to Level 2. " +
+            "Only Stage3Level1.unity will be saved. Back up or commit first.",
+            "Match Level 1","Cancel")) return;
+        if(!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+        string previous=SceneManager.GetActiveScene().path;
+        try
+        {
+            var sprite=AssetDatabase.LoadAssetAtPath<Sprite>(
+                "Assets/ChemQuestSharedHUD/RoundedHUD.png");
+            if(sprite==null) throw new Exception("Missing RoundedHUD.png.");
+            var scene=EditorSceneManager.OpenScene(
+                "Assets/Scenes/Stage3Level1.unity",OpenSceneMode.Single);
+            Fix(scene,1,sprite);
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            AssetDatabase.SaveAssets();
+            EditorUtility.DisplayDialog("Stage 3 Level 1",
+                "HUD saved with correct 1920-to-1280 Canvas scaling. " +
+                "Inspect Edit Mode and test Pause, Energy and Score in Play Mode.","OK");
+        }
+        catch(Exception e)
+        {
+            Debug.LogException(e);
+            EditorUtility.DisplayDialog("Stage 3 HUD fix",e.Message,"OK");
+        }
+        finally
+        {
+            if(!string.IsNullOrEmpty(previous))
+                EditorSceneManager.OpenScene(previous,OpenSceneMode.Single);
+        }
+    }
+
     // Repair only the Stage 3 Level 1 prefab-based white Menu button.
     // Levels 2-3 are already approved, so this command never opens them.
     [MenuItem("ChemQuest/HUD/Fix Stage 3 Level 1 Menu Only")]
@@ -277,6 +320,20 @@ public static class Stage3LevelsHUDPolish
             img.color=Color.white;img.raycastTarget=false;
         }
         if(level==1)PolishLevel1PrefabButton(menu,sprite);
+        // Stage 3 Level 1 gameplay Canvas is authored at 1920x1080,
+        // while Level 2/3 canvases are 1280x720. A 1.5 conversion is
+        // necessary for matching on-screen Menu/Energy/Score proportions.
+        // Do not alter the gameplay CanvasScaler: doing so would resize all
+        // molecule-builder widgets. Level 1's Pause prefab lives on its
+        // separate 1280x720 HUDCanvas, so it must NOT receive this factor.
+        if(level==1)
+        {
+            const float referenceRatio=1.5f;
+            energyPanel.anchoredPosition=new Vector2(275f,-43f)*referenceRatio;
+            energyPanel.localScale=new Vector3(referenceRatio,referenceRatio,1f);
+            scorePanel.anchoredPosition=new Vector2(-74f,-43f)*referenceRatio;
+            scorePanel.localScale=new Vector3(referenceRatio,referenceRatio,1f);
+        }
         energyPanel.SetAsLastSibling();
         scorePanel.SetAsLastSibling();
         menuRT.SetAsLastSibling();
