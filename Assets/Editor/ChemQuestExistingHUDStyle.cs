@@ -47,7 +47,7 @@ public static class ChemQuestExistingHUDStyle
             {
                 var path=AssetDatabase.GUIDToAssetPath(ids[i]);
                 var sceneName=System.IO.Path.GetFileNameWithoutExtension(path);
-                var match=Regex.Match(sceneName,@"^Stage([1-5])Level([1-9]\\d*)$");
+                var match=Regex.Match(sceneName,@"^Stage([1-5])Level([1-9]\d*)$");
                 if(!match.Success) continue;
                 EditorUtility.DisplayProgressBar("Repair ChemQuest HUD",
                     sceneName,(float)i/Mathf.Max(1,ids.Length));
