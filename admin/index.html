@@ -73,6 +73,7 @@ textarea{line-height:1.5}
 #loginFeedback{min-height:24px;color:#ffde8c;font-size:13px;line-height:1.4}
 @media(max-width:780px){.login-shell{grid-template-columns:1fr}#loginPanel{margin:20px auto}.login-intro{min-height:0}.login-intro,.login-card{padding:23px}}
 
+[hidden]{display:none!important}
 /* Dashboard usability: account, contextual validation, and help */
 .header-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 #adminIdentity{color:#c5e0ed;font-size:12px;overflow-wrap:anywhere}
@@ -232,7 +233,7 @@ function validationIssues(data,ignoreId=null,includeApproval=false){
  if(!choices[0]?.trim()||!choices[1]?.trim())issues.push('Choices A and B are required.');
  if(data.kind!=='bow'&&(!choices[2]?.trim()||!choices[3]?.trim()))issues.push('Pre-test and Post-test need all four choices.');
  if(!Number.isInteger(data.correct)||data.correct<0||data.correct>3||!choices[data.correct]?.trim())issues.push('Choose a correct answer that contains text.');
- const active=choices.filter(c=>c?.trim()).map(c=>c.trim().toLowerCase());
+ const active=choices.filter(c=>typeof c==='string'&&c.trim()).map(c=>c.trim().toLowerCase());
  if(new Set(active).size!==active.length)issues.push('Answer choices must be different.');
  if(records.some(r=>r.id!==ignoreId&&sameSlot(r,data)))issues.push('Another question already uses this assessment, stage, level, and order.');
  if(includeApproval&&data.kind==='bow'&&(!data.hint?.trim()||!data.explanation?.trim()))issues.push('BOW publishing needs both a hint and an explanation.');
@@ -360,7 +361,7 @@ function parseCsv(raw){
  const kind=obj.kind.toLowerCase(),stage=Number(obj.stage),level=kind==='bow'?Number(obj.level):null,order=Number(obj.order);
  const correct=['A','B','C','D'].indexOf(obj.correct.toUpperCase());
  const choices=['a','b','c','d'].map(k=>obj[k]);
- if(!['pre','bow','post'].includes(kind)||!Number.isInteger(stage)||stage<1||stage>5||
+ if(!['pre','bow','post'].includes(kind)||new Set(choices.filter(Boolean).map(v=>v.toLowerCase())).size!==choices.filter(Boolean).length||!Number.isInteger(stage)||stage<1||stage>5||
  (kind==='bow'&&(!Number.isInteger(level)||level<1||level>3))||
  !Number.isInteger(order)||order<1||order>999||!obj.prompt||obj.prompt.length>800||
  choices.some(x=>x.length>400)||obj.hint.length>600||obj.explanation.length>800||
