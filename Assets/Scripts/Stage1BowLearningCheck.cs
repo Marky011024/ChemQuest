@@ -19,6 +19,7 @@ public sealed class Stage1BowLearningCheck : MonoBehaviour
     private Action<bool> onFinished;
     private int stageLevel, questionIndex, mistakes;
     private bool activeCheck;
+    private Question[] lockedQuestions;
     private TMP_FontAsset fallbackFont;
     private Canvas displayCanvas;
 
@@ -83,6 +84,8 @@ public sealed class Stage1BowLearningCheck : MonoBehaviour
         onFinished=finished;
         questionIndex=0;
         mistakes=0;
+        // Snapshot for this attempt. Later cloud updates cannot alter an active check.
+        lockedQuestions=stageLevel==1 ? ChemQuestBowSnapshot.TryLoadLevel1() : null;
         EnsureUI();
         if(overlay==null)
         {
@@ -171,7 +174,46 @@ public sealed class Stage1BowLearningCheck : MonoBehaviour
             Vector2.zero,new Vector2(336,59));
     }
 
-    private Question Current => (stageLevel==1?level1Questions:stageLevel==2?level2Questions:level3Questions)[questionIndex];
+    private Question Current => (stageLevel==1?(lockedQuestions??level1Questions):stageLevel==2?level2Questions:level3Questions)[questionIndex];
+
+    [Serializable] private class SyncedQuestions { public int schema; public string version; public SyncedQuestion[] items; }
+    [Serializable] private class SyncedQuestion
+    {
+        public int order; public string prompt; public string a; public string b;
+        public int correct; public string hint; public string explanation;
+    }
+    private static class ChemQuestBowSnapshot
+    {
+        public const string Key="ChemQuestBowS1L1SnapshotV1";
+        public static Question[] TryLoadLevel1()
+        {
+            try
+            {
+                var raw=PlayerPrefs.GetString(Key,"");
+                if(string.IsNullOrEmpty(raw))return null;
+                var data=JsonUtility.FromJson<SyncedQuestions>(raw);
+                if(data==null||data.schema!=1||data.items==null||data.items.Length!=2||
+                   string.IsNullOrWhiteSpace(data.version))return null;
+                var array=new Question[2];
+                for(int i=0;i<2;i++)
+                {
+                    var q=data.items[i];
+                    if(q==null||q.order!=i+1||q.correct<0||q.correct>1||
+                       string.IsNullOrWhiteSpace(q.prompt)||string.IsNullOrWhiteSpace(q.a)||
+                       string.IsNullOrWhiteSpace(q.b)||string.IsNullOrWhiteSpace(q.hint)||
+                       string.IsNullOrWhiteSpace(q.explanation))return null;
+                    array[i]=new Question(q.prompt,q.a,q.b,q.correct,q.hint,q.explanation);
+                }
+                Debug.Log("ChemQuest BOW: using approved cached snapshot "+data.version);
+                return array;
+            }
+            catch(Exception e)
+            {
+                Debug.LogWarning("ChemQuest BOW: invalid cache, using original questions. "+e.Message);
+                return null;
+            }
+        }
+    }
 
     private void ShowQuestion()
     {
