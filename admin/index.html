@@ -132,6 +132,7 @@ textarea{line-height:1.5}
 </form><small>Changing an existing published question saves it as a draft. Publish separately after approval.</small>
 </section>
 <section class="panel"><div class="tool-heading"><h2>Question bank</h2><button id="refresh" type="button" class="secondary">↻ Refresh</button></div>
+<div class="import-panel"><div class="tool-heading"><strong>Unity BOW • Stage 1 Level 1</strong><span class="pill">Pilot</span></div><p class="hint-text">After teacher approval, publish exactly two BOW questions (orders 1 and 2) first. Then publish one versioned set for Unity. Drafts are never exported. Changes apply to the next attempt, not the current one.</p><button id="publishBowSet" type="button" class="gold">Publish approved Level 1 set to Unity</button><p id="bowSetStatus" class="hint-text" role="status">No Unity set published from this page yet.</p></div>
 <div class="import-panel"><div class="tool-heading"><strong>Bulk import & backup</strong><button type="button" class="secondary" id="template">Download CSV template</button></div><p class="hint-text">Import approved questions as drafts. CSV columns: kind,stage,level,order,prompt,a,b,c,d,correct,hint,explanation. One question per row.</p><label>Choose a CSV file<input id="importFile" type="file" accept=".csv,text/csv"></label><p id="importSummary" class="hint-text" role="status">No CSV selected.</p><div id="importPreview" class="import-preview" hidden></div><div class="actions"><button type="button" id="importButton" disabled>Import validated drafts</button><button type="button" id="exportButton" class="secondary">Export CSV backup</button></div></div><div class="fields"><label>Assessment filter<select id="filter"><option value="all">All assessments</option><option value="pre">Pre-test</option><option value="bow">BOW</option><option value="post">Post-test</option></select></label><label>Status<select id="statusFilter"><option value="all">All statuses</option><option value="draft">Draft</option><option value="published">Published</option></select></label><label class="wide">Search questions<input id="search" placeholder="Search by question text or choices"></label></div><p class="hint-text" id="count"></p><div id="questionList"></div></section></div>
 <section class="panel"><h2>Important for school assessments</h2><p>Publish only questions approved by your Science teacher. Do not change an assessment version while students are taking a pre-test or post-test. The Unity offline reader and published-version locking still need to be integrated and tested before use with respondents.</p></section></div></main>
 <dialog id="helpDialog" class="manual-dialog" aria-labelledby="manualTitle">
@@ -148,7 +149,7 @@ textarea{line-height:1.5}
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js';
 import { getAuth,signInWithEmailAndPassword,sendPasswordResetEmail,signOut,onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
-import { getFirestore,doc,getDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
+import { getFirestore,doc,getDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,setDoc,serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
 import { firebaseConfig } from './firebase-config.js';
 const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
 const el=id=>document.getElementById(id),message=s=>{el('message').textContent=s;};
@@ -253,6 +254,27 @@ const data={kind,stage:Number(el('stage').value),level:kind==='bow'?Number(el('l
  const errors=validationIssues(data,selectedId,false);if(errors.length)throw Error(errors.join(' '));
  return data;}
 let saving=false;
+el('publishBowSet').addEventListener('click',async()=>{
+ if(!isAdmin)return;
+ await load();
+ const rows=records.filter(r=>r.kind==='bow'&&Number(r.stage)===1&&Number(r.level)===1&&r.status==='published').sort((a,b)=>Number(a.order)-Number(b.order));
+ if(rows.length!==2||rows.some((r,i)=>Number(r.order)!==i+1||r.choices?.length<2||
+     !r.choices[0]?.trim()||!r.choices[1]?.trim()||![0,1].includes(Number(r.correct))||
+     !r.prompt?.trim()||!r.hint?.trim()||!r.explanation?.trim())){
+   message('Unity set needs exactly 2 published, approved BOW questions numbered 1 and 2, each with A/B answers, hint and explanation.');return;
+ }
+ if(rows.some(r=>r.choices.slice(2).some(c=>c?.trim()))){
+   message('Unity Stage1 BOW currently displays only A/B. Remove C/D from these questions before publishing this set.');return;
+ }
+ if(!confirm('Publish the two approved Stage 1 Level 1 BOW questions as a new Unity snapshot? They become readable by signed-in student apps. Do NOT include private pre/post-test answers.'))return;
+ const version='bow-s1l1-'+new Date().toISOString().replace(/[^0-9TZ]/g,'');
+ const payload=JSON.stringify({schema:1,version,items:rows.map(r=>({order:Number(r.order),prompt:r.prompt,a:r.choices[0],b:r.choices[1],correct:Number(r.correct),hint:r.hint,explanation:r.explanation}))});
+ try{
+   await setDoc(doc(db,'publishedBow','stage1-level1'),{status:'published',version,payload,updatedAt:serverTimestamp()});
+   el('bowSetStatus').textContent='Published '+version+' (2 questions). The Unity app downloads on its next successful sync.';
+   message('Unity BOW Stage 1 Level 1 snapshot published. Test in Unity Play Mode.');
+ }catch(e){message('Unity snapshot publish failed: '+e.message);}
+});
 function sameSlot(a,b){return a.kind===b.kind && Number(a.stage)===Number(b.stage) &&
   (a.kind!=='bow'||Number(a.level)===Number(b.level)) && Number(a.order)===Number(b.order);}
 function preview(r){
@@ -300,7 +322,7 @@ async function setStatus(r,status){
  if(!confirm((status==='published'?'Publish approved':'Unpublish')+' question #'+r.order+'?'))return;
  try{await updateDoc(doc(db,'questionBank',r.id),{status,updatedAt:serverTimestamp(),
  revisions:[...(r.revisions||[]).slice(-19),revisionOf(r,'status change')]});
- await load();message(status==='published'?'Question marked published. Unity sync not yet connected.':'Question returned to draft.');
+ await load();message(status==='published'?'Question marked published in admin bank. Publish the approved two-item BOW set separately for Unity.':'Question returned to draft.');
  }catch(err){message('Status change failed: '+err.message);}
 }
 const publish=r=>setStatus(r,'published'),unpublish=r=>setStatus(r,'draft');
