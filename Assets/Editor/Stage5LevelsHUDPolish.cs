@@ -129,6 +129,25 @@ public static class Stage5LevelsHUDPolish
                 " uses the existing mapped Menu hotspot; no duplicate button added.");
         }
 
+        // The five blue lightning icons are painted into the reference PNG.
+        // Create editable, non-raycasting dark overlays so spent energy can
+        // visibly dim those icons as well as updating the numeric counter.
+        // No extra canvas or functional controls are introduced.
+        for(int i=0;i<5;i++)
+        {
+            var rt=Ensure(canvas,"Stage5SpentEnergy"+(i+1),
+                new Vector2(-505+i*33,318),new Vector2(27,33));
+            var mask=rt.GetComponent<Image>();
+            if(mask==null)mask=rt.gameObject.AddComponent<Image>();
+            mask.sprite=null;
+            mask.type=Image.Type.Simple;
+            mask.color=new Color32(5,29,57,225);
+            mask.raycastTarget=false;
+            rt.SetAsLastSibling();
+            // The runtime will show spent slots based on EnergyManager.
+            rt.gameObject.SetActive(false);
+        }
+
         // Reference masks cover PRE-PAINTED numerals in the artwork.
         // Their positions are intentional, so restyling text does not
         // duplicate or displace the Stage 5 energy/score readouts.
