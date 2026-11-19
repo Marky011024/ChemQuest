@@ -215,6 +215,29 @@ public sealed class Stage1BowLearningCheck : MonoBehaviour
         }
     }
 
+    public static bool TryCacheApprovedLevel1(string json)
+    {
+        try
+        {
+            var data=JsonUtility.FromJson<SyncedQuestions>(json);
+            if(data==null||data.schema!=1||data.items==null||data.items.Length!=2||
+               string.IsNullOrWhiteSpace(data.version))return false;
+            for(int i=0;i<2;i++)
+            {
+                var q=data.items[i];
+                if(q==null||q.order!=i+1||q.correct<0||q.correct>1||
+                   string.IsNullOrWhiteSpace(q.prompt)||string.IsNullOrWhiteSpace(q.a)||
+                   string.IsNullOrWhiteSpace(q.b)||string.IsNullOrWhiteSpace(q.hint)||
+                   string.IsNullOrWhiteSpace(q.explanation)||string.Equals(q.a.Trim(),q.b.Trim(),StringComparison.OrdinalIgnoreCase))
+                    return false;
+            }
+            PlayerPrefs.SetString(ChemQuestBowSnapshot.Key,json);
+            PlayerPrefs.Save();
+            return true;
+        }
+        catch(Exception){return false;}
+    }
+
     private void ShowQuestion()
     {
         var q=Current;
