@@ -514,9 +514,12 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             actionHighlightEdges[0].transform.parent.gameObject:null;
         if(root==null)return;
         // Visible inside existing action buttons; outside no gameplay hitbox.
+        // Match the ACTUAL Level 2 button art (not the larger input
+        // hit zones). The old -275/67 rectangle extended down over the
+        // SAMPLES TESTED progress bar in 16:9 Game View.
         float centerX=action==1?-355f:0f;
-        float centerY=-275f;
-        float width=290f,height=67f,thickness=4f;
+        float centerY=-254f;
+        float width=315f,height=51f,thickness=3f;
         Rect(actionHighlightEdges[0].transform,
             new Vector2(centerX,centerY+height*.5f),new Vector2(width,thickness));
         Rect(actionHighlightEdges[1].transform,
