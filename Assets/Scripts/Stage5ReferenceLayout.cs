@@ -9,6 +9,8 @@ using TMPro;
 public sealed class Stage5ReferenceLayout : MonoBehaviour
 {
     private int level, selected=-1, phase;
+    private int highlightedAction=-1;
+    private Image[] actionHighlightEdges;
     private Transform sceneRoot;
     private RectTransform canvas, station;
     private Image preview;
@@ -315,7 +317,12 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         }
         // The three real-material buttons are actual editable UI Images,
         // not part of the background. Touch control remains unchanged.
-        if(level==1 || level==2)RefreshStage5MaterialButtons();
+        if(level==1 || level==2)
+        {
+            RefreshStage5MaterialButtons();
+            RefreshMaterialHighlight();
+            if(level==2)EnsureActionHighlight();
+        }
         // One mapped raycast surface handles both mouse and Android touch.
         // It sits above all artwork and legacy transparent controls.
         var hit=NewImage(canvas,"Stage5MappedTouchSurface",null,Color.clear);
@@ -428,6 +435,14 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
             image.type=Image.Type.Simple;
             image.preserveAspect=true;
             image.raycastTarget=false;
+            // Persistent outline attaches to the editable material Image.
+            // No new hitbox, no text covering, no duplicate button.
+            var outline=image.GetComponent<Outline>();
+            if(outline==null)outline=image.gameObject.AddComponent<Outline>();
+            outline.effectColor=new Color32(255,217,72,255);
+            outline.effectDistance=new Vector2(3f,-3f);
+            outline.useGraphicAlpha=false;
+            outline.enabled=(selected==i);
             // Level 1 artwork uses narrower cards than Level 3. Never
             // stretch the source sprite or cover neighbouring elements.
             // Keep exactly the size/position saved in the Unity scene.
@@ -441,6 +456,78 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         // but do not intercept mapped dragging/clicking.
         var touch=Find(canvas,"Stage5MappedTouchSurface");
         if(touch!=null)row.SetSiblingIndex(touch.GetSiblingIndex());
+    }
+
+    private void RefreshMaterialHighlight()
+    {
+        if(canvas==null || (level!=1 && level!=2))return;
+        var row=Find(canvas,"Stage5Level"+level+"MaterialButtons");
+        if(row==null)return;
+        for(int i=0;i<3;i++)
+        {
+            var material=Find(row,"MaterialButton_"+(char)('A'+i));
+            var outline=material!=null?material.GetComponent<Outline>():null;
+            if(outline!=null)outline.enabled=(i==selected);
+        }
+    }
+
+    // An editable, non-raycasting four-sided selection border: deliberately
+    // sits over the existing STRIKE/PRESS art, without adding another button.
+    // The original touch mapping and gameplay logic stay authoritative.
+    private void EnsureActionHighlight()
+    {
+        if(level!=2 || canvas==null)return;
+        var root=Find(canvas,"Stage5ClickedActionHighlight") as RectTransform;
+        if(root==null)
+        {
+            var go=new GameObject("Stage5ClickedActionHighlight",typeof(RectTransform));
+            go.transform.SetParent(canvas,false);
+            root=go.GetComponent<RectTransform>();
+            Rect(root,Vector2.zero,new Vector2(1280,720));
+        }
+        actionHighlightEdges=new Image[4];
+        string[] names={"Top","Bottom","Left","Right"};
+        for(int i=0;i<4;i++)
+        {
+            var edge=Find(root,"SelectionEdge_"+names[i])?.GetComponent<Image>();
+            if(edge==null)
+            {
+                edge=NewImage(root,"SelectionEdge_"+names[i],null,
+                    new Color32(255,215,64,255));
+            }
+            edge.sprite=null;
+            edge.raycastTarget=false;
+            edge.color=new Color32(255,215,64,255);
+            actionHighlightEdges[i]=edge;
+        }
+        root.gameObject.SetActive(false);
+    }
+
+    public void HighlightAction(int action)
+    {
+        if(!ready || level!=2 || (action!=1 && action!=2))return;
+        highlightedAction=action;
+        if(actionHighlightEdges==null || actionHighlightEdges.Length!=4)
+            EnsureActionHighlight();
+        if(actionHighlightEdges==null)return;
+        var root=actionHighlightEdges[0]!=null?
+            actionHighlightEdges[0].transform.parent.gameObject:null;
+        if(root==null)return;
+        // Visible inside existing action buttons; outside no gameplay hitbox.
+        float centerX=action==1?-355f:0f;
+        float centerY=-275f;
+        float width=290f,height=67f,thickness=4f;
+        Rect(actionHighlightEdges[0].transform,
+            new Vector2(centerX,centerY+height*.5f),new Vector2(width,thickness));
+        Rect(actionHighlightEdges[1].transform,
+            new Vector2(centerX,centerY-height*.5f),new Vector2(width,thickness));
+        Rect(actionHighlightEdges[2].transform,
+            new Vector2(centerX-width*.5f,centerY),new Vector2(thickness,height));
+        Rect(actionHighlightEdges[3].transform,
+            new Vector2(centerX+width*.5f,centerY),new Vector2(thickness,height));
+        root.SetActive(true);
+        // Keep the border visible above art but never block the mapped touch.
+        root.transform.SetAsLastSibling();
     }
 
     // Keep the Stage 5 Level 3 labels and status panels separate.
@@ -1483,7 +1570,12 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
         conductivityResultPlate=Find(canvas,"DynamicProbeResult")?.GetComponent<Image>();
         conductivityResultText=Find(canvas,"DynamicProbeResultLabel")?.GetComponent<TMP_Text>();
         if(level==3)PolishLevel3Reference();
-        if(level==1 || level==2)RefreshStage5MaterialButtons();
+        if(level==1 || level==2)
+        {
+            RefreshStage5MaterialButtons();
+            RefreshMaterialHighlight();
+            if(level==2)EnsureActionHighlight();
+        }
         touchController=Find(canvas,"Stage5MappedTouchSurface")?.GetComponent<Stage5ReferenceTouchController>();
         if(touchController!=null)
         {
@@ -1580,6 +1672,11 @@ public sealed class Stage5ReferenceLayout : MonoBehaviour
     {
         if(!ready)return;
         selected=index;
+        RefreshMaterialHighlight();
+        if(level==2 && actionHighlightEdges!=null && actionHighlightEdges.Length>0 &&
+            actionHighlightEdges[0]!=null)
+            actionHighlightEdges[0].transform.parent.gameObject.SetActive(false);
+        highlightedAction=-1;
         if(liveSample!=null)
             liveSample.text=(level==1 || level==2) && index>=0 && index<3?
                 Stage5MaterialNames[index]:"SAMPLE "+(char)('A'+index);
