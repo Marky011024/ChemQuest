@@ -970,9 +970,9 @@ public class Stage2IonForgeGame : MonoBehaviour
             }
             else if(bowCheckQuestion!=null)
             {
-                bowCheckQuestion.text=approvedBow?.At(bowCheckIndex)?.hint ?? (Level==3?
-                    "HINT: Opposite charges attract and form a repeating ionic lattice. Try again!":
-                    "HINT: Use the element's group and balance the ion charges. Try again!");
+                ChemQuestHintPopup.Show(approvedBow?.At(bowCheckIndex)?.hint ?? (Level==3?
+                    "HINT: Opposite charges attract and form a repeating ionic lattice.":
+                    "HINT: Use the element's group and balance the ion charges."));
             }
             return;
         }
