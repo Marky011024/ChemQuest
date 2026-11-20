@@ -84,7 +84,7 @@ public static class ChemQuestStage1Level2ReagentIllustrations
             original.color = new Color(c.r,c.g,c.b,0f);
             // Do NOT disable its raycast target or its DraggableReagent component.
         }
-        child.SetAsLastSibling();
+        child.SetAsFirstSibling(); // Keep existing chemical-name labels in front of artwork.
         EditorUtility.SetDirty(img);
     }
 
