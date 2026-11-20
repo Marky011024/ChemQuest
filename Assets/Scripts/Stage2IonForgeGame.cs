@@ -24,6 +24,7 @@ public class Stage2IonForgeGame : MonoBehaviour
     private int variant=-1;
     // BOW checks run after the level's original ionic puzzle objectives are finished.
     private int bowCheckIndex=-1;
+    private ChemQuestBowData.Snapshot approvedBow;
     private GameObject bowCheckPanel;
     private TMP_Text bowCheckQuestion;
 
@@ -903,6 +904,7 @@ public class Stage2IonForgeGame : MonoBehaviour
             return;
         }
         bowCheckIndex=0;
+        approvedBow=ChemQuestBowData.Load(2,Level);
         UpdateBowCheck();
         bowCheckPanel.SetActive(true);
         bowCheckPanel.transform.SetAsLastSibling();
@@ -945,6 +947,8 @@ public class Stage2IonForgeGame : MonoBehaviour
             question="Which formula and name describe magnesium chloride?";
             answerA="MgCl - magnesium chloride";answerB="MgCl2 - magnesium chloride";
         }
+        var synced=approvedBow?.At(bowCheckIndex);
+        if(synced!=null){question=synced.prompt;answerA=synced.a;answerB=synced.b;}
         bowCheckQuestion.text=question;
         var a=Find(bowCheckPanel.transform,"BowAnswerA")?.GetComponentInChildren<TMP_Text>(true);
         var b=Find(bowCheckPanel.transform,"BowAnswerB")?.GetComponentInChildren<TMP_Text>(true);
@@ -954,7 +958,7 @@ public class Stage2IonForgeGame : MonoBehaviour
     private void SubmitBowAnswer(int chosen)
     {
         if(!CanInteract || bowCheckIndex<0 || bowCheckIndex>=2)return;
-        int correct=((Level==2 || Level==3) && bowCheckIndex==1)?1:0;
+        int correct=approvedBow?.At(bowCheckIndex)?.correct ?? (((Level==2 || Level==3) && bowCheckIndex==1)?1:0);
         if(chosen!=correct)
         {
             ChemQuestSoundtrack.Wrong();
@@ -966,9 +970,9 @@ public class Stage2IonForgeGame : MonoBehaviour
             }
             else if(bowCheckQuestion!=null)
             {
-                bowCheckQuestion.text=Level==3?
+                bowCheckQuestion.text=approvedBow?.At(bowCheckIndex)?.hint ?? (Level==3?
                     "HINT: Opposite charges attract and form a repeating ionic lattice. Try again!":
-                    "HINT: Use the element's group and balance the ion charges. Try again!";
+                    "HINT: Use the element's group and balance the ion charges. Try again!");
             }
             return;
         }
