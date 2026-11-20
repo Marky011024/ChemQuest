@@ -29,12 +29,22 @@ public static class ChemQuestStage1Level2ReagentIllustrations
 
         if (!AssetDatabase.IsValidFolder("Assets/Art")) AssetDatabase.CreateFolder("Assets", "Art");
         if (!AssetDatabase.IsValidFolder(Folder)) AssetDatabase.CreateFolder("Assets/Art", "ChemQuestReagents");
-        var cu = CreateImage("CopperSulfateBlueCrystals.png", false);
-        var na = CreateImage("SodiumHydroxideWhitePellets.png", true);
+        var cu = LoadProvidedImage("CopperSulfateBlueCrystals.png");
+        var na = LoadProvidedImage("SodiumHydroxideWhitePellets.png");
         if (cu == null || na == null)
-        { EditorUtility.DisplayDialog("ChemQuest", "Image import failed; scene was not modified.", "OK"); return; }
+        { EditorUtility.DisplayDialog("ChemQuest", "Copy the TWO supplied PNG files into Assets/Art/ChemQuestReagents first. Scene unchanged.", "OK"); return; }
         Polish(copper, cu);
         Polish(sodium, na);
+        var beaker = Find(scene, "ReactionBeaker");
+        if (beaker == null) Debug.LogWarning("ChemQuest: ReactionBeaker not found. Looking for Level2ReactionDropZone on other scene objects.");
+        Level2ReactionDropZone drop = null;
+        foreach (var root in scene.GetRootGameObjects())
+        {
+            drop = root.GetComponentInChildren<Level2ReactionDropZone>(true);
+            if (drop != null) break;
+        }
+        if (drop != null && drop.GetComponent<ChemQuestReagentPourEffect>() == null)
+            Undo.AddComponent<ChemQuestReagentPourEffect>(drop.gameObject);
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
         Selection.activeGameObject = copper.gameObject;
@@ -88,62 +98,18 @@ public static class ChemQuestStage1Level2ReagentIllustrations
         EditorUtility.SetDirty(img);
     }
 
-    static Sprite CreateImage(string file, bool sodium)
+    static Sprite LoadProvidedImage(string name)
     {
-        string path = Folder + "/" + file;
-        if (!File.Exists(path))
-        {
-            var tex = new Texture2D(N,N,TextureFormat.RGBA32,false);
-            var data = new Color32[N*N];
-            for (int y=0; y<N; y++)
-            for (int x=0; x<N; x++)
-            {
-                Color32 p = new Color32(0,0,0,0);
-                bool neck = y >= 196 && y <= 224 && x >= 98 && x <= 158;
-                bool cap = y >= 214 && y <= 239 && x >= 92 && x <= 164;
-                bool body = y >= 45 && y <= 197 && x >= 58 && x <= 198;
-                if (body && (x < 65 || x > 191 || y < 52)) p = new Color32(111,207,232,230);
-                else if (body) p = new Color32(207,237,240,118);
-                if (neck) p = new Color32(140,205,226,230);
-                if (cap) p = new Color32(33,56,86,255);
-                // Visible contents: blue faceted copper sulfate crystals,
-                // or small white sodium hydroxide pellets.
-                if (body && x>=69 && x<=187 && y>=62 && y<=150)
-                {
-                    int u=x-69,v=y-62,cell=23;
-                    int ix=u/cell, iy=v/cell, lx=u%cell, ly=v%cell;
-                    int skew=((ix*7 + iy*11)%9)-4;
-                    int d=(lx-11-skew)*(lx-11-skew)+(ly-11)*(ly-11);
-                    bool solid = sodium ? d<67 : (Mathf.Abs(lx-11-skew)+Mathf.Abs(ly-11) < 16);
-                    if (solid)
-                    {
-                        int light=(x+y+ix*3)%19;
-                        p = sodium
-                            ? new Color32((byte)(225+light),(byte)(231+light),(byte)(236+light),255)
-                            : new Color32((byte)(27+light),(byte)(113+light*3),(byte)(199+light*2),255);
-                    }
-                }
-                // Clean solid label strip integrated into the picture.
-                if (body && y>=154 && y<=190 && x>=67 && x<=189)
-                    p = sodium ? new Color32(45,93,97,249) : new Color32(31,77,140,249);
-                // Bright bottle highlight.
-                if (body && x>=70 && x<=75 && y>=80 && y<=147)
-                    p = new Color32(243,251,255,165);
-                data[y*N+x] = p;
-            }
-            tex.SetPixels32(data);
-            tex.Apply();
-            File.WriteAllBytes(path, tex.EncodeToPNG());
-            Object.DestroyImmediate(tex);
-        }
+        string path = Folder + "/" + name;
+        if (!File.Exists(path)) return null;
         AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
-        var importer=AssetImporter.GetAtPath(path) as TextureImporter;
-        if (importer != null && (importer.textureType != TextureImporterType.Sprite || importer.spriteImportMode != SpriteImportMode.Single))
+        var importer = AssetImporter.GetAtPath(path) as TextureImporter;
+        if (importer != null)
         {
-            importer.textureType=TextureImporterType.Sprite;
-            importer.spriteImportMode=SpriteImportMode.Single;
-            importer.alphaIsTransparency=true;
-            importer.mipmapEnabled=false;
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Single;
+            importer.alphaIsTransparency = true;
+            importer.mipmapEnabled = false;
             importer.SaveAndReimport();
         }
         return AssetDatabase.LoadAssetAtPath<Sprite>(path);
