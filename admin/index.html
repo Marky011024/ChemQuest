@@ -263,6 +263,7 @@ textarea{line-height:1.5}
 let active='home';window.cqSiteView=(view)=>{active=view;const loggedIn=ws.dataset.authorized==='yes';home.hidden=view!=='home';login.hidden=view!=='login'||loggedIn;login.style.display=(view==='login'&&!loggedIn)?'block':'none';ws.style.display=loggedIn&&view!=='home'?'block':'none';adminBtn.textContent=loggedIn?'Admin Dashboard':'Admin Login';if(view==='login'&&!loggedIn)document.getElementById('email').focus();};
 window.cqSiteAuth=(loggedIn)=>{ws.dataset.authorized=loggedIn?'yes':'no';window.cqSiteView(loggedIn?'login':'home');};
 document.getElementById('navHome').addEventListener('click',()=>window.cqSiteView('home'));
+document.getElementById('navDownload').addEventListener('click',()=>{window.cqSiteView('home');});
 adminBtn.addEventListener('click',()=>window.cqSiteView('login'));
 document.querySelectorAll('[data-admin-login]').forEach(b=>b.addEventListener('click',()=>window.cqSiteView('login')));
 document.getElementById('exploreGame').addEventListener('click',()=>document.getElementById('aboutGame').scrollIntoView({behavior:'smooth'}));
