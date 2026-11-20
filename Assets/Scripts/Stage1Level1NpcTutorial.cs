@@ -277,12 +277,127 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
     {
         if(Application.isPlaying) return;
         if(!BindEditableHierarchy()) BuildInterface();
+        ApplyEditablePolish();
         step=0;
         ShowStep();
         guideRoot.SetActive(true);
         if(halo!=null)halo.gameObject.SetActive(false);
         if(trail!=null)trail.gameObject.SetActive(false);
         if(handMarker!=null)handMarker.gameObject.SetActive(false);
+    }
+
+
+    // Non-destructive polish of baked scene objects. Idempotent: safe to run
+    // the Editor menu again without creating duplicate UI or event handlers.
+    private static void SetRect(Transform parent,string name,Vector2 position,Vector2 size)
+    {
+        var child=parent.Find(name);
+        if(child==null)return;
+        var rect=child.GetComponent<RectTransform>();
+        if(rect==null)return;
+        rect.anchoredPosition=position;
+        rect.sizeDelta=size;
+    }
+
+    private static Text EditText(Transform parent,string name,int size,Color color,
+        TextAnchor alignment)
+    {
+        var child=parent.Find(name);
+        if(child==null)return null;
+        var label=child.GetComponent<Text>();
+        if(label==null)return null;
+        label.fontSize=size;
+        label.color=color;
+        label.alignment=alignment;
+        label.horizontalOverflow=HorizontalWrapMode.Wrap;
+        label.verticalOverflow=VerticalWrapMode.Truncate;
+        label.resizeTextForBestFit=false;
+        label.raycastTarget=false;
+        return label;
+    }
+
+    private void ApplyEditablePolish()
+    {
+        if(guideRoot==null)return;
+        var panel=guideRoot.transform.Find("ProfAtomDialogueBar");
+        if(panel==null)return;
+        var frame=panel.GetComponent<RectTransform>();
+        if(frame!=null)
+        {
+            frame.anchorMin=frame.anchorMax=new Vector2(.5f,0f);
+            frame.anchoredPosition=new Vector2(0,92);
+            frame.sizeDelta=new Vector2(1170,172);
+        }
+        var image=panel.GetComponent<Image>();
+        if(image!=null)
+        {
+            image.color=new Color(.042f,.12f,.21f,.96f);
+            image.raycastTarget=false;
+        }
+        SetRect(panel,"GoldLine",new Vector2(0,-3),new Vector2(1170,5));
+        SetRect(panel,"ProfAtomPortrait",new Vector2(81,0),new Vector2(154,158));
+        SetRect(panel,"NPCNameBackground",new Vector2(81,18),new Vector2(152,28));
+
+        SetRect(panel,"Skip",new Vector2(-203,-58),new Vector2(128,52));
+        SetRect(panel,"Next",new Vector2(-70,-58),new Vector2(128,52));
+        var skip=panel.Find("Skip");
+        var next=panel.Find("Next");
+        if(skip!=null)
+        {
+            EditText(skip,"Label",21,Color.white,TextAnchor.MiddleCenter);
+            SetRect(skip,"Label",Vector2.zero,new Vector2(120,48));
+        }
+        if(next!=null)
+        {
+            EditText(next,"Label",21,Color.white,TextAnchor.MiddleCenter);
+            SetRect(next,"Label",Vector2.zero,new Vector2(120,48));
+        }
+
+        var head=EditText(panel,"StepHeading",25,Gold,TextAnchor.UpperLeft);
+        if(head!=null)
+        {
+            var r=head.rectTransform;
+            r.anchorMin=r.anchorMax=new Vector2(0,1);
+            r.pivot=new Vector2(0,1);
+            r.anchoredPosition=new Vector2(182,-13);
+            r.sizeDelta=new Vector2(700,38);
+        }
+        var speech=EditText(panel,"Speech",21,Color.white,TextAnchor.UpperLeft);
+        if(speech!=null)
+        {
+            var r=speech.rectTransform;
+            r.anchorMin=r.anchorMax=new Vector2(0,1);
+            r.pivot=new Vector2(0,1);
+            r.anchoredPosition=new Vector2(182,-58);
+            r.sizeDelta=new Vector2(700,80);
+            speech.lineSpacing=1.07f;
+        }
+
+        var stepLabel=EditText(panel,"StepNumber",17,new Color(.75f,.93f,.98f),
+            TextAnchor.MiddleLeft);
+        if(stepLabel!=null)
+        {
+            var r=stepLabel.rectTransform;
+            r.anchorMin=r.anchorMax=new Vector2(0,0);
+            r.pivot=new Vector2(0,0);
+            r.anchoredPosition=new Vector2(182,12);
+            r.sizeDelta=new Vector2(220,25);
+        }
+        var portrait=panel.Find("ProfAtomPortrait");
+        if(portrait!=null)
+        {
+            var art=portrait.Find("ProfAtomGeneratedArt")?.GetComponent<Image>();
+            if(art!=null){art.preserveAspect=true;art.raycastTarget=false;}
+        }
+        // This is a visual-only highlight. Student drags still pass through it.
+        if(halo!=null)
+        {
+            halo.raycastTarget=false;
+            halo.color=new Color(1f,.84f,.25f,.28f);
+            halo.rectTransform.sizeDelta=new Vector2(116,98);
+        }
+        if(trail!=null)trail.raycastTarget=false;
+        if(handMarker!=null)handMarker.raycastTarget=false;
     }
 
     private bool BindEditableHierarchy()
