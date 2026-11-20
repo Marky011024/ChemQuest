@@ -41,6 +41,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
     private GameObject level3BowPanel;
     private TMP_Text level3BowQuestion,level3BowHint;
     private int level3BowStep=-1;
+    private ChemQuestBowData.Snapshot approvedBow;
     private int mistakes,metalPlaced,electronsPlaced,terminalsPlaced;
     private bool failed,completed,paused,powerOn,observedDrift,forceApplied;
     private float nextTick,driftClock;
@@ -1187,6 +1188,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
     private void ShowLevel1BowQuestion()
     {
         if(Level!=1)return;
+        if(level1BowStep==0)approvedBow=ChemQuestBowData.Load(4,1);
         if(level1BowPanel==null)EnsureLevel1BowPanel();
         if(level1BowPanel==null)return;
         SetLevel1BackgroundInstructionsVisible(false);
@@ -1197,6 +1199,13 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             "Positive metal ions":"Attraction to delocalized electrons");
         SetLevel1BowAnswer("BowAnswerB",level1BowStep==0?
             "Neutral atoms moving freely":"Electrons fixed to only one metal ion");
+        var synced=approvedBow?.At(level1BowStep);
+        if(synced!=null)
+        {
+            if(level1BowQuestion!=null)level1BowQuestion.text=synced.prompt;
+            SetLevel1BowAnswer("BowAnswerA",synced.a);
+            SetLevel1BowAnswer("BowAnswerB",synced.b);
+        }
         if(level1BowHint!=null)level1BowHint.text="";
         level1BowPanel.SetActive(true);
         level1BowPanel.transform.SetAsLastSibling();
@@ -1206,7 +1215,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         if(Level!=1 || !CanInteract || level1BowPanel==null ||
             !level1BowPanel.activeSelf || level1BowStep<0 ||
             level1BowStep>=2)return;
-        if(choice!=0)
+        if(choice!=(approvedBow?.At(level1BowStep)?.correct ?? 0))
         {
             ChemQuestSoundtrack.Wrong();
             RegisterMistake();
@@ -1216,9 +1225,9 @@ public class Stage4ElectronOceanGame : MonoBehaviour
                 if(failedPanel!=null)failedPanel.transform.SetAsLastSibling();
             }
             else if(level1BowHint!=null)
-                level1BowHint.text=level1BowStep==0?
+                level1BowHint.text=approvedBow?.At(level1BowStep)?.hint ?? (level1BowStep==0?
                     "HINT: The lattice consists of positive metal ions.":
-                    "HINT: A sea of mobile electrons attracts the metal ions.";
+                    "HINT: A sea of mobile electrons attracts the metal ions.");
             return;
         }
         ChemQuestSoundtrack.Correct();
@@ -1295,6 +1304,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
     private void ShowLevel2BowQuestion()
     {
         if(Level!=2)return;
+        if(level2BowStep==0)approvedBow=ChemQuestBowData.Load(4,2);
         if(level2BowPanel==null)EnsureLevel2BowPanel();
         if(level2BowPanel==null)return;
         SetLevel2BackgroundInstructionsVisible(false);
@@ -1307,6 +1317,13 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         SetLevel2BowAnswer("BowAnswerB",level2BowStep==0?
             "Toward the negative terminal (left)":
             "Metal cations move freely through the lattice");
+        var synced=approvedBow?.At(level2BowStep);
+        if(synced!=null)
+        {
+            if(level2BowQuestion!=null)level2BowQuestion.text=synced.prompt;
+            SetLevel2BowAnswer("BowAnswerA",synced.a);
+            SetLevel2BowAnswer("BowAnswerB",synced.b);
+        }
         if(level2BowHint!=null)level2BowHint.text="";
         level2BowPanel.SetActive(true);
         level2BowPanel.transform.SetAsLastSibling();
@@ -1316,7 +1333,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         if(Level!=2 || !CanInteract || level2BowPanel==null ||
             !level2BowPanel.activeSelf || level2BowStep<0 ||
             level2BowStep>=2)return;
-        if(choice!=0)
+        if(choice!=(approvedBow?.At(level2BowStep)?.correct ?? 0))
         {
             ChemQuestSoundtrack.Wrong();
             RegisterMistake();
@@ -1326,9 +1343,9 @@ public class Stage4ElectronOceanGame : MonoBehaviour
                 if(failedPanel!=null)failedPanel.transform.SetAsLastSibling();
             }
             else if(level2BowHint!=null)
-                level2BowHint.text=level2BowStep==0?
+                level2BowHint.text=approvedBow?.At(level2BowStep)?.hint ?? (level2BowStep==0?
                     "HINT: Negative charges move toward the positive terminal.":
-                    "HINT: The mobile electrons carry charge through the metal.";
+                    "HINT: The mobile electrons carry charge through the metal.");
             return;
         }
         ChemQuestSoundtrack.Correct();
@@ -1621,6 +1638,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
     private void ShowLevel3BowQuestion()
     {
         if(Level!=3)return;
+        if(level3BowStep==0)approvedBow=ChemQuestBowData.Load(4,3);
         if(level3BowPanel==null)EnsureLevel3BowPanel();
         if(level3BowPanel==null)return;
         SetLevel3UnderlyingFeedbackVisible(false);
@@ -1631,6 +1649,13 @@ public class Stage4ElectronOceanGame : MonoBehaviour
             "Delocalized electrons maintain attraction":"Ductility");
         SetLevel3BowAnswer("BowAnswerB",level3BowStep==0?
             "Metallic bonds disappear when layers move":"Brittleness");
+        var synced=approvedBow?.At(level3BowStep);
+        if(synced!=null)
+        {
+            if(level3BowQuestion!=null)level3BowQuestion.text=synced.prompt;
+            SetLevel3BowAnswer("BowAnswerA",synced.a);
+            SetLevel3BowAnswer("BowAnswerB",synced.b);
+        }
         if(level3BowHint!=null)level3BowHint.text="";
         level3BowPanel.SetActive(true);
         level3BowPanel.transform.SetAsLastSibling();
@@ -1640,7 +1665,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         if(Level!=3 || !CanInteract || level3BowPanel==null ||
             !level3BowPanel.activeSelf || level3BowStep<0 ||
             level3BowStep>=2)return;
-        if(choice!=0)
+        if(choice!=(approvedBow?.At(level3BowStep)?.correct ?? 0))
         {
             ChemQuestSoundtrack.Wrong();
             RegisterMistake();
@@ -1650,9 +1675,9 @@ public class Stage4ElectronOceanGame : MonoBehaviour
                 if(failedPanel!=null)failedPanel.transform.SetAsLastSibling();
             }
             else if(level3BowHint!=null)
-                level3BowHint.text=level3BowStep==0?
+                level3BowHint.text=approvedBow?.At(level3BowStep)?.hint ?? (level3BowStep==0?
                     "HINT: Mobile electrons keep attracting positive metal ions.":
-                    "HINT: Drawing metal into wire is called ductility.";
+                    "HINT: Drawing metal into wire is called ductility.");
             return;
         }
         ChemQuestSoundtrack.Correct();
