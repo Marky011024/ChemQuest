@@ -141,6 +141,39 @@ public sealed class ChemQuestQuestionSyncPilot : MonoBehaviour
                             ": invalid snapshot; keeping existing cached/original questions.");
                     }
                 }
+                // Separate assessments: student read is question text + choices only.
+                // No answer keys are distributed through these documents.
+                foreach(string kind in new[]{"pre","post"})
+                {
+                    string testUrl="https://firestore.googleapis.com/v1/projects/" +
+                        UnityWebRequest.EscapeURL(projectId) +
+                        "/databases/(default)/documents/publishedAssessments/"+kind;
+                    using(var testRequest=UnityWebRequest.Get(testUrl))
+                    {
+                        testRequest.SetRequestHeader("Authorization","Bearer "+auth.idToken);
+                        testRequest.timeout=20;
+                        yield return testRequest.SendWebRequest();
+                        if(testRequest.result!=UnityWebRequest.Result.Success)
+                        {
+                            Debug.LogWarning("CHEMQUEST "+kind.ToUpper()+
+                                "-TEST: published snapshot unavailable ("+testRequest.responseCode+
+                                "); cached or built-in assessment remains.");
+                            continue;
+                        }
+                        BowDocument doc=null;
+                        try {doc=JsonUtility.FromJson<BowDocument>(testRequest.downloadHandler.text);}
+                        catch(Exception) {}
+                        if(doc?.fields?.status?.stringValue=="published" &&
+                           !string.IsNullOrEmpty(doc.fields.payload?.stringValue) &&
+                           ChemQuestAssessmentGate.TryCacheApprovedTest(kind,doc.fields.payload.stringValue))
+                            Debug.Log("CHEMQUEST "+kind.ToUpper()+"-TEST SNAPSHOT SYNC OK | version="+
+                                doc.fields.version?.stringValue+" | Effective on NEXT NEW attempt.");
+                        else
+                            Debug.LogWarning("CHEMQUEST "+kind.ToUpper()+
+                                "-TEST: invalid snapshot; keeping prior cache/original questions.");
+                    }
+                }
+
         }
     }
 
