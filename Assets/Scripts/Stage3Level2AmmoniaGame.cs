@@ -769,11 +769,9 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         wrongAttempts++;
         if(wrongAttempts==1)
         {
-            if(feedbackText!=null)
-            {
-                feedbackText.text="HINT: N-H bonds need one N and one H electron. Lone pair needs two N electrons.";
-                feedbackText.color=Gold;
-            }
+            ChemQuestHintPopup.Show(bowQuestionIndex>=0
+                ? (approvedBow?.At(bowQuestionIndex)?.hint ?? "Covalent N-H bonds SHARE electrons.")
+                : "N-H bonds need one N and one H electron. A lone pair needs two N electrons.");
         }
         else
         {
