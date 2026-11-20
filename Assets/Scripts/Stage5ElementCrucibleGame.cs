@@ -1055,8 +1055,8 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         if(synced!=null)
         {
             if(level1BowQuestion!=null)level1BowQuestion.text=synced.prompt;
-            SetLevel1BowAnswer("BowAnswerA",synced.a);
-            SetLevel1BowAnswer("BowAnswerB",synced.b);
+            SetBowAnswer("BowAnswerA",synced.a);
+            SetBowAnswer("BowAnswerB",synced.b);
         }
         if(level1BowHint!=null)level1BowHint.text="";
         level1BowPanel.SetActive(true);
