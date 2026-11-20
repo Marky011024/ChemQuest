@@ -85,7 +85,7 @@ public sealed class Stage1BowLearningCheck : MonoBehaviour
         questionIndex=0;
         mistakes=0;
         // Snapshot for this attempt. Later cloud updates cannot alter an active check.
-        lockedQuestions=ChemQuestBowSnapshot.TryLoad(stageLevel);
+        lockedQuestions=ChemQuestBowSnapshot.TryLoad(1,stageLevel);
         EnsureUI();
         if(overlay==null)
         {
@@ -184,12 +184,12 @@ public sealed class Stage1BowLearningCheck : MonoBehaviour
     }
     private static class ChemQuestBowSnapshot
     {
-        public static string KeyFor(int level) { return "ChemQuestBowS1L"+level+"SnapshotV1"; }
-        public static Question[] TryLoad(int level)
+        public static string KeyFor(int stage,int level) { return "ChemQuestBowS"+stage+"L"+level+"SnapshotV1"; }
+        public static Question[] TryLoad(int stage,int level)
         {
             try
             {
-                var raw=PlayerPrefs.GetString(KeyFor(level),"");
+                var raw=PlayerPrefs.GetString(KeyFor(stage,level),"");
                 if(string.IsNullOrEmpty(raw))return null;
                 var data=JsonUtility.FromJson<SyncedQuestions>(raw);
                 if(data==null||data.schema!=1||data.items==null||data.items.Length!=2||
@@ -215,7 +215,7 @@ public sealed class Stage1BowLearningCheck : MonoBehaviour
         }
     }
 
-    public static bool TryCacheApprovedLevel(int level,string json)
+    public static bool TryCacheApproved(int stage,int level,string json)
     {
         try
         {
@@ -231,12 +231,19 @@ public sealed class Stage1BowLearningCheck : MonoBehaviour
                    string.IsNullOrWhiteSpace(q.explanation)||string.Equals(q.a.Trim(),q.b.Trim(),StringComparison.OrdinalIgnoreCase))
                     return false;
             }
-            if(level<1||level>3)return false;
-            PlayerPrefs.SetString(ChemQuestBowSnapshot.KeyFor(level),json);
+            if(stage<1||stage>5||level<1||level>3)return false;
+            PlayerPrefs.SetString(ChemQuestBowSnapshot.KeyFor(stage,level),json);
             PlayerPrefs.Save();
             return true;
         }
         catch(Exception){return false;}
+    }
+
+    // Available to future Stage 2–5 BOW screens; does not change their current gameplay.
+    public static bool HasApprovedSnapshot(int stage,int level)
+    {
+        if(stage<1||stage>5||level<1||level>3)return false;
+        return ChemQuestBowSnapshot.TryLoad(stage,level)!=null;
     }
 
     private void ShowQuestion()
