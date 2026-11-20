@@ -298,7 +298,7 @@ public class Stage3Level1CompleteManager : MonoBehaviour
                 if(failedPanel!=null)failedPanel.transform.SetAsLastSibling();
             }
             else
-                bowHintText.text=approvedBow?.At(bowQuestionIndex)?.hint ?? "HINT: Covalent bonds share electrons. Water has two H atoms and one O atom.";
+                ChemQuestHintPopup.Show(approvedBow?.At(bowQuestionIndex)?.hint ?? "HINT: Covalent bonds share electrons. Water has two H atoms and one O atom.");
             return;
         }
         ChemQuestSoundtrack.Correct();
