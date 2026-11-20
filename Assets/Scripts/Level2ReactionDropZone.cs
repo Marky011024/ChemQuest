@@ -24,6 +24,7 @@ public class Level2ReactionDropZone : MonoBehaviour, IDropHandler
     private bool copperSulfateAdded = false;
     private bool sodiumHydroxideAdded = false;
     private bool reactionStarted = false;
+    private int poursInProgress = 0;
 
     private CanvasGroup liquidCanvasGroup;
     private CanvasGroup precipitateCanvasGroup;
@@ -83,7 +84,7 @@ public class Level2ReactionDropZone : MonoBehaviour, IDropHandler
             !copperSulfateAdded)
         {
             copperSulfateAdded = true;
-            reagent.ReagentAccepted();
+            StartCoroutine(AcceptWithPour(reagent, false));
 
             Debug.Log("Copper sulfate added.");
         }
@@ -91,17 +92,36 @@ public class Level2ReactionDropZone : MonoBehaviour, IDropHandler
                  !sodiumHydroxideAdded)
         {
             sodiumHydroxideAdded = true;
-            reagent.ReagentAccepted();
+            StartCoroutine(AcceptWithPour(reagent, true));
 
             Debug.Log("Sodium hydroxide added.");
         }
 
-        if (copperSulfateAdded &&
-            sodiumHydroxideAdded &&
-            !reactionStarted)
-        {
+        TryStartReaction();
+    }
+
+    private IEnumerator AcceptWithPour(DraggableReagent reagent, bool sodium)
+    {
+        var rect = reagent.GetComponent<RectTransform>();
+        var artwork = reagent.transform.Find("ReagentIllustration");
+        var picture = artwork != null ? artwork.GetComponent<Image>() : null;
+        Sprite sprite = picture != null ? picture.sprite : null;
+        Vector3 startingWorld = rect != null ? rect.position : reagent.transform.position;
+        poursInProgress++;
+        // Existing name-based validation already happened; hide the original
+        // reagent once accepted, and show a temporary non-interactive visual.
+        reagent.ReagentAccepted();
+        var effect = GetComponent<ChemQuestReagentPourEffect>();
+        if (effect != null && sprite != null)
+            yield return StartCoroutine(effect.Play(sprite, startingWorld, sodium));
+        poursInProgress--;
+        TryStartReaction();
+    }
+
+    private void TryStartReaction()
+    {
+        if (copperSulfateAdded && sodiumHydroxideAdded && !reactionStarted && poursInProgress == 0)
             StartReaction();
-        }
     }
 
     private void StartReaction()
