@@ -10,8 +10,8 @@ public static class ChemQuestAudioSettings
     private const string MusicKey="ChemQuestMusicVolume";
     private const string SfxKey="ChemQuestSfxVolume";
     private const string MutedKey="ChemQuestSoundMuted";
-    public static float Music=>PlayerPrefs.GetFloat(MusicKey,.65f);
-    public static float Sfx=>PlayerPrefs.GetFloat(SfxKey,.85f);
+    public static float Music=>PlayerPrefs.GetFloat(MusicKey,.25f);
+    public static float Sfx=>PlayerPrefs.GetFloat(SfxKey,.65f);
     public static bool Muted=>PlayerPrefs.GetInt(MutedKey,0)==1;
     private static readonly Dictionary<AudioSource,float> BaseLevels=new Dictionary<AudioSource,float>();
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]

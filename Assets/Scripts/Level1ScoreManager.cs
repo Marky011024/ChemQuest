@@ -30,19 +30,33 @@ public class Level1ScoreManager : MonoBehaviour
         UpdateScoreDisplay();
     }
 
+    private bool bowStarted;
+
     public void CompleteLevel()
     {
-        // Prevent duplicate completion
-        if (levelCompleted)
+        if (levelCompleted || bowStarted)
             return;
 
+        bowStarted = true;
+        var bow = gameObject.GetComponent<Stage1BowLearningCheck>();
+        if (bow == null) bow = gameObject.AddComponent<Stage1BowLearningCheck>();
+        bow.Begin(1, finalScoreText != null ? finalScoreText.font :
+            scoreText != null ? scoreText.font : null,
+            finalScoreText != null ? finalScoreText.GetComponentInParent<Canvas>() :
+            scoreText != null ? scoreText.GetComponentInParent<Canvas>() : null,
+            FinishAfterBow);
+    }
+
+    private void FinishAfterBow(bool bowHadMistake)
+    {
+        if (levelCompleted) return;
         levelCompleted = true;
 
         // Calculate final score
         // No mistakes = 100
         // With mistake = 75
         score = attemptManager != null &&
-                attemptManager.HasMadeMistake ? 75 : 100;
+                (attemptManager.HasMadeMistake || bowHadMistake) ? 75 : 100;
 
         UpdateScoreDisplay();
 
@@ -69,17 +83,29 @@ public class Level1ScoreManager : MonoBehaviour
         if (experimentPanel != null)
             experimentPanel.SetActive(false);
 
-        // Show completion panel above other UI
+        // Remove Prof. Atom's ? GUIDE replay button and animated hand
+        // before opening the completion popup. This does not affect scoring.
+        var tutorial = FindFirstObjectByType<Stage1Level1NpcTutorial>();
+        if (tutorial != null) tutorial.HideForLevelCompletion();
+
+        // Replace the older tiny inline victory overlay with the
+        // Stage 2-style centered completion card.
         if (level1CompletePanel != null)
-        {
-            level1CompletePanel.SetActive(true);
-            level1CompletePanel.transform.SetAsLastSibling();
-        }
+            level1CompletePanel.SetActive(false);
+        ShowUnifiedCompletion();
 
         Debug.Log(
             "Stage 1 Level 1 completed! Score: " + score +
             ". Level 2 unlocked!"
         );
+    }
+
+    private void ShowUnifiedCompletion()
+    {
+        var popup=GetComponent<Stage1CompletionPopup>();
+        if(popup==null)popup=gameObject.AddComponent<Stage1CompletionPopup>();
+        popup.Show(1,score,finalScoreText!=null?finalScoreText.font:
+            scoreText!=null?scoreText.font:null);
     }
 
     private void UpdateScoreDisplay()

@@ -30,6 +30,10 @@ public class PauseMenuManager : MonoBehaviour
         if (pauseMenuPanel != null)
         {
             pauseMenuPanel.SetActive(true);
+
+            // Other level overlays (e.g. Sub-Microscopic View) can be
+            // brought to the front at runtime. Always show Pause above them.
+            pauseMenuPanel.transform.SetAsLastSibling();
         }
 
         Time.timeScale = 0f;

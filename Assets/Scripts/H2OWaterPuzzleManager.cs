@@ -43,7 +43,8 @@ public class H2OWaterPuzzleManager : MonoBehaviour
 
         if (successText != null)
         {
-            successText.text = "H₂O MOLECULE FORMED!";
+            // Use TMP rich-text subscripts: the font lacks the Unicode ₂ glyph.
+            successText.text = "H<sub>2</sub>O MOLECULE FORMED!";
             successText.gameObject.SetActive(true);
         }
 

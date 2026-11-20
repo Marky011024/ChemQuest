@@ -34,6 +34,13 @@ public class DraggableHydrogen : MonoBehaviour,
             return;
 
         canvasGroup.blocksRaycasts = false;
+
+        // Visual tutorial pointer only. Does not modify the drag/drop logic.
+        if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "Stage1Level1")
+        {
+            var guide = FindFirstObjectByType<Stage1Level1NpcTutorial>();
+            if (guide != null) guide.OnHydrogenDragBegin(rectTransform);
+        }
     }
 
     public void OnDrag(PointerEventData eventData)
@@ -48,6 +55,12 @@ public class DraggableHydrogen : MonoBehaviour,
     public void OnEndDrag(PointerEventData eventData)
     {
         canvasGroup.blocksRaycasts = true;
+
+        if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "Stage1Level1")
+        {
+            var guide = FindFirstObjectByType<Stage1Level1NpcTutorial>();
+            if (guide != null) guide.OnHydrogenDragEnd(rectTransform);
+        }
 
         if (!accepted)
         {

@@ -5,6 +5,40 @@ using UnityEngine.SceneManagement;
 
 public static class ChemQuestStage3Level2Builder
 {
+    [MenuItem("Tools/ChemQuest/Stage 3/Save Level 2 UI To Hierarchy")]
+    public static void SaveLevel2UIToHierarchy()
+    {
+        if(EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            EditorUtility.DisplayDialog("Stop Play Mode",
+                "Stop Play Mode before saving UI objects into the scene.", "OK");
+            return;
+        }
+        Scene scene=SceneManager.GetActiveScene();
+        if(scene.path!="Assets/Scenes/Stage3Level2.unity")
+        {
+            EditorUtility.DisplayDialog("Open Stage 3 Level 2",
+                "Open Assets/Scenes/Stage3Level2.unity first, then run this command.", "OK");
+            return;
+        }
+        var controller=GameObject.Find("Stage3Level2AmmoniaController");
+        var game=controller==null?null:controller.GetComponent<Stage3Level2AmmoniaGame>();
+        if(game==null)
+        {
+            EditorUtility.DisplayDialog("Controller not found",
+                "The Stage3Level2AmmoniaController is missing. Run Build Stage 3 Level 2 first.", "OK");
+            return;
+        }
+        // Idempotent: update existing scene elements, creating only missing ones.
+        game.BuildEditorUI();
+        EditorUtility.SetDirty(game);
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        Debug.Log("CHEMQUEST Stage 3 Level 2: layout, electron bank and BOW panels saved in Hierarchy.");
+        EditorUtility.DisplayDialog("UI saved to Hierarchy",
+            "Expand Stage3Level2GeneratedCanvas in Hierarchy. The Lewis puzzle, feedback, buttons, BOW panel and completion panels now exist before Play. Popup panels are initially inactive; enable them temporarily in the Inspector to edit their layouts.", "OK");
+    }
+
     [MenuItem("Tools/ChemQuest/Build Stage 3 Level 2")]
     public static void Build()
     {

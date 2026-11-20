@@ -27,6 +27,9 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
     private int[] hElectrons = new int[4];
     private readonly List<Stage3Level2ElectronDrag> dragElectrons = new List<Stage3Level2ElectronDrag>();
     private int wrongAttempts;
+    private int bowQuestionIndex=-1;
+    private GameObject bowPanel;
+    private TMP_Text bowQuestionText, bowHintText;
     private bool failed, completed, paused;
 
     private static readonly Color Background = new Color32(10, 22, 47, 255);
@@ -47,6 +50,9 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         else
             BuildUI(); // Compatibility with scenes made before this upgrade.
         EnsureDragAndDropUI();
+        PolishTopInstructions();
+        EnsureBowLearningCheck();
+        PolishModalLayering();
         RefreshEnergy();
         UpdateOutOfEnergyUI();
     }
@@ -58,11 +64,17 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         var existing = GameObject.Find("Stage3Level2GeneratedCanvas");
         if(existing==null) BuildUI();
         EnsureDragAndDropUI();
+        // Apply the same UI adjustments in Edit Mode so the actual saved
+        // objects match the Game view and remain inspectable before Play.
+        PolishTopInstructions();
+        EnsureBowLearningCheck();
+        PolishModalLayering();
         var root=GameObject.Find("Stage3Level2GeneratedCanvas");
         if(root!=null)
         {
-            // The first load of this scene starts with panels closed.
-            foreach(var n in new[]{"Level2FailedPanel","Level2CompletePanel","PauseMenuPanel","OutOfEnergyPanel"})
+            // Keep popup objects serialized in the hierarchy but initially hidden.
+            foreach(var n in new[]{"Level2FailedPanel","Level2CompletePanel",
+                "PauseMenuPanel","OutOfEnergyPanel","Stage3Level2BowPanel"})
             {
                 var child=FindUI(root.transform,n);
                 if(child!=null)child.gameObject.SetActive(false);
@@ -146,9 +158,13 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
             }
         }
         WireButton(root,"ContinueButton",Resume);
-        WireButton(root,"ResumeButton",Resume);
+        // ResumeButton belongs to the fallback menu, not every saved pause prefab.
+        if(FindUI(root,"ResumeButton")!=null)
+            WireButton(root,"ResumeButton",Resume);
         WireButton(root,"StageSelectionButton",()=>Navigate("StageSelection"));
-        WireButton(root,"StageSelectButton",()=>Navigate("StageSelection"));
+        // Saved scenes using the Stage 1 menu do not contain StageSelectButton.
+        if(FindUI(root,"StageSelectButton")!=null)
+            WireButton(root,"StageSelectButton",()=>Navigate("StageSelection"));
         WireButton(root,"BackToSelectionButton",()=>Navigate("Stage3LevelSelection"));
         EnsureDragAndDropUI();
 
@@ -157,6 +173,7 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         if(pausePanel!=null)pausePanel.SetActive(false);
         if(outOfEnergyPanel!=null)outOfEnergyPanel.SetActive(false);
         wrongAttempts=0; failed=false; completed=false; paused=false;
+        bowQuestionIndex=-1;
         for(int i=0;i<4;i++)
         {
             slots[i]=0;
@@ -219,6 +236,15 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
             var component=zone.GetComponent<Stage3Level2ElectronDropZone>();
             if(component==null)component=zone.gameObject.AddComponent<Stage3Level2ElectronDropZone>();
             component.ZoneIndex=i; component.Game=this;
+            // Raise and shorten each drop target to make a clear lower gutter.
+            var zoneRect=zone.GetComponent<RectTransform>();
+            if(zoneRect!=null)
+            {
+                zoneRect.anchoredPosition=new Vector2(-378+i*252,-176);
+                zoneRect.sizeDelta=new Vector2(232,54);
+            }
+            var countRect=zone.Find("Count")?.GetComponent<RectTransform>();
+            if(countRect!=null)countRect.sizeDelta=new Vector2(220,51);
             var button=zone.GetComponent<Button>();
             if(button!=null)button.interactable=false; // UI Image remains a drop target.
             var text=zone.Find("Count")?.GetComponent<TMP_Text>();
@@ -250,8 +276,41 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
                 int.TryParse(drag.name.Substring(8),out int id) && id<=5);
             dragElectrons.Add(drag);
         }
+        // Bottom layout polish (also applies to existing serialized scenes).
+        // Keep the draggable electron bank, feedback, and buttons in distinct rows.
+        var bankRect=bank.GetComponent<RectTransform>();
+        if(bankRect!=null)
+        {
+            bankRect.anchoredPosition=new Vector2(0,-231);
+            bankRect.sizeDelta=new Vector2(810,42);
+        }
         var feedback=FindUI(root,"Feedback")?.GetComponent<RectTransform>();
-        if(feedback!=null)feedback.anchoredPosition=new Vector2(0,-282);
+        if(feedback!=null)
+        {
+            // Put the instruction between the H atom and the four drop zones,
+            // away from the electron bank and bottom action buttons.
+            // H-bottom glyph ends near Y=-120 and slot tops start at Y=-156.
+            // Center the short hint at -138 so neither element is covered.
+            feedback.anchoredPosition=new Vector2(0,-124);
+            feedback.sizeDelta=new Vector2(1000,22);
+            var feedbackLabel=feedback.GetComponent<TMP_Text>();
+            if(feedbackLabel!=null)
+            {
+                feedbackLabel.fontSize=14;
+                feedbackLabel.alignment=TextAlignmentOptions.Center;
+                feedbackLabel.textWrappingMode=TextWrappingModes.NoWrap;
+                feedbackLabel.overflowMode=TextOverflowModes.Ellipsis;
+            }
+        }
+        foreach(var buttonName in new[]{"ResetButton","CheckButton"})
+        {
+            var rect=FindUI(root,buttonName)?.GetComponent<RectTransform>();
+            if(rect!=null)
+            {
+                rect.anchoredPosition=new Vector2(buttonName=="ResetButton"?-270:0,-310);
+                rect.sizeDelta=new Vector2(buttonName=="ResetButton"?180:260,44);
+            }
+        }
         var instruction=FindUI(root,"Instructions")?.GetComponent<TMP_Text>();
         if(instruction!=null)
             instruction.text="Drag 5 blue N electrons and 3 yellow H electrons.\nEach N-H bond needs N+H; the lone pair needs N+N.";
@@ -539,6 +598,13 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
             if(slots[i]!=2 || (i==3 ? nElectrons[i]!=2 : nElectrons[i]!=1 || hElectrons[i]!=1))correct=false;
         if(correct)
         {
+            if(bowQuestionIndex<0)
+            {
+                bowQuestionIndex=0;
+                ShowBowQuestion();
+                return;
+            }
+            if(bowQuestionIndex<2)return;
             completed=true;
             int score=wrongAttempts==0?100:75;
             scoreText.text="SCORE\n"+score.ToString("D6");
@@ -548,9 +614,153 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
             PlayerPrefs.SetInt("Stage3Level3Unlocked",1);
             PlayerPrefs.Save();
             completionPanel.SetActive(true);
+            completionPanel.transform.SetAsLastSibling();
             return;
         }
         WrongAttempt();
+    }
+
+    // Keep the background Stage 3 banner visible while moving the teaching prompt
+    // into the gap above the Lewis model, not across the banner text.
+    private void PolishTopInstructions()
+    {
+        var canvas=GameObject.Find("Stage3Level2GeneratedCanvas");
+        if(canvas==null)return;
+        var root=canvas.transform;
+        foreach(var name in new[]{"Title","Subtitle"})
+        {
+            var title=FindUI(root,name);
+            if(title!=null)title.gameObject.SetActive(false);
+        }
+        var prompt=FindUI(root,"Instructions")?.GetComponent<TMP_Text>();
+        if(prompt!=null)
+        {
+            prompt.text="NH<sub>3</sub>: Make three N-H shared pairs and one N lone pair. Drag 5 N electrons and 3 H electrons.";
+            prompt.fontSize=15;
+            prompt.alignment=TextAlignmentOptions.Center;
+            prompt.textWrappingMode=TextWrappingModes.NoWrap;
+            var r=prompt.GetComponent<RectTransform>();
+            if(r!=null){r.anchoredPosition=new Vector2(0,206);r.sizeDelta=new Vector2(1010,30);}
+        }
+    }
+    private void EnsureBowLearningCheck()
+    {
+        var root=GameObject.Find("Stage3Level2GeneratedCanvas");
+        if(root==null)return;
+        var found=FindUI(root.transform,"Stage3Level2BowPanel");
+        if(found==null)
+        {
+            bowPanel=ModalPanel(root.transform,"Stage3Level2BowPanel",
+                "BOW LEARNING CHECK","Answer two covalent bonding questions to finish Level 2.");
+            var question=Label(bowPanel.transform,"BowQuestion","",23,
+                new Vector2(0,-23),new Vector2(650,70),Color.white);
+            bowQuestionText=question;
+            bowHintText=Label(bowPanel.transform,"BowHint","",16,
+                new Vector2(0,-77),new Vector2(660,35),Gold);
+            MakeButton(bowPanel.transform,"BowOptionA","OPTION A",new Vector2(-165,-142),
+                new Vector2(298,52),()=>AnswerBow(0),new Color32(20,133,146,255));
+            MakeButton(bowPanel.transform,"BowOptionB","OPTION B",new Vector2(165,-142),
+                new Vector2(298,52),()=>AnswerBow(1),new Color32(48,88,126,255));
+        }
+        else bowPanel=found.gameObject;
+        bowQuestionText=FindUI(bowPanel.transform,"BowQuestion")?.GetComponent<TMP_Text>();
+        bowHintText=FindUI(bowPanel.transform,"BowHint")?.GetComponent<TMP_Text>();
+        WireButton(bowPanel.transform,"BowOptionA",()=>AnswerBow(0));
+        WireButton(bowPanel.transform,"BowOptionB",()=>AnswerBow(1));
+        bowPanel.SetActive(false);
+    }
+    private ChemQuestBowData.Snapshot approvedBow;
+    private void ShowBowQuestion()
+    {
+        if(bowQuestionIndex==0)approvedBow=ChemQuestBowData.Load(3,2);
+        if(bowPanel==null){bowQuestionIndex=2;CheckAnswer();return;}
+        if(bowQuestionIndex==0)
+        {
+            if(bowQuestionText!=null)bowQuestionText.text=
+                "What is the formula and common name of ammonia?";
+            SetBowOption("BowOptionA","NH<sub>3</sub> - ammonia");
+            SetBowOption("BowOptionB","NH<sub>2</sub> - ammonia");
+        }
+        else
+        {
+            if(bowQuestionText!=null)bowQuestionText.text=
+                "How are nitrogen's three N-H bonds formed in ammonia?";
+            SetBowOption("BowOptionA","By transferring electrons to H");
+            SetBowOption("BowOptionB","By sharing one electron pair per bond");
+        }
+        var synced=approvedBow?.At(bowQuestionIndex);
+        if(synced!=null)
+        {
+            if(bowQuestionText!=null)bowQuestionText.text=synced.prompt;
+            SetBowOption("BowOptionA",synced.a);
+            SetBowOption("BowOptionB",synced.b);
+        }
+        if(bowHintText!=null)bowHintText.text="";
+        bowPanel.SetActive(true);
+        bowPanel.transform.SetAsLastSibling();
+    }
+    private void SetBowOption(string name,string value)
+    {
+        var label=FindUI(bowPanel.transform,name)?.GetComponentInChildren<TMP_Text>(true);
+        if(label!=null)label.text=value;
+    }
+    private void AnswerBow(int option)
+    {
+        if(failed || completed || paused || bowQuestionIndex<0 || bowQuestionIndex>=2)return;
+        int correct=approvedBow?.At(bowQuestionIndex)?.correct ?? (bowQuestionIndex==0?0:1);
+        if(option!=correct)
+        {
+            ChemQuestSoundtrack.Wrong();
+            WrongAttempt();
+            if(failed)
+            {
+                bowPanel.SetActive(false);
+                if(failurePanel!=null)failurePanel.transform.SetAsLastSibling();
+            }
+            else if(bowHintText!=null)
+                ChemQuestHintPopup.Show(approvedBow?.At(bowQuestionIndex)?.hint ?? "HINT: NH3 has three hydrogen atoms; covalent N-H bonds SHARE electrons.");
+            return;
+        }
+        ChemQuestSoundtrack.Correct();
+        bowQuestionIndex++;
+        if(bowQuestionIndex<2)ShowBowQuestion();
+        else {bowPanel.SetActive(false);CheckAnswer();}
+    }
+
+    // Keep the Stage 3 Level 2 puzzle/background visible behind GAME PAUSED,
+    // matching the translucent pause treatment in Stage 3 Level 1.
+    // Other modal states (failure, BOW, energy, success) remain opaque.
+    private void PolishModalLayering()
+    {
+        foreach(var panel in new[]{bowPanel,completionPanel,failurePanel,pausePanel,outOfEnergyPanel})
+        {
+            if(panel==null)continue;
+            var rect=panel.GetComponent<RectTransform>();
+            if(rect!=null)
+            {
+                rect.anchorMin=Vector2.zero;
+                rect.anchorMax=Vector2.one;
+                rect.offsetMin=Vector2.zero;
+                rect.offsetMax=Vector2.zero;
+            }
+            var background=panel.GetComponent<Image>();
+            if(background!=null)
+            {
+                // Pause uses a translucent dimmer; the chemistry lab remains
+                // visible while gameplay input is blocked by the overlay.
+                background.color=panel==pausePanel
+                    ? new Color32(8,20,42,175)
+                    : new Color32(8,20,42,255);
+                background.raycastTarget=true;
+            }
+            // Keep the dialog/card readable above the dimmed background.
+            var card=FindUI(panel.transform,"Panel");
+            if(card!=null)
+            {
+                var cardImage=card.GetComponent<Image>();
+                if(cardImage!=null)cardImage.color=new Color32(24,49,80,255);
+            }
+        }
     }
 
     private void WrongAttempt()
@@ -559,11 +769,9 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         wrongAttempts++;
         if(wrongAttempts==1)
         {
-            if(feedbackText!=null)
-            {
-                feedbackText.text="HINT: N-H bonds need one N and one H electron. Lone pair needs two N electrons.";
-                feedbackText.color=Gold;
-            }
+            ChemQuestHintPopup.Show(bowQuestionIndex>=0
+                ? (approvedBow?.At(bowQuestionIndex)?.hint ?? "Covalent N-H bonds SHARE electrons.")
+                : "N-H bonds need one N and one H electron. A lone pair needs two N electrons.");
         }
         else
         {
@@ -571,7 +779,11 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
             EnergyManager.Instance.LoseEnergy();
             RefreshEnergy();
             if(retryButton!=null)retryButton.interactable=EnergyManager.Instance.HasEnergy;
-            if(failurePanel!=null)failurePanel.SetActive(true);
+            if(failurePanel!=null)
+            {
+                failurePanel.SetActive(true);
+                failurePanel.transform.SetAsLastSibling();
+            }
             UpdateOutOfEnergyUI();
         }
     }
@@ -639,8 +851,34 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         else
             UpdateOutOfEnergyUI();
     }
-    private void Pause(){if(!CanPlay())return;paused=true;pausePanel.SetActive(true);Time.timeScale=0;}
-    private void Resume(){paused=false;pausePanel.SetActive(false);Time.timeScale=1;}
+    // Keep draggable N/H tokens out of the pause overlay. Some saved layouts
+    // render the electron bank after the imported pause prefab, so its tokens
+    // can otherwise appear on top of the full-screen pause background.
+    private bool electronBankVisibleBeforePause=true;
+    private void Pause()
+    {
+        if(!CanPlay() || pausePanel==null)return;
+        paused=true;
+        var canvasRoot=GameObject.Find("Stage3Level2GeneratedCanvas");
+        var bank=canvasRoot!=null?FindUI(canvasRoot.transform,"ElectronBank"):null;
+        if(bank!=null)
+        {
+            electronBankVisibleBeforePause=bank.gameObject.activeSelf;
+            bank.gameObject.SetActive(false);
+        }
+        pausePanel.SetActive(true);
+        pausePanel.transform.SetAsLastSibling();
+        Time.timeScale=0;
+    }
+    private void Resume()
+    {
+        if(pausePanel!=null)pausePanel.SetActive(false);
+        var canvasRoot=GameObject.Find("Stage3Level2GeneratedCanvas");
+        var bank=canvasRoot!=null?FindUI(canvasRoot.transform,"ElectronBank"):null;
+        if(bank!=null)bank.gameObject.SetActive(electronBankVisibleBeforePause);
+        paused=false;
+        Time.timeScale=1;
+    }
     private void Navigate(string name)
     {
         Time.timeScale=1;

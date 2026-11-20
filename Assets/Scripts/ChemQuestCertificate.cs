@@ -33,7 +33,9 @@ public class ChemQuestCertificate : MonoBehaviour
     }
     public static void RecordIfEligible()
     {
-        if(!AllLevelsComplete() || PlayerPrefs.HasKey(IssuedAtKey))return;
+        // A new certificate is issued only after BOTH assessments and gameplay.
+        if(!AllLevelsComplete() || !ChemQuestAssessmentGate.PreCompleted ||
+           !ChemQuestAssessmentGate.PostCompleted || PlayerPrefs.HasKey(IssuedAtKey))return;
         var now=DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss 'UTC'");
         var name=PlayerPrefs.GetString("StudentName","").Trim();
         var school=PlayerPrefs.GetString("StudentSchool","").Trim();
@@ -79,6 +81,11 @@ public class ChemQuestCertificate : MonoBehaviour
         EnsurePerformanceTable();
         Bind();
         Refresh();
+        // Once all 15 levels are complete, the final BOW/games are finished.
+        // Present the separate unassisted post-test before awarding/exporting.
+        var assessment=GetComponent<ChemQuestAssessmentGate>();
+        if(assessment==null)assessment=gameObject.AddComponent<ChemQuestAssessmentGate>();
+        assessment.OpenPostIfEligible();
     }
     public void BuildEditableUI()
     {
@@ -211,9 +218,9 @@ public class ChemQuestCertificate : MonoBehaviour
         PositionText("RecipientName",new Vector2(-225,61),new Vector2(547,54),31,new Color32(9,36,62,255));
         PositionText("Identity",new Vector2(-225,17),new Vector2(550,62),16,new Color32(33,69,87,255));
         PositionText("Score",new Vector2(373,48),new Vector2(226,100),22,new Color32(247,213,118,255));
-        PositionText("Stages",new Vector2(0,-29),new Vector2(960,33),20,Color.white);
+        PositionText("Stages",new Vector2(0,-29),new Vector2(960,33),16,Color.white);
         PositionText("Transcript",new Vector2(0,-167),new Vector2(984,134),17,new Color32(17,50,73,255));
-        PositionText("CertificateMetadata",new Vector2(0,-278),new Vector2(1000,24),13,new Color32(25,68,83,255));
+        PositionText("CertificateMetadata",new Vector2(0,-270),new Vector2(1000,18),12,new Color32(25,68,83,255));
         foreach(var key in new[]{"Brand","DocumentTitle","Achievement","RecipientLabel",
             "RecipientName","Identity","Score","Stages","Transcript","CertificateMetadata"})
         {
@@ -246,13 +253,17 @@ public class ChemQuestCertificate : MonoBehaviour
             if(strip!=null)strip.gameObject.SetActive(false);
         }
         var footer=Find("CongratulationsBanner")?.GetComponent<RectTransform>();
-        if(footer!=null){footer.anchoredPosition=new Vector2(0,-239);footer.sizeDelta=new Vector2(1024,39);}
+        if(footer!=null){footer.anchoredPosition=new Vector2(0,-233);footer.sizeDelta=new Vector2(1024,39);}
         var footerHeading=Find("CongratsLabel")?.GetComponent<RectTransform>();
-        if(footerHeading!=null){footerHeading.anchoredPosition=new Vector2(-195,4);footerHeading.sizeDelta=new Vector2(610,24);}
+        if(footerHeading!=null){footerHeading.anchoredPosition=new Vector2(-195,6);footerHeading.sizeDelta=new Vector2(610,23);}
         var footerCaption=Find("CongratsDetail")?.GetComponent<RectTransform>();
-        if(footerCaption!=null){footerCaption.anchoredPosition=new Vector2(-195,-12);footerCaption.sizeDelta=new Vector2(610,16);}
+        if(footerCaption!=null){footerCaption.anchoredPosition=new Vector2(-195,-12);footerCaption.sizeDelta=new Vector2(610,14);}
         var trophyMark=Find("AchievementTrophy")?.GetComponent<RectTransform>();
-        if(trophyMark!=null){trophyMark.anchoredPosition=new Vector2(401,0);trophyMark.sizeDelta=new Vector2(90,34);}
+        if(trophyMark!=null){trophyMark.anchoredPosition=new Vector2(401,0);trophyMark.sizeDelta=new Vector2(90,32);}
+        var footerText=Find("CongratsLabel")?.GetComponent<TMP_Text>();
+        if(footerText!=null){footerText.fontSize=19;footerText.enableAutoSizing=false;}
+        var footerNote=Find("CongratsDetail")?.GetComponent<TMP_Text>();
+        if(footerNote!=null){footerNote.fontSize=11;footerNote.enableAutoSizing=false;}
         // A locked certificate is not a fake award. Hide the victory footer at runtime.
     }
 
@@ -291,7 +302,7 @@ public class ChemQuestCertificate : MonoBehaviour
             float[] x={-180,-56,40,157};
             float[] w={116,100,91,141};
             for(int j=0;j<4;j++)
-                Txt(head.transform,"Heading"+j,headings[j],16,
+                Txt(head.transform,"Heading"+j,headings[j],17,
                     new Vector2(x[j],0),new Vector2(w[j],23),Color.white);
             for(int row=0;row<8;row++)
             {
@@ -299,21 +310,21 @@ public class ChemQuestCertificate : MonoBehaviour
                 if(index>=15)break;
                 int stage=index/3+1,level=index%3+1;
                 string id="S"+stage+"L"+level;
-                float y=45-row*17.5f;
+                float y=43-row*16.3f;
                 if(row%2==1)
                 {
                     var stripe=Image(panel.transform,"RowStripe"+row,
-                        new Vector2(0,y),new Vector2(487,17),new Color32(225,240,239,255));
+                        new Vector2(0,y),new Vector2(487,16),new Color32(225,240,239,255));
                     stripe.raycastTarget=false;
                 }
-                Txt(panel.transform,id+"Level",id,16,new Vector2(x[0],y),
-                    new Vector2(w[0],17),ink);
-                Txt(panel.transform,id+"Score","--",16,new Vector2(x[1],y),
-                    new Vector2(w[1],17),aqua);
-                Txt(panel.transform,id+"Retries","--",16,new Vector2(x[2],y),
-                    new Vector2(w[2],17),ink);
-                Txt(panel.transform,id+"Result","--",15,new Vector2(x[3],y),
-                    new Vector2(w[3],17),ink);
+                Txt(panel.transform,id+"Level",id,17,new Vector2(x[0],y),
+                    new Vector2(w[0],16),ink);
+                Txt(panel.transform,id+"Score","--",17,new Vector2(x[1],y),
+                    new Vector2(w[1],16),aqua);
+                Txt(panel.transform,id+"Retries","--",17,new Vector2(x[2],y),
+                    new Vector2(w[2],16),ink);
+                Txt(panel.transform,id+"Result","--",16,new Vector2(x[3],y),
+                    new Vector2(w[3],16),ink);
             }
         }
         table.transform.SetAsLastSibling();
@@ -340,8 +351,8 @@ public class ChemQuestCertificate : MonoBehaviour
                 Set(id+"Score",score+"/100");
                 Set(id+"Retries",known?retries.ToString():"--");
                 Set(id+"Result",!known?
-                    (score==100?"Score: 100":score==75?"Score: 75":"Completed"):
-                    (retries>0?"Retry recorded":score==75?"After hint":"No retry"));
+                    (score==100?"Perfect":score==75?"After hint":"Completed"):
+                    (retries>0?"Retried":score==75?"After hint":"No retry"));
             }
         }
     }
@@ -438,7 +449,9 @@ public class ChemQuestCertificate : MonoBehaviour
         }
         if(!locked)return;
         Set("LockedProgressText",completed+" / 15 LEVELS COMPLETE");
-        Set("LockedGuidance",completed==14?
+        Set("LockedGuidance",completed==15?
+            "Complete the PRE-TEST and POST-TEST to unlock your certificate.":
+            completed==14?
             "Only 1 level remaining! Finish it to unlock your certificate.":
             "Complete the remaining "+(15-completed)+" levels to earn your certificate.");
         var rect=Find("LockedProgressFill")?.GetComponent<RectTransform>();
@@ -517,13 +530,16 @@ public class ChemQuestCertificate : MonoBehaviour
     private void Refresh()
     {
         RecordIfEligible();
-        SetLockedVisuals(!AllLevelsComplete() || !PlayerPrefs.HasKey(IssuedAtKey),CompletedCount());
-        if(!AllLevelsComplete() || !PlayerPrefs.HasKey(IssuedAtKey))
+        bool hasAssessments=ChemQuestAssessmentGate.PreCompleted && ChemQuestAssessmentGate.PostCompleted;
+        bool awardReady=AllLevelsComplete() && hasAssessments && PlayerPrefs.HasKey(IssuedAtKey);
+        SetLockedVisuals(!awardReady,CompletedCount());
+        if(!awardReady)
         {
             Set("DocumentTitle","CERTIFICATE LOCKED");
             Set("RecipientLabel","PROGRESS TOWARDS CHEMICAL MASTERY");
             Set("Identity","Your progress is saved across all five stages.");
-            Set("RecipientName","COMPLETE ALL 15 LEVELS");
+            Set("RecipientName",AllLevelsComplete()?
+                "COMPLETE YOUR ASSESSMENTS":"COMPLETE ALL 15 LEVELS");
             Set("Achievement","Complete all fifteen chemistry puzzle levels to earn your award.");
             Set("Score","");
             Set("Stages","");
@@ -548,7 +564,11 @@ public class ChemQuestCertificate : MonoBehaviour
             if(s>1)stages.Append("     ");
             stages.Append("S").Append(s).Append(": ").Append(StageStars(s));
         }
-        Set("Stages","PERFORMANCE TRANSCRIPT  |  15 LEVEL RESULTS");
+        int pre=PlayerPrefs.GetInt(ChemQuestAssessmentGate.PreScore,0);
+        int post=PlayerPrefs.GetInt(ChemQuestAssessmentGate.PostScore,0);
+        Set("Stages","PRE-TEST  "+pre+"/15 ("+(pre*100f/15f).ToString("0")+"%)"+
+            "     |     POST-TEST  "+post+"/15 ("+(post*100f/15f).ToString("0")+"%)"+
+            "     |     15-LEVEL TRANSCRIPT");
         var transcript=new StringBuilder();
         for(int s=1;s<=5;s++)
         {
@@ -569,7 +589,8 @@ public class ChemQuestCertificate : MonoBehaviour
     }
     private IEnumerator Export(bool pdf)
     {
-        if(!AllLevelsComplete() || !PlayerPrefs.HasKey(IssuedAtKey))yield break;
+        if(!AllLevelsComplete() || !ChemQuestAssessmentGate.PreCompleted ||
+           !ChemQuestAssessmentGate.PostCompleted || !PlayerPrefs.HasKey(IssuedAtKey))yield break;
         // Capture the certificate itself, not the Game View background or buttons.
         yield return new WaitForEndOfFrame();
         var screenshot=ScreenCapture.CaptureScreenshotAsTexture();
@@ -593,10 +614,28 @@ public class ChemQuestCertificate : MonoBehaviour
                 cropped.EncodeToPNG();
             string file="ChemQuest_"+PlayerPrefs.GetString(CodeKey,"Certificate").Replace("-","_")+
                 (pdf?".pdf":".png");
-            string path=Path.Combine(Application.persistentDataPath,file);
-            File.WriteAllBytes(path,bytes);
-            if(status!=null)status.text="Certificate saved: "+path;
-            Debug.Log("ChemQuest certificate exported: "+path);
+            string savedLocation;
+#if UNITY_ANDROID && !UNITY_EDITOR
+            if(GetAndroidApiLevel()>=29)
+            {
+                // Android 10+: MediaStore publishes the file in the phone's
+                // public Downloads folder (no storage permission required).
+                savedLocation=SaveInAndroidDownloads(file,bytes,pdf);
+            }
+            else
+            {
+                // Older Android versions may require runtime storage permission
+                // for public Downloads. Never falsely claim the file is there.
+                string privatePath=Path.Combine(Application.persistentDataPath,file);
+                File.WriteAllBytes(privatePath,bytes);
+                savedLocation="private app storage (Android 9 or earlier): "+privatePath;
+            }
+#else
+            savedLocation=Path.Combine(Application.persistentDataPath,file);
+            File.WriteAllBytes(savedLocation,bytes);
+#endif
+            if(status!=null)status.text="Certificate saved: "+savedLocation;
+            Debug.Log("ChemQuest certificate exported: "+savedLocation);
         }
         catch(Exception e)
         {
@@ -609,6 +648,69 @@ public class ChemQuestCertificate : MonoBehaviour
             if(cropped!=null)Destroy(cropped);
         }
     }
+#if UNITY_ANDROID && !UNITY_EDITOR
+    private static int GetAndroidApiLevel()
+    {
+        using(var version=new AndroidJavaClass("android.os.Build$VERSION"))
+            return version.GetStatic<int>("SDK_INT");
+    }
+
+    // Saves into Files > Downloads > ChemQuest on Android 10+.
+    // MediaStore is the supported Android scoped-storage API for creating
+    // public PDF and PNG documents without special storage permissions.
+    private static string SaveInAndroidDownloads(string file,byte[] bytes,bool pdf)
+    {
+        using(var player=new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
+        using(var activity=player.GetStatic<AndroidJavaObject>("currentActivity"))
+        using(var resolver=activity.Call<AndroidJavaObject>("getContentResolver"))
+        using(var downloads=new AndroidJavaClass("android.provider.MediaStore$Downloads"))
+        using(var collection=downloads.GetStatic<AndroidJavaObject>("EXTERNAL_CONTENT_URI"))
+        using(var values=new AndroidJavaObject("android.content.ContentValues"))
+        {
+            values.Call("put","_display_name",file);
+            values.Call("put","mime_type",pdf?"application/pdf":"image/png");
+            values.Call("put","relative_path","Download/ChemQuest/");
+            using(var pending=new AndroidJavaObject("java.lang.Integer",1))
+                values.Call("put","is_pending",pending);
+            AndroidJavaObject uri=null;
+            bool finished=false;
+            try
+            {
+                uri=resolver.Call<AndroidJavaObject>("insert",collection,values);
+                if(uri==null)
+                    throw new IOException("Android Downloads is not available.");
+                using(var stream=resolver.Call<AndroidJavaObject>("openOutputStream",uri))
+                {
+                    if(stream==null)
+                        throw new IOException("Could not open the Downloads file.");
+                    // JNI forwards C# byte[] as a Java byte[].
+                    stream.Call("write",bytes);
+                    stream.Call("flush");
+                }
+                values.Call("clear");
+                using(var published=new AndroidJavaObject("java.lang.Integer",0))
+                    values.Call("put","is_pending",published);
+                resolver.Call<int>("update",uri,values,null,null);
+                finished=true;
+                return "Downloads/ChemQuest/"+file;
+            }
+            finally
+            {
+                if(uri!=null)
+                {
+                    if(!finished)
+                    {
+                        try { resolver.Call<int>("delete",uri,null,null); }
+                        catch(Exception cleanupError)
+                        { Debug.LogWarning("Could not remove incomplete certificate: "+cleanupError.Message); }
+                    }
+                    uri.Dispose();
+                }
+            }
+        }
+    }
+#endif
+
     // Minimal standards-compliant one-page PDF with a JPEG image embedded.
     private static byte[] EncodePdf(byte[] jpg,int width,int height)
     {
