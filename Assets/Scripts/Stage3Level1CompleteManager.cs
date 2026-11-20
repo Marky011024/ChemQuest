@@ -59,10 +59,9 @@ public class Stage3Level1CompleteManager : MonoBehaviour
 
         if (wrongAttempts == 1)
         {
-            ShowFeedback(
-                "HINT: Share electrons in the correct bonding zones.",
-                Color.yellow
-            );
+            ChemQuestHintPopup.Show(bowQuestionIndex>=0
+                ? (approvedBow?.At(bowQuestionIndex)?.hint ?? "Covalent bonds share electrons.")
+                : "Share electrons in the correct bonding zones.");
         }
         else
         {
