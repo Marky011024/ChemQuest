@@ -833,8 +833,10 @@ public class Stage3Level3Game : MonoBehaviour
             new Vector2(302,54),new Color32(55,91,128,255));
         panel.SetActive(false);
     }
+    private ChemQuestBowData.Snapshot approvedBow;
     private void ShowBowQuestion()
     {
+        if(bowQuestionIndex==0)approvedBow=ChemQuestBowData.Load(3,3);
         if(bowPanel==null)return;
         if(bowQuestion!=null)
             bowQuestion.text=bowQuestionIndex==0
@@ -844,6 +846,13 @@ public class Stage3Level3Game : MonoBehaviour
             ?"Two shared electron pairs":"CO<sub>2</sub> - carbon dioxide");
         SetBowChoice("BowChoiceB",bowQuestionIndex==0
             ?"One shared electron pair":"CO - carbon dioxide");
+        var synced=approvedBow?.At(bowQuestionIndex);
+        if(synced!=null)
+        {
+            if(bowQuestion!=null)bowQuestion.text=synced.prompt;
+            SetBowChoice("BowChoiceA",synced.a);
+            SetBowChoice("BowChoiceB",synced.b);
+        }
         if(bowHint!=null)bowHint.text="";
         if(feedback!=null)feedback.gameObject.SetActive(false);
         bowPanel.SetActive(true);
@@ -859,7 +868,7 @@ public class Stage3Level3Game : MonoBehaviour
     {
         if(completed || failed || bowQuestionIndex<0 || bowQuestionIndex>=2
             || EnergyManager.Instance==null || !EnergyManager.Instance.HasEnergy)return;
-        if(choice!=0)
+        if(choice!=(approvedBow?.At(bowQuestionIndex)?.correct ?? 0))
         {
             ChemQuestSoundtrack.Wrong();
             WrongPlacement(); // same 100/75 and two-strike energy policy
@@ -872,7 +881,7 @@ public class Stage3Level3Game : MonoBehaviour
             {
                 // Keep assessment feedback inside the BOW panel, never underneath it.
                 if(feedback!=null)feedback.gameObject.SetActive(false);
-                bowHint.text="HINT: A double bond shares TWO pairs. Carbon dioxide has TWO oxygen atoms.";
+                bowHint.text=approvedBow?.At(bowQuestionIndex)?.hint ?? "HINT: A double bond shares TWO pairs. Carbon dioxide has TWO oxygen atoms.";
             }
             return;
         }
