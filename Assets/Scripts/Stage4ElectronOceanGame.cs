@@ -1225,7 +1225,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
                 if(failedPanel!=null)failedPanel.transform.SetAsLastSibling();
             }
             else if(level1BowHint!=null)
-                level1BowHint.text=approvedBow?.At(level1BowStep)?.hint ?? (level1BowStep==0?
+                ChemQuestHintPopup.Show(approvedBow?.At(level1BowStep)?.hint ?? (level1BowStep==0?
                     "HINT: The lattice consists of positive metal ions.":
                     "HINT: A sea of mobile electrons attracts the metal ions.");
             return;
@@ -1343,7 +1343,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
                 if(failedPanel!=null)failedPanel.transform.SetAsLastSibling();
             }
             else if(level2BowHint!=null)
-                level2BowHint.text=approvedBow?.At(level2BowStep)?.hint ?? (level2BowStep==0?
+                ChemQuestHintPopup.Show(approvedBow?.At(level2BowStep)?.hint ?? (level2BowStep==0?
                     "HINT: Negative charges move toward the positive terminal.":
                     "HINT: The mobile electrons carry charge through the metal.");
             return;
@@ -1675,7 +1675,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
                 if(failedPanel!=null)failedPanel.transform.SetAsLastSibling();
             }
             else if(level3BowHint!=null)
-                level3BowHint.text=approvedBow?.At(level3BowStep)?.hint ?? (level3BowStep==0?
+                ChemQuestHintPopup.Show(approvedBow?.At(level3BowStep)?.hint ?? (level3BowStep==0?
                     "HINT: Mobile electrons keep attracting positive metal ions.":
                     "HINT: Drawing metal into wire is called ductility.");
             return;
