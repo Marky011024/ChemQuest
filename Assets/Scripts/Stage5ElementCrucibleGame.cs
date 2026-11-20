@@ -1338,7 +1338,14 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
     private void WrongAttempt(string message)
     {
         wrong++;
-        if(wrong==1){Info("HINT: "+message+" You have one remaining submission.");return;}
+        if(wrong==1)
+        {
+            int currentBowStep=Level==1?level1BowStep:Level==2?level2BowStep:level3BowStep;
+            ChemQuestHintPopup.Show(currentBowStep>=0
+                ? (approvedBow?.At(currentBowStep)?.hint ?? message)
+                : message);
+            return;
+        }
         failed=true;
         EnergyManager.Instance.LoseEnergy();
         if(failPanel!=null){failPanel.SetActive(true);failPanel.transform.SetAsLastSibling();}
