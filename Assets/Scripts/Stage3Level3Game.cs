@@ -881,7 +881,7 @@ public class Stage3Level3Game : MonoBehaviour
             {
                 // Keep assessment feedback inside the BOW panel, never underneath it.
                 if(feedback!=null)feedback.gameObject.SetActive(false);
-                bowHint.text=approvedBow?.At(bowQuestionIndex)?.hint ?? "HINT: A double bond shares TWO pairs. Carbon dioxide has TWO oxygen atoms.";
+                ChemQuestHintPopup.Show(approvedBow?.At(bowQuestionIndex)?.hint ?? "HINT: A double bond shares TWO pairs. Carbon dioxide has TWO oxygen atoms.");
             }
             return;
         }
