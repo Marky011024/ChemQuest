@@ -132,7 +132,7 @@ textarea{line-height:1.5}
 </form><small>Changing an existing published question saves it as a draft. Publish separately after approval.</small>
 </section>
 <section class="panel"><div class="tool-heading"><h2>Question bank</h2><button id="refresh" type="button" class="secondary">↻ Refresh</button></div>
-<div class="import-panel"><div class="tool-heading"><strong>Unity BOW • Stage 1 Levels 1–3</strong><span class="pill">Pilot</span></div><p class="hint-text">After teacher approval, publish exactly two BOW questions (orders 1 and 2) first. Then publish one versioned set for Unity. Drafts are never exported. Changes apply to the next attempt, not the current one.</p><label style="max-width:230px;margin-bottom:10px">Level to publish<select id="publishBowLevel"><option value="1">Stage 1 • Level 1</option><option value="2">Stage 1 • Level 2</option><option value="3">Stage 1 • Level 3</option></select></label><button id="publishBowSet" type="button" class="gold">Publish selected approved level to Unity</button><p id="bowSetStatus" class="hint-text" role="status">No Unity set published from this page yet.</p></div>
+<div class="import-panel"><div class="tool-heading"><strong>Unity BOW • All 5 stages × 3 levels</strong><span class="pill">Pilot</span></div><p class="hint-text">Import and review 30 BOW questions (two per level). Publish each approved question, then publish one level or all 15 sets together. Missing or unapproved sets block bulk publication. Existing gameplay changes only after a successful sync and the next BOW attempt.</p><div class="actions"><label style="max-width:200px">Stage<select id="publishBowStage"><option value="1">Stage 1</option><option value="2">Stage 2</option><option value="3">Stage 3</option><option value="4">Stage 4</option><option value="5">Stage 5</option></select></label><label style="max-width:200px">Level<select id="publishBowLevel"><option value="1">Level 1</option><option value="2">Level 2</option><option value="3">Level 3</option></select></label></div><div class="actions"><button id="publishBowSet" type="button" class="gold">Publish selected approved level to Unity</button><button id="publishAllBowSets" type="button" class="secondary">Publish ALL 15 approved sets</button></div><p id="bowSetStatus" class="hint-text" role="status">No Unity set published from this page yet.</p></div>
 <div class="import-panel"><div class="tool-heading"><strong>Bulk import & backup</strong><button type="button" class="secondary" id="template">Download CSV template</button></div><p class="hint-text">Import approved questions as drafts. CSV columns: kind,stage,level,order,prompt,a,b,c,d,correct,hint,explanation. One question per row.</p><label>Choose a CSV file<input id="importFile" type="file" accept=".csv,text/csv"></label><p id="importSummary" class="hint-text" role="status">No CSV selected.</p><div id="importPreview" class="import-preview" hidden></div><div class="actions"><button type="button" id="importButton" disabled>Import validated drafts</button><button type="button" id="exportButton" class="secondary">Export CSV backup</button></div></div><div class="fields"><label>Assessment filter<select id="filter"><option value="all">All assessments</option><option value="pre">Pre-test</option><option value="bow">BOW</option><option value="post">Post-test</option></select></label><label>Status<select id="statusFilter"><option value="all">All statuses</option><option value="draft">Draft</option><option value="published">Published</option></select></label><label class="wide">Search questions<input id="search" placeholder="Search by question text or choices"></label></div><p class="hint-text" id="count"></p><div id="questionList"></div></section></div>
 <section class="panel"><h2>Important for school assessments</h2><p>Publish only questions approved by your Science teacher. Do not change an assessment version while students are taking a pre-test or post-test. Stage 1 Level 1 BOW has a pilot snapshot reader with fallback; it must be tested in Unity and Android before use with respondents. Pre/post and other levels remain unchanged.</p></section></div></main>
 <dialog id="helpDialog" class="manual-dialog" aria-labelledby="manualTitle">
@@ -254,28 +254,59 @@ const data={kind,stage:Number(el('stage').value),level:kind==='bow'?Number(el('l
  const errors=validationIssues(data,selectedId,false);if(errors.length)throw Error(errors.join(' '));
  return data;}
 let saving=false;
+function approvedBowRows(stage,level){
+ const rows=records.filter(r=>r.kind==='bow'&&Number(r.stage)===stage&&Number(r.level)===level&&r.status==='published').sort((a,b)=>Number(a.order)-Number(b.order));
+ if(rows.length!==2 || rows.some((r,i)=>Number(r.order)!==i+1 ||
+     r.choices?.length<2 || !r.choices[0]?.trim() || !r.choices[1]?.trim() ||
+     r.choices.slice(2).some(c=>c?.trim()) || ![0,1].includes(Number(r.correct)) ||
+     !r.prompt?.trim() || !r.hint?.trim() || !r.explanation?.trim()))return null;
+ return rows;
+}
+async function publishBowSet(stage,level,rows){
+ const version='bow-s'+stage+'l'+level+'-'+new Date().toISOString().replace(/[^0-9TZ]/g,'');
+ const payload=JSON.stringify({schema:1,version,items:rows.map(r=>({
+   order:Number(r.order),prompt:r.prompt,a:r.choices[0],b:r.choices[1],
+   correct:Number(r.correct),hint:r.hint,explanation:r.explanation
+ }))});
+ await setDoc(doc(db,'publishedBow','stage'+stage+'-level'+level),
+   {status:'published',version,payload,updatedAt:serverTimestamp()});
+ return version;
+}
 el('publishBowSet').addEventListener('click',async()=>{
  if(!isAdmin)return;
- const level=Number(el('publishBowLevel').value);
- if(![1,2,3].includes(level))return;
- try{await load();}catch(e){message('Cannot refresh Question Bank: '+e.message);return;}
- const rows=records.filter(r=>r.kind==='bow'&&Number(r.stage)===1&&Number(r.level)===level&&r.status==='published').sort((a,b)=>Number(a.order)-Number(b.order));
- if(rows.length!==2||rows.some((r,i)=>Number(r.order)!==i+1||r.choices?.length<2||
-     !r.choices[0]?.trim()||!r.choices[1]?.trim()||![0,1].includes(Number(r.correct))||
-     !r.prompt?.trim()||!r.hint?.trim()||!r.explanation?.trim())){
-   message('Stage 1 Level '+level+' needs exactly two approved published BOW questions numbered 1 and 2 with A/B choices, hint and explanation.');return;
- }
- if(rows.some(r=>r.choices.slice(2).some(c=>c?.trim()))){
-   message('Unity Stage 1 BOW has only A/B buttons. Clear C/D before publishing Level '+level+'.');return;
- }
- if(!confirm('Publish the two teacher-approved BOW questions for Stage 1 Level '+level+'? The snapshot includes correct answers readable by student game clients.'))return;
- const version='bow-s1l'+level+'-'+new Date().toISOString().replace(/[^0-9TZ]/g,'');
- const payload=JSON.stringify({schema:1,version,items:rows.map(r=>({order:Number(r.order),prompt:r.prompt,a:r.choices[0],b:r.choices[1],correct:Number(r.correct),hint:r.hint,explanation:r.explanation}))});
+ const stage=Number(el('publishBowStage').value),level=Number(el('publishBowLevel').value);
  try{
-   await setDoc(doc(db,'publishedBow','stage1-level'+level),{status:'published',version,payload,updatedAt:serverTimestamp()});
-   el('bowSetStatus').textContent='Published Stage 1 Level '+level+': '+version+' (2 questions). Unity checks on the next successful sync.';
-   message('Stage 1 Level '+level+' BOW snapshot published. Test in Unity Play Mode.');
- }catch(e){message('Unity snapshot publish failed: '+e.message);}
+   await load();
+   const rows=approvedBowRows(stage,level);
+   if(!rows){message('Stage '+stage+' Level '+level+' requires exactly two published approved BOW questions, orders 1–2, A/B only with hints and explanations.');return;}
+   if(!confirm('Publish teacher-approved BOW Stage '+stage+' Level '+level+' to Unity? Students can read these formative answer keys.'))return;
+   const version=await publishBowSet(stage,level,rows);
+   el('bowSetStatus').textContent='Published '+version+' (2 questions).';
+   message('Unity BOW Stage '+stage+' Level '+level+' published. Test in Unity.');
+ }catch(e){message('Publish failed: '+e.message);}
+});
+el('publishAllBowSets').addEventListener('click',async()=>{
+ if(!isAdmin)return;
+ try{
+   await load();
+   const planned=[],missing=[];
+   for(let stage=1;stage<=5;stage++)for(let level=1;level<=3;level++){
+     const rows=approvedBowRows(stage,level);
+     if(rows)planned.push({stage,level,rows});else missing.push('S'+stage+'L'+level);
+   }
+   if(missing.length){
+     message('Nothing published. All 15 teacher-approved two-question BOW sets required. Missing/invalid: '+missing.join(', '));
+     return;
+   }
+   if(!confirm('Publish ALL 15 teacher-approved BOW sets (30 questions) to Unity? This replaces published formative snapshots. Student clients can read answer keys.'))return;
+   let count=0;const errors=[];
+   for(const item of planned){
+     try{await publishBowSet(item.stage,item.level,item.rows);count++;}
+     catch(e){errors.push('S'+item.stage+'L'+item.level+': '+e.message);}
+   }
+   const result='Published '+count+'/15 approved BOW sets.'+(errors.length?' Errors: '+errors.join('; '):'');
+   el('bowSetStatus').textContent=result;message(result);
+ }catch(e){message('Bulk publication failed: '+e.message);}
 });
 function sameSlot(a,b){return a.kind===b.kind && Number(a.stage)===Number(b.stage) &&
   (a.kind!=='bow'||Number(a.level)===Number(b.level)) && Number(a.order)===Number(b.order);}
