@@ -12,7 +12,7 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
     private const string SceneName = "Stage1Level1";
     // v2 is intentional: players who saw the old static popup get the new walkthrough.
     private const string KeyPrefix = "CQ_Stage1L1_InteractiveGuide_v2_";
-    private static readonly Color Navy = new Color(.055f, .14f, .24f, .96f);
+    private static readonly Color Navy = new Color(.043f, .115f, .205f, .985f);
     private static readonly Color Teal = new Color(.04f, .52f, .61f, 1);
     private static readonly Color Gold = new Color(1f, .76f, .30f, 1);
     private static readonly Color Cream = new Color(1f, .79f, .58f, 1);
@@ -331,7 +331,7 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
         var image=panel.GetComponent<Image>();
         if(image!=null)
         {
-            image.color=new Color(.042f,.12f,.21f,.96f);
+            image.color=new Color(.042f,.115f,.205f,.985f);
             image.raycastTarget=false;
         }
         SetRect(panel,"GoldLine",new Vector2(0,-3),new Vector2(1170,5));
@@ -393,8 +393,8 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
         if(halo!=null)
         {
             halo.raycastTarget=false;
-            halo.color=new Color(1f,.84f,.25f,.28f);
-            halo.rectTransform.sizeDelta=new Vector2(116,98);
+            halo.color=new Color(1f,.84f,.25f,.30f);
+            halo.rectTransform.sizeDelta=new Vector2(124,106);
         }
         if(trail!=null)trail.raycastTarget=false;
         if(handMarker!=null)handMarker.raycastTarget=false;
@@ -675,7 +675,7 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
         if (!drag) position += new Vector2(0, Mathf.Sin(animationClock * 4f) * 12f);
         ((RectTransform)handMarker.transform).anchoredPosition = position + new Vector2(38, -8);
         ((RectTransform)halo.transform).anchoredPosition = drag ? end : start;
-        halo.color = new Color(1, .84f, .24f, .18f + .17f * Mathf.Abs(Mathf.Sin(animationClock * 3f)));
+        halo.color = new Color(1, .84f, .24f, .24f + .18f * Mathf.Abs(Mathf.Sin(animationClock * 3f)));
         if (drag && to != null)
         {
             var segment = (RectTransform)trail.transform;
