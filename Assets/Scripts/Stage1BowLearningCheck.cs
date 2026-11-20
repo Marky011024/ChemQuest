@@ -263,7 +263,8 @@ public sealed class Stage1BowLearningCheck : MonoBehaviour
         {
             ChemQuestSoundtrack.Wrong();
             mistakes++;
-            tipLabel.text=mistakes==1?q.hint:q.explanation+" Choose the correct answer to continue.";
+            tipLabel.text="";
+            ChemQuestHintPopup.Show(mistakes==1?q.hint:q.explanation);
             return;
         }
         ChemQuestSoundtrack.Correct();
