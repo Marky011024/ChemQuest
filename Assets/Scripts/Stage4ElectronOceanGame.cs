@@ -1840,10 +1840,14 @@ public class Stage4ElectronOceanGame : MonoBehaviour
         mistakes++;
         if(mistakes==1)
         {
-            if(feedback!=null)feedback.text=Level==1?
-                "HINT: Remove decoys, then use RESET to arrange the correct metal cores and electrons.":
-                Level==2?"HINT: Negative left, positive right; switch ON and observe electron drift.":
-                "HINT: Observe sliding layers, then arrange the metal property tiles correctly.";
+            int currentBowStep=Level==1?level1BowStep:Level==2?level2BowStep:level3BowStep;
+            ChemQuestHintPopup.Show(currentBowStep>=0
+                ? (approvedBow?.At(currentBowStep)?.hint ?? "Review the metallic bonding concept.")
+                : Level==1
+                    ? "Remove decoys, then use RESET to arrange the correct metal cores and electrons."
+                    : Level==2
+                        ? "Negative left, positive right; switch ON and observe electron drift."
+                        : "Observe sliding layers, then arrange the metal property tiles correctly.");
         }
         else
         {
