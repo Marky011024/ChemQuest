@@ -669,8 +669,10 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         WireButton(bowPanel.transform,"BowOptionB",()=>AnswerBow(1));
         bowPanel.SetActive(false);
     }
+    private ChemQuestBowData.Snapshot approvedBow;
     private void ShowBowQuestion()
     {
+        if(bowQuestionIndex==0)approvedBow=ChemQuestBowData.Load(3,2);
         if(bowPanel==null){bowQuestionIndex=2;CheckAnswer();return;}
         if(bowQuestionIndex==0)
         {
@@ -686,6 +688,13 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
             SetBowOption("BowOptionA","By transferring electrons to H");
             SetBowOption("BowOptionB","By sharing one electron pair per bond");
         }
+        var synced=approvedBow?.At(bowQuestionIndex);
+        if(synced!=null)
+        {
+            if(bowQuestionText!=null)bowQuestionText.text=synced.prompt;
+            SetBowOption("BowOptionA",synced.a);
+            SetBowOption("BowOptionB",synced.b);
+        }
         if(bowHintText!=null)bowHintText.text="";
         bowPanel.SetActive(true);
         bowPanel.transform.SetAsLastSibling();
@@ -698,7 +707,7 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
     private void AnswerBow(int option)
     {
         if(failed || completed || paused || bowQuestionIndex<0 || bowQuestionIndex>=2)return;
-        int correct=bowQuestionIndex==0?0:1;
+        int correct=approvedBow?.At(bowQuestionIndex)?.correct ?? (bowQuestionIndex==0?0:1);
         if(option!=correct)
         {
             ChemQuestSoundtrack.Wrong();
@@ -709,7 +718,7 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
                 if(failurePanel!=null)failurePanel.transform.SetAsLastSibling();
             }
             else if(bowHintText!=null)
-                bowHintText.text="HINT: NH3 has three hydrogen atoms; covalent N-H bonds SHARE electrons.";
+                ChemQuestHintPopup.Show(approvedBow?.At(bowQuestionIndex)?.hint ?? "HINT: NH3 has three hydrogen atoms; covalent N-H bonds SHARE electrons.");
             return;
         }
         ChemQuestSoundtrack.Correct();
@@ -760,11 +769,9 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
         wrongAttempts++;
         if(wrongAttempts==1)
         {
-            if(feedbackText!=null)
-            {
-                feedbackText.text="HINT: N-H bonds need one N and one H electron. Lone pair needs two N electrons.";
-                feedbackText.color=Gold;
-            }
+            ChemQuestHintPopup.Show(bowQuestionIndex>=0
+                ? (approvedBow?.At(bowQuestionIndex)?.hint ?? "Covalent N-H bonds SHARE electrons.")
+                : "N-H bonds need one N and one H electron. A lone pair needs two N electrons.");
         }
         else
         {

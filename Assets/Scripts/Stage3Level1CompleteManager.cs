@@ -59,10 +59,9 @@ public class Stage3Level1CompleteManager : MonoBehaviour
 
         if (wrongAttempts == 1)
         {
-            ShowFeedback(
-                "HINT: Share electrons in the correct bonding zones.",
-                Color.yellow
-            );
+            ChemQuestHintPopup.Show(bowQuestionIndex>=0
+                ? (approvedBow?.At(bowQuestionIndex)?.hint ?? "Covalent bonds share electrons.")
+                : "Share electrons in the correct bonding zones.");
         }
         else
         {
@@ -249,8 +248,10 @@ public class Stage3Level1CompleteManager : MonoBehaviour
         button.onClick.AddListener(clicked);
         MakeText(o.transform,"Text",label,18,Vector2.zero,size,Color.white);
     }
+    private ChemQuestBowData.Snapshot approvedBow;
     private void ShowBowQuestion()
     {
+        if(bowQuestionIndex==0)approvedBow=ChemQuestBowData.Load(3,1);
         if(bowPanel==null)
         {
             // Do not permanently block older scenes if UI creation fails.
@@ -265,6 +266,8 @@ public class Stage3Level1CompleteManager : MonoBehaviour
             "They share one pair of electrons":"H2O - water";
         string right=bowQuestionIndex==0?
             "One atom transfers an electron":"HO2 - water";
+        var synced=approvedBow?.At(bowQuestionIndex);
+        if(synced!=null){prompt=synced.prompt;left=synced.a;right=synced.b;}
         bowQuestionText.text=prompt;
         bowHintText.text="";
         SetOption("OptionA",left);
@@ -284,7 +287,7 @@ public class Stage3Level1CompleteManager : MonoBehaviour
     private void AnswerBow(int answer)
     {
         if(runFailed || levelCompleted || bowQuestionIndex<0 || bowQuestionIndex>=2)return;
-        if(answer!=0)
+        if(answer!=(approvedBow?.At(bowQuestionIndex)?.correct ?? 0))
         {
             ChemQuestSoundtrack.Wrong();
             RegisterWrongAttempt();
@@ -294,7 +297,7 @@ public class Stage3Level1CompleteManager : MonoBehaviour
                 if(failedPanel!=null)failedPanel.transform.SetAsLastSibling();
             }
             else
-                bowHintText.text="HINT: Covalent bonds share electrons. Water has two H atoms and one O atom.";
+                ChemQuestHintPopup.Show(approvedBow?.At(bowQuestionIndex)?.hint ?? "HINT: Covalent bonds share electrons. Water has two H atoms and one O atom.");
             return;
         }
         ChemQuestSoundtrack.Correct();

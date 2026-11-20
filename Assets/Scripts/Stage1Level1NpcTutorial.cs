@@ -12,7 +12,7 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
     private const string SceneName = "Stage1Level1";
     // v2 is intentional: players who saw the old static popup get the new walkthrough.
     private const string KeyPrefix = "CQ_Stage1L1_InteractiveGuide_v2_";
-    private static readonly Color Navy = new Color(.055f, .14f, .24f, .96f);
+    private static readonly Color Navy = new Color(.043f, .115f, .205f, .985f);
     private static readonly Color Teal = new Color(.04f, .52f, .61f, 1);
     private static readonly Color Gold = new Color(1f, .76f, .30f, 1);
     private static readonly Color Cream = new Color(1f, .79f, .58f, 1);
@@ -70,7 +70,7 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
         if (SceneManager.GetActiveScene().name != SceneName) { Destroy(gameObject); return; }
         completionKey = ProfileKey();
         DiscoverTargets();
-        BuildInterface();
+        if(!BindEditableHierarchy()) BuildInterface();
         // Always display on every Stage 1 Level 1 entry, including returning
         // students. No GUIDE button press or PlayerPrefs reset is needed.
         StartGuide();
@@ -226,12 +226,12 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
         // Bottom HUD strip leaves the zinc/flask and Sub-Microscopic View
         // button accessible. All labels use fixed top-left coordinates.
         var speech = Box(guideRoot.transform, "ProfAtomDialogueBar", Navy,
-            new Vector2(.5f, 0), new Vector2(0, 79), new Vector2(1180, 148));
+            new Vector2(.5f, 0), new Vector2(0, 89), new Vector2(1180, 164));
         Box(speech, "GoldLine", Gold, new Vector2(.5f, 1), new Vector2(0, -3),
             new Vector2(1180, 6), false);
 
         var portrait = Box(speech, "ProfAtomPortrait", new Color(.08f, .31f, .39f, 1),
-            new Vector2(0, .5f), new Vector2(79, 0), new Vector2(150, 138), false);
+            new Vector2(0, .5f), new Vector2(79, 0), new Vector2(150, 152), false);
         Sprite atomSprite = Resources.Load<Sprite>("ChemQuestTutorial/ProfAtom");
         if (atomSprite != null)
         {
@@ -253,21 +253,186 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
             TextAnchor.MiddleCenter, new Vector2(.5f, .5f), Vector2.zero,
             new Vector2(146, 26), FontStyle.Bold);
 
-        heading = TopLeftCaption(speech, "StepHeading", "", 22, Gold,
-            180, 13, 705, 36, FontStyle.Bold);
-        dialogue = TopLeftCaption(speech, "Speech", "", 20, Color.white,
-            180, 58, 755, 66);
+        heading = TopLeftCaption(speech, "StepHeading", "", 24, Gold,
+            180, 14, 730, 40, FontStyle.Bold);
+        dialogue = TopLeftCaption(speech, "Speech", "", 19, Color.white,
+            180, 65, 716, 69);
         dialogue.lineSpacing = 1.05f;
         progress = Caption(speech, "StepNumber", "", 16,
             new Color(.72f, .92f, .95f, 1), TextAnchor.MiddleCenter,
-            new Vector2(0, 0), new Vector2(236, 16), new Vector2(112, 24));
+            new Vector2(0, 0), new Vector2(236, 17), new Vector2(112, 26));
 
         MakeButton(speech, "Skip", "SKIP", new Color(.35f, .39f, .46f, 1),
-            new Vector2(1, 1), new Vector2(-198, -31), new Vector2(122, 43), FinishGuide);
+            new Vector2(1, 1), new Vector2(-198, -46), new Vector2(122, 49), FinishGuide);
         nextButton = MakeButton(speech, "Next", "NEXT", Teal,
-            new Vector2(1, 1), new Vector2(-65, -31), new Vector2(118, 43), NextStep);
+            new Vector2(1, 1), new Vector2(-65, -46), new Vector2(118, 49), NextStep);
         nextLabel = nextButton.GetComponentInChildren<Text>();
+        // Real SubMicroscopicButton will be repositioned in the saved scene.
+        // Do not create a duplicate shortcut over the Professor Atom panel.
         guideRoot.SetActive(false);
+    }
+
+
+    // Author the same tutorial UI as saved scene GameObjects in Edit Mode.
+    // No generated-only Play Mode objects are required after installation.
+    public void BakeEditableHierarchy()
+    {
+        if(Application.isPlaying) return;
+        if(!BindEditableHierarchy()) BuildInterface();
+        ApplyEditablePolish();
+        step=0;
+        ShowStep();
+        guideRoot.SetActive(true);
+        if(halo!=null)halo.gameObject.SetActive(false);
+        if(trail!=null)trail.gameObject.SetActive(false);
+        if(handMarker!=null)handMarker.gameObject.SetActive(false);
+    }
+
+
+    // Non-destructive polish of baked scene objects. Idempotent: safe to run
+    // the Editor menu again without creating duplicate UI or event handlers.
+    private static void SetRect(Transform parent,string name,Vector2 position,Vector2 size)
+    {
+        var child=parent.Find(name);
+        if(child==null)return;
+        var rect=child.GetComponent<RectTransform>();
+        if(rect==null)return;
+        rect.anchoredPosition=position;
+        rect.sizeDelta=size;
+    }
+
+    private static Text EditText(Transform parent,string name,int size,Color color,
+        TextAnchor alignment)
+    {
+        var child=parent.Find(name);
+        if(child==null)return null;
+        var label=child.GetComponent<Text>();
+        if(label==null)return null;
+        label.fontSize=size;
+        label.color=color;
+        label.alignment=alignment;
+        label.horizontalOverflow=HorizontalWrapMode.Wrap;
+        label.verticalOverflow=VerticalWrapMode.Truncate;
+        label.resizeTextForBestFit=false;
+        label.raycastTarget=false;
+        return label;
+    }
+
+    private void ApplyEditablePolish()
+    {
+        if(guideRoot==null)return;
+        var panel=guideRoot.transform.Find("ProfAtomDialogueBar");
+        if(panel==null)return;
+        var frame=panel.GetComponent<RectTransform>();
+        if(frame!=null)
+        {
+            frame.anchorMin=frame.anchorMax=new Vector2(.5f,0f);
+            frame.anchoredPosition=new Vector2(0,92);
+            frame.sizeDelta=new Vector2(1170,172);
+        }
+        var image=panel.GetComponent<Image>();
+        if(image!=null)
+        {
+            image.color=new Color(.042f,.115f,.205f,.985f);
+            image.raycastTarget=false;
+        }
+        SetRect(panel,"GoldLine",new Vector2(0,-3),new Vector2(1170,5));
+        SetRect(panel,"ProfAtomPortrait",new Vector2(81,0),new Vector2(154,158));
+        SetRect(panel,"NPCNameBackground",new Vector2(81,18),new Vector2(152,28));
+
+        SetRect(panel,"Skip",new Vector2(-203,-58),new Vector2(128,52));
+        SetRect(panel,"Next",new Vector2(-70,-58),new Vector2(128,52));
+        var skip=panel.Find("Skip");
+        var next=panel.Find("Next");
+        if(skip!=null)
+        {
+            EditText(skip,"Label",21,Color.white,TextAnchor.MiddleCenter);
+            SetRect(skip,"Label",Vector2.zero,new Vector2(120,48));
+        }
+        if(next!=null)
+        {
+            EditText(next,"Label",21,Color.white,TextAnchor.MiddleCenter);
+            SetRect(next,"Label",Vector2.zero,new Vector2(120,48));
+        }
+
+        var head=EditText(panel,"StepHeading",25,Gold,TextAnchor.UpperLeft);
+        if(head!=null)
+        {
+            var r=head.rectTransform;
+            r.anchorMin=r.anchorMax=new Vector2(0,1);
+            r.pivot=new Vector2(0,1);
+            r.anchoredPosition=new Vector2(182,-13);
+            r.sizeDelta=new Vector2(700,38);
+        }
+        var speech=EditText(panel,"Speech",21,Color.white,TextAnchor.UpperLeft);
+        if(speech!=null)
+        {
+            var r=speech.rectTransform;
+            r.anchorMin=r.anchorMax=new Vector2(0,1);
+            r.pivot=new Vector2(0,1);
+            r.anchoredPosition=new Vector2(182,-58);
+            r.sizeDelta=new Vector2(700,80);
+            speech.lineSpacing=1.07f;
+        }
+
+        var stepLabel=EditText(panel,"StepNumber",17,new Color(.75f,.93f,.98f),
+            TextAnchor.MiddleLeft);
+        if(stepLabel!=null)
+        {
+            var r=stepLabel.rectTransform;
+            r.anchorMin=r.anchorMax=new Vector2(0,0);
+            r.pivot=new Vector2(0,0);
+            r.anchoredPosition=new Vector2(182,12);
+            r.sizeDelta=new Vector2(220,25);
+        }
+        var portrait=panel.Find("ProfAtomPortrait");
+        if(portrait!=null)
+        {
+            var art=portrait.Find("ProfAtomGeneratedArt")?.GetComponent<Image>();
+            if(art!=null){art.preserveAspect=true;art.raycastTarget=false;}
+        }
+        // This is a visual-only highlight. Student drags still pass through it.
+        if(halo!=null)
+        {
+            halo.raycastTarget=false;
+            halo.color=new Color(1f,.84f,.25f,.30f);
+            halo.rectTransform.sizeDelta=new Vector2(124,106);
+        }
+        if(trail!=null)trail.raycastTarget=false;
+        if(handMarker!=null)handMarker.raycastTarget=false;
+    }
+
+    private bool BindEditableHierarchy()
+    {
+        var root=transform.Find("ProfAtomGuideCanvas");
+        if(root==null)return false;
+        canvas=root.GetComponent<Canvas>();
+        var guide=root.Find("InGameTutorialLayer");
+        if(canvas==null||guide==null)return false;
+        var speech=guide.Find("ProfAtomDialogueBar");
+        if(speech==null)return false;
+        var newHeading=speech.Find("StepHeading")?.GetComponent<Text>();
+        var newDialogue=speech.Find("Speech")?.GetComponent<Text>();
+        var newProgress=speech.Find("StepNumber")?.GetComponent<Text>();
+        var next=speech.Find("Next")?.GetComponent<Button>();
+        var skip=speech.Find("Skip")?.GetComponent<Button>();
+        var newHand=guide.Find("AnimatedTutorialHand")?.GetComponent<Image>();
+        var newHalo=guide.Find("TargetGlow")?.GetComponent<Image>();
+        var newTrail=guide.Find("DragPath")?.GetComponent<Image>();
+        if(newHeading==null||newDialogue==null||newProgress==null||next==null||
+           skip==null||newHand==null||newHalo==null||newTrail==null)return false;
+        guideRoot=guide.gameObject;
+        heading=newHeading; dialogue=newDialogue; progress=newProgress;
+        handMarker=newHand;halo=newHalo;trail=newTrail;
+        nextButton=next;
+        nextLabel=next.GetComponentInChildren<Text>(true);
+        if(nextLabel==null)return false;
+        // Hook runtime callbacks even when the hierarchy was baked in Edit Mode.
+        next.onClick.RemoveAllListeners();
+        skip.onClick.RemoveAllListeners();
+        next.onClick.AddListener(NextStep);
+        skip.onClick.AddListener(FinishGuide);
+        return true;
     }
 
     private static void DrawScientist(RectTransform p)
@@ -512,7 +677,7 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
         if (!drag) position += new Vector2(0, Mathf.Sin(animationClock * 4f) * 12f);
         ((RectTransform)handMarker.transform).anchoredPosition = position + new Vector2(38, -8);
         ((RectTransform)halo.transform).anchoredPosition = drag ? end : start;
-        halo.color = new Color(1, .84f, .24f, .18f + .17f * Mathf.Abs(Mathf.Sin(animationClock * 3f)));
+        halo.color = new Color(1, .84f, .24f, .24f + .18f * Mathf.Abs(Mathf.Sin(animationClock * 3f)));
         if (drag && to != null)
         {
             var segment = (RectTransform)trail.transform;

@@ -83,7 +83,8 @@ public class Level1AttemptManager : MonoBehaviour
         if (mistakeCount == 1)
         {
             if (mistakeHintText != null)
-                mistakeHintText.SetActive(true);
+                mistakeHintText.SetActive(false);
+            ChemQuestHintPopup.Show("Review the chemical-change evidence in the experiment, then try the puzzle again.");
 
             Debug.Log(
                 "First mistake: Conceptual hint shown."

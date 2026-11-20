@@ -99,13 +99,8 @@ public class Level3CrystalGridChecker : MonoBehaviour
 
         if (wrongAttempts == 1)
         {
-            ShowFeedback(
-                "HINT: Calcium (Ca2+) and carbonate (CO3 2-) " +
-                "must alternate. Sodium (Na+) does not belong!",
-                Color.yellow
-            );
-
             ResetAllSlots();
+            ChemQuestHintPopup.Show("Calcium (Ca2+) and carbonate (CO3 2-) must alternate. Sodium (Na+) does not belong!");
         }
         else
         {

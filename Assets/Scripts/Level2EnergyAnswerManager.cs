@@ -62,13 +62,8 @@ public class Level2EnergyAnswerManager : MonoBehaviour
 
         if (wrongAttempts == 1)
         {
-            if (energyFeedbackText != null)
-            {
-                energyFeedbackText.color = Color.yellow;
-                energyFeedbackText.text =
-                    "HINT: Compare the temperature before " +
-                    "and after the reaction. Did it increase or decrease?";
-            }
+            if (energyFeedbackText != null) energyFeedbackText.text = "";
+            ChemQuestHintPopup.Show("Compare the temperature before and after the reaction. Did it increase or decrease?");
 
             Debug.Log("First wrong answer. Hint shown.");
         }

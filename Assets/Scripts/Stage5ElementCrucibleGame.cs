@@ -35,6 +35,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
     private GameObject level1BowPanel,level2BowPanel,level3BowPanel;
     private TMP_Text level3BowQuestion,level3BowHint;
     private int level3BowStep=-1;
+    private ChemQuestBowData.Snapshot approvedBow;
     private TMP_Text level2BowQuestion,level2BowHint;
     private int level2BowStep=-1;
     private TMP_Text level1BowQuestion,level1BowHint;
@@ -1037,6 +1038,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
     private void ShowLevel1BowQuestion()
     {
         if(Level!=1)return;
+        if(level1BowStep==0)approvedBow=ChemQuestBowData.Load(5,1);
         if(level1BowPanel==null)EnsureLevel1BowPanel();
         if(level1BowPanel==null)return;
         SetLevel1BackgroundFeedbackVisible(false);
@@ -1049,6 +1051,13 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         SetBowAnswer("BowAnswerB",level1BowStep==0?
             "All three samples must have the same bonding type":
             "Identify its bond type using only the heating result");
+        var synced=approvedBow?.At(level1BowStep);
+        if(synced!=null)
+        {
+            if(level1BowQuestion!=null)level1BowQuestion.text=synced.prompt;
+            SetBowAnswer("BowAnswerA",synced.a);
+            SetBowAnswer("BowAnswerB",synced.b);
+        }
         if(level1BowHint!=null)level1BowHint.text="";
         level1BowPanel.SetActive(true);
         level1BowPanel.transform.SetAsLastSibling();
@@ -1057,7 +1066,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
     {
         if(Level!=1 || !CanInteract || level1BowPanel==null ||
             !level1BowPanel.activeSelf || level1BowStep<0 || level1BowStep>=2)return;
-        if(choice!=0)
+        if(choice!=(approvedBow?.At(level1BowStep)?.correct ?? 0))
         {
             ChemQuestSoundtrack.Wrong();
             WrongAttempt("Heating alone cannot conclusively identify bonding type.");
@@ -1067,9 +1076,9 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
                 if(failPanel!=null)failPanel.transform.SetAsLastSibling();
             }
             else if(level1BowHint!=null)
-                level1BowHint.text=level1BowStep==0?
+                ChemQuestHintPopup.Show(approvedBow?.At(level1BowStep)?.hint ?? (level1BowStep==0?
                     "HINT: Compare what happened to samples A, B, and C.":
-                    "HINT: Use conductivity and mechanical properties too.";
+                    "HINT: Use conductivity and mechanical properties too."));
             return;
         }
         ChemQuestSoundtrack.Correct();
@@ -1147,6 +1156,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
     private void ShowLevel2BowQuestion()
     {
         if(Level!=2)return;
+        if(level2BowStep==0)approvedBow=ChemQuestBowData.Load(5,2);
         if(level2BowPanel==null)EnsureLevel2BowPanel();
         if(level2BowPanel==null)return;
         SetLevel2BackgroundFeedbackVisible(false);
@@ -1159,6 +1169,13 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         SetLevel2BowAnswer("BowAnswerB",level2BowStep==0?
             "It breaks into fragments when struck":
             "All metallic bonds disappear when layers move");
+        var synced=approvedBow?.At(level2BowStep);
+        if(synced!=null)
+        {
+            if(level2BowQuestion!=null)level2BowQuestion.text=synced.prompt;
+            SetLevel2BowAnswer("BowAnswerA",synced.a);
+            SetLevel2BowAnswer("BowAnswerB",synced.b);
+        }
         if(level2BowHint!=null)level2BowHint.text="";
         level2BowPanel.SetActive(true);
         level2BowPanel.transform.SetAsLastSibling();
@@ -1167,7 +1184,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
     {
         if(Level!=2 || !CanInteract || level2BowPanel==null ||
             !level2BowPanel.activeSelf || level2BowStep<0 || level2BowStep>=2)return;
-        if(choice!=0)
+        if(choice!=(approvedBow?.At(level2BowStep)?.correct ?? 0))
         {
             ChemQuestSoundtrack.Wrong();
             WrongAttempt("Compare deformation and brittle fracture, then consider the mobile electrons.");
@@ -1177,9 +1194,9 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
                 if(failPanel!=null)failPanel.transform.SetAsLastSibling();
             }
             else if(level2BowHint!=null)
-                level2BowHint.text=level2BowStep==0?
+                ChemQuestHintPopup.Show(approvedBow?.At(level2BowStep)?.hint ?? (level2BowStep==0?
                     "HINT: Malleable materials deform instead of shattering.":
-                    "HINT: Mobile electrons hold the positive metal ions together.";
+                    "HINT: Mobile electrons hold the positive metal ions together."));
             return;
         }
         ChemQuestSoundtrack.Correct();
@@ -1256,6 +1273,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
     private void ShowLevel3BowQuestion()
     {
         if(Level!=3)return;
+        if(level3BowStep==0)approvedBow=ChemQuestBowData.Load(5,3);
         if(level3BowPanel==null)EnsureLevel3BowPanel();
         if(level3BowPanel==null)return;
         SetLevel3BackgroundFeedbackVisible(false);
@@ -1268,6 +1286,13 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
         SetLevel3BowAnswer("BowAnswerB",level3BowStep==0?
             "Its electrons disappear when the compound melts":
             "Metal cations move freely through the solid lattice");
+        var synced=approvedBow?.At(level3BowStep);
+        if(synced!=null)
+        {
+            if(level3BowQuestion!=null)level3BowQuestion.text=synced.prompt;
+            SetLevel3BowAnswer("BowAnswerA",synced.a);
+            SetLevel3BowAnswer("BowAnswerB",synced.b);
+        }
         if(level3BowHint!=null)level3BowHint.text="";
         level3BowPanel.SetActive(true);
         level3BowPanel.transform.SetAsLastSibling();
@@ -1276,7 +1301,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
     {
         if(Level!=3 || !CanInteract || level3BowPanel==null ||
             !level3BowPanel.activeSelf || level3BowStep<0 || level3BowStep>=2)return;
-        if(choice!=0)
+        if(choice!=(approvedBow?.At(level3BowStep)?.correct ?? 0))
         {
             ChemQuestSoundtrack.Wrong();
             WrongAttempt("Think about mobile charged particles in ionic and metallic materials.");
@@ -1286,9 +1311,9 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
                 if(failPanel!=null)failPanel.transform.SetAsLastSibling();
             }
             else if(level3BowHint!=null)
-                level3BowHint.text=level3BowStep==0?
+                ChemQuestHintPopup.Show(approvedBow?.At(level3BowStep)?.hint ?? (level3BowStep==0?
                     "HINT: In molten ionic compounds, ions are mobile.":
-                    "HINT: Metals contain mobile delocalized electrons.";
+                    "HINT: Metals contain mobile delocalized electrons."));
             return;
         }
         ChemQuestSoundtrack.Correct();
@@ -1313,7 +1338,14 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
     private void WrongAttempt(string message)
     {
         wrong++;
-        if(wrong==1){Info("HINT: "+message+" You have one remaining submission.");return;}
+        if(wrong==1)
+        {
+            int currentBowStep=Level==1?level1BowStep:Level==2?level2BowStep:level3BowStep;
+            ChemQuestHintPopup.Show(currentBowStep>=0
+                ? (approvedBow?.At(currentBowStep)?.hint ?? message)
+                : message);
+            return;
+        }
         failed=true;
         EnergyManager.Instance.LoseEnergy();
         if(failPanel!=null){failPanel.SetActive(true);failPanel.transform.SetAsLastSibling();}
