@@ -27,6 +27,7 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
     private Text dialogue;
     private Text progress;
     private Button nextButton;
+    private Button atomViewShortcut;
     private Text nextLabel;
     private int step;
     private float animationClock;
@@ -267,9 +268,58 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
         nextButton = MakeButton(speech, "Next", "NEXT", Teal,
             new Vector2(1, 1), new Vector2(-65, -46), new Vector2(118, 49), NextStep);
         nextLabel = nextButton.GetComponentInChildren<Text>();
+        CreateAtomViewShortcut(speech);
         guideRoot.SetActive(false);
     }
 
+
+    // The original scene button is kept unchanged. This visible shortcut
+    // invokes that same Button.onClick so pupils can reach the particle view
+    // while the Prof Atom bar covers the original bottom-center button.
+    private void CreateAtomViewShortcut(RectTransform speech)
+    {
+        var existing=speech.Find("SubMicroscopicAccessButton");
+        if(existing!=null)
+        {
+            atomViewShortcut=existing.GetComponent<Button>();
+            return;
+        }
+        var shell=Box(speech,"SubMicroscopicAccessButton",
+            new Color(.045f,.43f,.56f,.98f),new Vector2(.5f,.5f),
+            new Vector2(390,111),new Vector2(220,47));
+        atomViewShortcut=shell.gameObject.AddComponent<Button>();
+        atomViewShortcut.targetGraphic=shell.GetComponent<Image>();
+        Caption(shell,"Label","OPEN ATOM VIEW",17,Color.white,
+            TextAnchor.MiddleCenter,new Vector2(.5f,.5f),Vector2.zero,
+            new Vector2(210,44),FontStyle.Bold);
+    }
+    private void BindAtomViewShortcut()
+    {
+        var speech=guideRoot==null?null:guideRoot.transform.Find("ProfAtomDialogueBar");
+        if(speech==null)return;
+        CreateAtomViewShortcut((RectTransform)speech);
+        if(atomViewShortcut!=null)
+        {
+            atomViewShortcut.onClick.RemoveAllListeners();
+            atomViewShortcut.onClick.AddListener(OpenRealAtomView);
+        }
+    }
+    private void OpenRealAtomView()
+    {
+        if(!activeGuide || (step!=2 && step!=3))return;
+        var target=microscopicButtonRect;
+        if(target==null)target=FindNamedRect("SubMicroscopicButton");
+        if(target==null || !target.gameObject.activeInHierarchy)return;
+        var actual=target.GetComponent<Button>();
+        if(actual==null || !actual.IsActive() || !actual.IsInteractable())return;
+        actual.onClick.Invoke();
+        var panel=FindNamedRect("SubMicroscopicPanel");
+        if(panel!=null && panel.gameObject.activeInHierarchy)
+        {
+            step=4;
+            ShowStep();
+        }
+    }
 
     // Author the same tutorial UI as saved scene GameObjects in Edit Mode.
     // No generated-only Play Mode objects are required after installation.
@@ -277,6 +327,7 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
     {
         if(Application.isPlaying) return;
         if(!BindEditableHierarchy()) BuildInterface();
+        BindAtomViewShortcut();
         ApplyEditablePolish();
         step=0;
         ShowStep();
@@ -430,6 +481,7 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
         skip.onClick.RemoveAllListeners();
         next.onClick.AddListener(NextStep);
         skip.onClick.AddListener(FinishGuide);
+        BindAtomViewShortcut();
         return true;
     }
 
@@ -505,6 +557,12 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
                 break;
         }
         progress.text = "STEP " + (step + 1) + " / 6";
+        if(atomViewShortcut!=null)
+        {
+            bool showAtomButton=(step==2 || step==3) && microscopicButtonRect!=null;
+            atomViewShortcut.gameObject.SetActive(showAtomButton);
+            atomViewShortcut.interactable=showAtomButton && microscopicButtonRect.gameObject.activeInHierarchy;
+        }
         bool needsAction = step == 1 || step == 3 || step == 4;
         nextLabel.text = step == 5 ? "DONE" : needsAction ? "DO IT!" : "NEXT";
         // Students advance by performing real game actions, not by skipping
