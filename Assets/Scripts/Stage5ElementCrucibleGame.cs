@@ -1078,7 +1078,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
             else if(level1BowHint!=null)
                 ChemQuestHintPopup.Show(approvedBow?.At(level1BowStep)?.hint ?? (level1BowStep==0?
                     "HINT: Compare what happened to samples A, B, and C.":
-                    "HINT: Use conductivity and mechanical properties too.");
+                    "HINT: Use conductivity and mechanical properties too."));
             return;
         }
         ChemQuestSoundtrack.Correct();
@@ -1196,7 +1196,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
             else if(level2BowHint!=null)
                 ChemQuestHintPopup.Show(approvedBow?.At(level2BowStep)?.hint ?? (level2BowStep==0?
                     "HINT: Malleable materials deform instead of shattering.":
-                    "HINT: Mobile electrons hold the positive metal ions together.");
+                    "HINT: Mobile electrons hold the positive metal ions together."));
             return;
         }
         ChemQuestSoundtrack.Correct();
@@ -1313,7 +1313,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
             else if(level3BowHint!=null)
                 ChemQuestHintPopup.Show(approvedBow?.At(level3BowStep)?.hint ?? (level3BowStep==0?
                     "HINT: In molten ionic compounds, ions are mobile.":
-                    "HINT: Metals contain mobile delocalized electrons.");
+                    "HINT: Metals contain mobile delocalized electrons."));
             return;
         }
         ChemQuestSoundtrack.Correct();
