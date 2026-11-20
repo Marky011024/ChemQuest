@@ -1,0 +1,78 @@
+/* ChemQuest Professional Website — presentation layer only.
+   Existing authentication and question management behavior remains unchanged. */
+:root{--cq-bg:#071321;--cq-card:#10253a;--cq-line:#2e526f;--cq-gold:#f2c667;--cq-cyan:#70e0de;--cq-white:#f5f9fd;--cq-muted:#b4cada}
+html{scroll-behavior:smooth;scroll-padding-top:112px}
+body{background:radial-gradient(ellipse at 85% 1%,#123351 0,transparent 38%),radial-gradient(ellipse at 4% 48%,#09283e 0,transparent 34%),#071421;color:var(--cq-white);font-family:Inter,"Segoe UI",system-ui,-apple-system,sans-serif}
+header{background:rgba(7,22,37,.96);border-bottom:1px solid #43617c;box-shadow:0 8px 35px #010b1860;padding:14px max(24px,calc((100% - 1240px)/2));gap:24px}
+header h1{font-weight:830;letter-spacing:-.5px;color:#ffe0a0;font-size:24px}
+header small{font-size:11px;color:#a8c2d5;letter-spacing:.03em}
+.header-actions{gap:12px}
+.header-actions>button,.header-actions>a{font-size:13px;font-weight:700;white-space:nowrap;border-radius:9px}
+#navHome{background:transparent;border:1px solid #395876}
+#navLogin{background:var(--cq-gold);color:#15283a;padding:10px 20px}
+#navDownload{border:1px solid #476887;background:#142d43;color:#e4f2fb!important;padding:9px 16px!important}
+#navHome:hover,#navDownload:hover{border-color:#7dcbd3}
+main{max-width:1280px;margin:0 auto;padding:0 24px}
+#homeView{max-width:1240px;margin:28px auto 60px}
+.home-hero{border:1px solid #436e86;border-radius:24px;min-height:505px;padding:clamp(30px,5vw,64px);background:radial-gradient(circle at 77% 42%,#1b617d 0,transparent 35%),linear-gradient(125deg,#0c2a43 10%,#112d48 55%,#0b243c 100%);box-shadow:0 28px 64px #0006;position:relative;isolation:isolate}
+.home-hero::before{content:"";position:absolute;inset:0;border-radius:24px;pointer-events:none;background:linear-gradient(110deg,#fff0 10%,#c7f7ff0c 58%,#fff0 82%);z-index:-1}
+.home-kicker{font-size:11px;letter-spacing:2.3px;text-transform:uppercase;font-weight:850;color:var(--cq-cyan)}
+.home-hero h2{font-size:clamp(44px,5.5vw,70px);letter-spacing:-2.6px;font-weight:850;line-height:1.07;margin:20px 0 18px;color:#ffdf95;text-wrap:balance}
+.home-hero p{max-width:58ch;color:#d5e7ef;font-size:16px;line-height:1.75}
+.home-actions{align-items:center;gap:12px}
+.home-actions button,.home-actions .cq-download-btn{height:48px;padding:0 23px;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;font-size:13px}
+.home-actions .cq-download-btn{background:var(--cq-gold);color:#15273a;box-shadow:0 8px 24px #f7c36023;font-weight:850}
+.home-actions button.secondary{background:#173e58;border:1px solid #527b8e;color:#e8f8fc}
+.home-numbers{margin-top:28px;gap:0;border-top:1px solid #7298a543;padding-top:22px}
+.home-numbers div{font-size:12px;color:#b8cfde;padding:0 24px;border-left:1px solid #7995aa42}
+.home-numbers div:first-child{padding-left:0;border-left:0}
+.home-numbers b{font-size:28px;color:#fff;margin-bottom:2px}
+.home-art{min-height:350px}
+.home-art-orbit{border:1.5px solid #78d9e875;box-shadow:0 0 0 32px #3de3de0c,0 0 0 68px #3de3de06,0 0 75px #22bdcf28,inset 0 0 85px #0b4c76b8}
+.home-art-orbit::after{content:"H₂O  •  NaCl  •  CO₂";position:absolute;bottom:18px;font-size:12px;letter-spacing:1.4px;color:#b3e6ea}
+.home-art-atom{color:var(--cq-gold);text-shadow:0 0 24px #f2cf6655}
+.home-art-formula{background:#0a3047e8;border:1px solid #5e96a9;border-radius:10px}
+.home-block{margin-top:62px}
+.home-block h2{font-size:clamp(28px,3.4vw,38px);font-weight:810;letter-spacing:-1px;margin-bottom:12px}
+.home-lead{color:#aecbdc;font-size:15px;line-height:1.8;margin-bottom:30px}
+.home-cards,.home-stages,.home-steps{gap:16px}
+.home-card,.home-stage,.home-step,.cq-download-card,.cq-qr-card,.cq-install-guide{background:linear-gradient(158deg,#12334e,#0b2035);border:1px solid #365a75;box-shadow:0 12px 30px #010b1829;transition:border-color .2s,transform .2s,box-shadow .2s}
+.home-card:hover,.home-stage:hover,.home-step:hover{transform:translateY(-3px);border-color:#66aabc;box-shadow:0 18px 34px #010b184b}
+.home-card{min-height:211px}
+.home-card .emoji{display:inline-grid;place-items:center;width:53px;height:53px;background:#1e4961;border:1px solid #4b778d;border-radius:14px;font-size:26px}
+.home-card h3{font-size:18px;margin-top:18px}
+.home-card p,.home-stage p{color:#bdd0df;line-height:1.6}
+.home-stage{min-height:195px;padding:23px 18px}
+.home-stage .stage-number{letter-spacing:1.8px}
+.home-stage h3{line-height:1.3;font-size:17px}
+.home-step{min-height:188px}
+.home-step .emoji{font-size:32px}
+.home-step strong{color:#ffe2a5;font-size:15px}
+.home-step small{color:#b3cbd9}
+.cq-download-layout{gap:20px}
+.cq-download-card,.cq-qr-card{padding:34px}
+.cq-download-card{position:relative;overflow:hidden}
+.cq-download-card::before{content:"↓";position:absolute;right:22px;top:12px;font-size:155px;color:#46b4b10a;font-weight:800;pointer-events:none}
+.cq-download-card h3{color:#ffe1a4;font-weight:800;font-size:30px}
+.cq-download-card p{max-width:57ch;line-height:1.8}
+.cq-download-btn{transition:transform .15s,filter .15s}
+.cq-download-btn:hover{transform:translateY(-2px)}
+.cq-qr-card img{border:12px solid #fff;border-radius:16px;box-shadow:0 10px 30px #0004}
+.cq-qr-card strong{font-size:20px}
+.cq-install-guide{padding:30px}
+.cq-install-guide h3{font-size:24px}
+.cq-install-steps li{min-height:105px}
+.cq-install-steps li::before{background:#f2c667}
+.home-callout{margin-top:55px;padding:38px;text-align:center}
+.home-callout h2{margin-top:8px}
+.home-callout button{min-height:47px;padding:12px 25px;background:var(--cq-gold);color:#0c253b}
+.home-footer{margin-top:28px;border-top:1px solid #365873;padding:30px 0}
+#loginPanel{margin:50px auto}
+.login-intro,.login-card{box-shadow:0 22px 44px #0004;border-color:#466782;border-radius:18px}
+.login-submit{background:var(--cq-gold)}
+#workspace .panel,#workspace .metric{border-color:#355b76}
+#workspace .assessment-tabs button:focus-visible{outline:2px solid var(--cq-cyan)}
+@media(max-width:1050px){.home-hero{gap:16px}.home-hero h2{font-size:clamp(39px,5vw,55px)}.home-art{min-height:280px}.home-art-orbit{width:min(260px,100%);font-size:120px}.home-stages{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:780px){header{position:relative;padding:15px 20px}main{padding:0 16px}.home-hero{padding:32px 24px;min-height:auto;gap:12px}.home-art{min-height:240px}.home-art-orbit{width:210px;font-size:105px}.home-block{margin-top:45px}.home-cards,.home-steps{grid-template-columns:repeat(2,minmax(0,1fr))}.cq-download-card,.cq-qr-card,.cq-install-guide{padding:22px}}
+@media(max-width:500px){header h1{font-size:21px}.header-actions{gap:6px}.header-actions>button,.header-actions>a{font-size:11px;padding:8px 10px!important}#homeView{margin-top:14px}.home-hero{padding:26px 20px}.home-hero h2{font-size:39px;letter-spacing:-1px}.home-hero p{font-size:14px}.home-numbers{gap:10px}.home-numbers div{padding:0 9px}.home-numbers b{font-size:23px}.home-art{min-height:175px}.home-art-orbit{width:160px;font-size:90px}.home-art-atom{font-size:25px}.home-art-formula{font-size:13px}.home-cards,.home-steps,.home-stages{grid-template-columns:1fr}.home-card,.home-stage,.home-step{min-height:0;padding:20px}.home-block h2{font-size:29px}.cq-download-layout{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.home-card,.home-stage,.home-step,.cq-download-btn{transition:none}}
