@@ -133,6 +133,7 @@ textarea{line-height:1.5}
 </section>
 <section class="panel"><div class="tool-heading"><h2>Question bank</h2><button id="refresh" type="button" class="secondary">↻ Refresh</button></div>
 <div class="import-panel"><div class="tool-heading"><strong>Unity BOW • All 5 stages × 3 levels</strong><span class="pill">Pilot</span></div><p class="hint-text">Import and review 30 BOW questions (two per level). Publish each approved question, then publish one level or all 15 sets together. Missing or unapproved sets block bulk publication. Existing gameplay changes only after a successful sync and the next BOW attempt.</p><div class="actions"><label style="max-width:200px">Stage<select id="publishBowStage"><option value="1">Stage 1</option><option value="2">Stage 2</option><option value="3">Stage 3</option><option value="4">Stage 4</option><option value="5">Stage 5</option></select></label><label style="max-width:200px">Level<select id="publishBowLevel"><option value="1">Level 1</option><option value="2">Level 2</option><option value="3">Level 3</option></select></label></div><div class="actions"><button id="publishBowSet" type="button" class="gold">Publish selected approved level to Unity</button><button id="publishAllBowSets" type="button" class="secondary">Publish ALL 15 approved sets</button></div><p id="bowSetStatus" class="hint-text" role="status">No Unity set published from this page yet.</p></div>
+<div class="import-panel"><div class="tool-heading"><strong>Unity Pre-test / Post-test</strong><span class="pill">15 items each</span></div><p class="hint-text">Student downloads contain question text and four choices only; scoring keys remain in the Unity assessment. For compatible scoring, approved answer positions must match the original built-in 15-item map. Teacher approval required.</p><div class="actions"><button id="downloadPrePostDrafts" type="button" class="secondary">Download 30 Pre/Post CSV questions</button><button id="approveAllPrePost" type="button" class="secondary">Mark all teacher-reviewed Pre/Post questions Published</button><button id="publishBothTests" type="button" class="gold">Publish BOTH approved tests to Unity</button></div><p id="testPublishStatus" class="hint-text" role="status">No Pre/Post assessment snapshots published from this page yet.</p></div>
 <div class="import-panel"><div class="tool-heading"><strong>Bulk import & backup</strong><button type="button" class="secondary" id="template">Download CSV template</button></div><p class="hint-text">Import approved questions as drafts. CSV columns: kind,stage,level,order,prompt,a,b,c,d,correct,hint,explanation. One question per row.</p><label>Choose a CSV file<input id="importFile" type="file" accept=".csv,text/csv"></label><p id="importSummary" class="hint-text" role="status">No CSV selected.</p><div id="importPreview" class="import-preview" hidden></div><div class="actions"><button type="button" id="importButton" disabled>Import validated drafts</button><button type="button" id="approveAllBow" class="secondary">Mark all 30 teacher-reviewed BOW questions Published</button><button type="button" id="exportButton" class="secondary">Export CSV backup</button></div></div><div class="fields"><label>Assessment filter<select id="filter"><option value="all">All assessments</option><option value="pre">Pre-test</option><option value="bow">BOW</option><option value="post">Post-test</option></select></label><label>Status<select id="statusFilter"><option value="all">All statuses</option><option value="draft">Draft</option><option value="published">Published</option></select></label><label class="wide">Search questions<input id="search" placeholder="Search by question text or choices"></label></div><p class="hint-text" id="count"></p><div id="questionList"></div></section></div>
 <section class="panel"><h2>Important for school assessments</h2><p>Publish only questions approved by your Science teacher. Do not change an assessment version while students are taking a pre-test or post-test. BOW synchronization covers all 15 stage-level slots when the updated Unity scripts are installed, rules are published, and teacher-reviewed snapshots are available. Test every level in Unity and Android before use with respondents. Pre-test and Post-test synchronization remains unchanged.</p></section></div></main>
 <dialog id="helpDialog" class="manual-dialog" aria-labelledby="manualTitle">
@@ -254,6 +255,67 @@ const data={kind,stage:Number(el('stage').value),level:kind==='bow'?Number(el('l
  const errors=validationIssues(data,selectedId,false);if(errors.length)throw Error(errors.join(' '));
  return data;}
 let saving=false;
+function reviewedTest(kind){
+ const rows=records.filter(r=>r.kind===kind && r.status==='published').sort((a,b)=>Number(a.stage)-Number(b.stage)||Number(a.order)-Number(b.order));
+ if(rows.length!==15)return null;
+ for(let i=0;i<15;i++){
+   const r=rows[i], stage=Math.floor(i/3)+1,order=i%3+1;
+   if(Number(r.stage)!==stage||Number(r.order)!==order||r.choices?.length<4||
+      r.choices.slice(0,4).some(v=>!v?.trim())||
+      Number(r.correct)!==expectedAssessmentKeys[i]||
+      !r.prompt?.trim())return null;
+   const choices=r.choices.slice(0,4).map(x=>x.trim().toLowerCase());
+   if(new Set(choices).size!==4)return null;
+ }
+ return rows;
+}
+el('approveAllPrePost').addEventListener('click',async()=>{
+ if(!isAdmin)return;
+ try{
+   await load();
+   const tests=records.filter(r=>r.kind==='pre'||r.kind==='post');
+   const errs=[];
+   for(const kind of ['pre','post']){
+     const rows=tests.filter(r=>r.kind===kind);
+     if(rows.length!==15){errs.push(kind+': expected 15, got '+rows.length);continue;}
+     for(let i=0;i<15;i++){
+       const stage=Math.floor(i/3)+1,order=i%3+1;
+       const matches=rows.filter(r=>Number(r.stage)===stage&&Number(r.order)===order);
+       if(matches.length!==1 || Number(matches[0].correct)!==expectedAssessmentKeys[i] ||
+          validationIssues(matches[0],matches[0].id,true).length)
+         errs.push(kind+' S'+stage+' #'+order+' invalid or answer-key mismatch');
+     }
+   }
+   if(errs.length){message('Nothing changed. Review: '+errs.slice(0,8).join('; '));return;}
+   if(!confirm('Confirm: Your Grade 9 Science teacher has reviewed all 30 Pre/Post questions, answers, and wording. Mark all as Published in the admin bank?'))return;
+   let count=0;const errors=[];
+   for(const r of tests.filter(r=>r.status!=='published')){
+     try { await updateDoc(doc(db,'questionBank',r.id),{status:'published',updatedAt:serverTimestamp(),revisions:[...(r.revisions||[]).slice(-19),revisionOf(r,'published')]});count++; }
+     catch(e){errors.push(e.message);}
+   }
+   await load();message('Published '+count+' newly approved Pre/Post questions.'+(errors.length?' Errors: '+errors.join('; '):''));
+ }catch(e){message('Pre/Post approval failed: '+e.message);}
+});
+el('publishBothTests').addEventListener('click',async()=>{
+ if(!isAdmin)return;
+ try{
+   await load();
+   const pre=reviewedTest('pre'),post=reviewedTest('post');
+   if(!pre||!post){message('Both 15-item tests must be fully published and retain the original correct answer positions. No snapshot changed.');return;}
+   if(!confirm('Publish BOTH teacher-approved Pre/Post tests (15 questions each)? Student snapshots contain questions/choices ONLY. Unity uses its fixed scoring keys; review answer positions carefully.'))return;
+   const completed=[],errors=[];
+   for(const [kind,rows] of [['pre',pre],['post',post]]){
+     const version=kind+'-v1-'+new Date().toISOString().replace(/[^0-9TZ]/g,'');
+     const payload=JSON.stringify({schema:1,version,items:rows.map((r,i)=>({order:i+1,prompt:r.prompt,a:r.choices[0],b:r.choices[1],c:r.choices[2],d:r.choices[3]}))});
+     try {
+       await setDoc(doc(db,'publishedAssessments',kind),{status:'published',version,payload,updatedAt:serverTimestamp()});
+       completed.push(kind.toUpperCase());
+     }catch(e){errors.push(kind+': '+e.message);}
+   }
+   const summary='Published '+completed.length+'/2 assessment snapshots ('+completed.join(', ')+').'+(errors.length?' Errors: '+errors.join('; '):'');
+   el('testPublishStatus').textContent=summary;message(summary);
+ }catch(e){message('Pre/Post publication failed: '+e.message);}
+});
 function approvedBowRows(stage,level){
  const rows=records.filter(r=>r.kind==='bow'&&Number(r.stage)===stage&&Number(r.level)===level&&r.status==='published').sort((a,b)=>Number(a.order)-Number(b.order));
  if(rows.length!==2 || rows.some((r,i)=>Number(r.order)!==i+1 ||
@@ -408,6 +470,8 @@ async function history(r){
  try{await updateDoc(doc(db,'questionBank',r.id),data);await load();message('Previous revision restored as draft.');}
  catch(err){message('Restore failed: '+err.message);}
 }
+const assessmentSeed=[{"kind":"pre","stage":1,"level":null,"order":1,"prompt":"Zinc reacts with dilute hydrochloric acid. Which observation indicates chemical change?","a":"A new gas forms","b":"The flask is moved","c":"The metal is rearranged","d":"The table is shaken","correct":"A","hint":"","explanation":""},{"kind":"pre","stage":1,"level":null,"order":2,"prompt":"An experiment warms its surroundings. The reaction is best described as...","a":"Endothermic","b":"Exothermic","c":"A physical mixture","d":"A change of state only","correct":"B","hint":"","explanation":""},{"kind":"pre","stage":1,"level":null,"order":3,"prompt":"Why does limewater turn cloudy when carbon dioxide is introduced?","a":"Oxygen disappears","b":"A metal melts","c":"Calcium carbonate forms","d":"Only water evaporates","correct":"C","hint":"","explanation":""},{"kind":"pre","stage":2,"level":null,"order":1,"prompt":"When sodium forms Na+, it has...","a":"Gained a proton","b":"Shared two neutrons","c":"Gained an electron","d":"Lost one electron","correct":"D","hint":"","explanation":""},{"kind":"pre","stage":2,"level":null,"order":2,"prompt":"What holds Na+ and Cl- together in an ionic compound?","a":"Attraction of opposite charges","b":"Free-floating neutrons","c":"Sharing one electron pair","d":"An external magnet","correct":"A","hint":"","explanation":""},{"kind":"pre","stage":2,"level":null,"order":3,"prompt":"Why can molten sodium chloride conduct electricity?","a":"Its ions can move","b":"Its particles stop moving","c":"Its electrons disappear","d":"It turns into a metal","correct":"A","hint":"","explanation":""},{"kind":"pre","stage":3,"level":null,"order":1,"prompt":"In a covalent bond, atoms primarily...","a":"Transfer protons","b":"Share electron pairs","c":"Become positive ions only","d":"Lose their nuclei","correct":"B","hint":"","explanation":""},{"kind":"pre","stage":3,"level":null,"order":2,"prompt":"How many H-O covalent bonds are found in one H2O molecule?","a":"One","b":"Three","c":"Four","d":"Two","correct":"D","hint":"","explanation":""},{"kind":"pre","stage":3,"level":null,"order":3,"prompt":"In a typical ammonia (NH3) molecule, nitrogen forms how many N-H bonds?","a":"One","b":"Two","c":"Three","d":"Four","correct":"C","hint":"","explanation":""},{"kind":"pre","stage":4,"level":null,"order":1,"prompt":"What particles are mobile in the usual model of metallic bonding?","a":"Delocalized electrons","b":"Fixed positive ions","c":"Neutrons only","d":"Whole atoms escaping","correct":"A","hint":"","explanation":""},{"kind":"pre","stage":4,"level":null,"order":2,"prompt":"Why does a solid metal conduct electricity?","a":"Only its nuclei move","b":"It has freely moving ions","c":"Its electrons are mobile","d":"It contains dissolved salt","correct":"C","hint":"","explanation":""},{"kind":"pre","stage":4,"level":null,"order":3,"prompt":"A metal can be drawn into a thin wire. This property is...","a":"Brittleness","b":"Solubility","c":"Density","d":"Ductility","correct":"D","hint":"","explanation":""},{"kind":"pre","stage":5,"level":null,"order":1,"prompt":"A brittle sample shatters when struck. Which observation best supports this?","a":"It bends into a sheet","b":"It fractures rather than deforms","c":"It emits light","d":"Its mass increases","correct":"B","hint":"","explanation":""},{"kind":"pre","stage":5,"level":null,"order":2,"prompt":"Which state generally permits electrical conduction in a typical ionic compound?","a":"Solid crystal only","b":"Dry powder only","c":"Molten or dissolved","d":"Frozen solid only","correct":"C","hint":"","explanation":""},{"kind":"pre","stage":5,"level":null,"order":3,"prompt":"Can a heating test alone conclusively identify ionic, metallic, or covalent bonding?","a":"Yes, always","b":"Yes, for all solids","c":"Only by sample color","d":"No, use additional evidence","correct":"D","hint":"","explanation":""},{"kind":"post","stage":1,"level":null,"order":1,"prompt":"A flask containing zinc and acid produces bubbles. What do the bubbles suggest?","a":"New gas produced by a reaction","b":"Only movement of the flask","c":"The reaction stopped","d":"No chemical change","correct":"A","hint":"","explanation":""},{"kind":"post","stage":1,"level":null,"order":2,"prompt":"A reaction causes a measured temperature rise in the mixture. What is the most likely energy classification?","a":"Endothermic, heat absorbed","b":"Exothermic, heat released","c":"Neither: only color changed","d":"Evaporation without energy","correct":"B","hint":"","explanation":""},{"kind":"post","stage":1,"level":null,"order":3,"prompt":"A white precipitate makes CO2-treated limewater look milky. What is it?","a":"Sodium metal","b":"Hydrogen gas","c":"Calcium carbonate","d":"Copper sulfate","correct":"C","hint":"","explanation":""},{"kind":"post","stage":2,"level":null,"order":1,"prompt":"A neutral chlorine atom becomes Cl-. What happened?","a":"One proton was removed","b":"Its nucleus split","c":"It lost one electron","d":"It gained one electron","correct":"D","hint":"","explanation":""},{"kind":"post","stage":2,"level":null,"order":2,"prompt":"Why does an ionic crystal contain an ordered arrangement of positive and negative ions?","a":"Electrostatic attractions act between opposite ions","b":"All ions repel each other","c":"Electrons are shared in H-H bonds","d":"Metallic atoms flow freely","correct":"A","hint":"","explanation":""},{"kind":"post","stage":2,"level":null,"order":3,"prompt":"Solid salt does not light a conductivity tester, but melted salt does. Why?","a":"Mobile ions carry charge in the melt","b":"The melt has no ions","c":"Only solid ions move","d":"Melting creates metallic atoms","correct":"A","hint":"","explanation":""},{"kind":"post","stage":3,"level":null,"order":1,"prompt":"Two hydrogen atoms form H2. How is the bond formed?","a":"By exchanging neutrons","b":"By sharing electrons","c":"By losing both nuclei","d":"By turning into ions in water","correct":"B","hint":"","explanation":""},{"kind":"post","stage":3,"level":null,"order":2,"prompt":"Which molecular formula has two O-H single bonds?","a":"CO2","b":"NH3","c":"NaCl","d":"H2O","correct":"D","hint":"","explanation":""},{"kind":"post","stage":3,"level":null,"order":3,"prompt":"How many hydrogen atoms share electrons with nitrogen in NH3?","a":"One","b":"Two","c":"Three","d":"Five","correct":"C","hint":"","explanation":""},{"kind":"post","stage":4,"level":null,"order":1,"prompt":"In metallic bonding, what helps positive metal ions remain attracted together?","a":"A sea of delocalized electrons","b":"Fixed neutrons moving between ions","c":"An external electric current","d":"Water molecules","correct":"A","hint":"","explanation":""},{"kind":"post","stage":4,"level":null,"order":2,"prompt":"A copper wire carries electric current. What is the main mobile charge carrier?","a":"Copper nuclei","b":"Stationary metal ions","c":"Delocalized electrons","d":"Neutrons","correct":"C","hint":"","explanation":""},{"kind":"post","stage":4,"level":null,"order":3,"prompt":"A sample stretches into wire without breaking. What characteristic is shown?","a":"Brittleness","b":"Thermal insulation","c":"Solubility","d":"Ductility","correct":"D","hint":"","explanation":""},{"kind":"post","stage":5,"level":null,"order":1,"prompt":"Which result most clearly demonstrates brittleness in a strike test?","a":"The sample flattens","b":"The sample breaks into pieces","c":"The sample becomes magnetic","d":"The sample dissolves","correct":"B","hint":"","explanation":""},{"kind":"post","stage":5,"level":null,"order":2,"prompt":"An ionic sample fails to conduct as a dry solid. Which test should also be tried?","a":"Only its color","b":"Its shape alone","c":"Conductivity when molten or in solution","d":"Only its mass","correct":"C","hint":"","explanation":""},{"kind":"post","stage":5,"level":null,"order":3,"prompt":"For an unknown sample, which approach best supports identifying bonding type?","a":"Use just its melting appearance","b":"Use only a heat trial","c":"Use only one sample's color","d":"Combine conductivity and mechanical evidence","correct":"D","hint":"","explanation":""}];
+const expectedAssessmentKeys="012300132023123".split("").map(Number);
 const csvColumns=['kind','stage','level','order','prompt','a','b','c','d','correct','hint','explanation'];
 function csvEncode(value){const s=String(value??'');return /[",\r\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}
 function csvText(rows){return [csvColumns.join(','),...rows.map(r=>csvColumns.map(k=>csvEncode(r[k])).join(','))].join('\r\n');}
@@ -415,6 +479,10 @@ function downloadCsv(filename,contents){
  const url=URL.createObjectURL(new Blob(['\uFEFF'+contents],{type:'text/csv;charset=utf-8;'}));
  const a=document.createElement('a');a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
 }
+el('downloadPrePostDrafts').addEventListener('click',()=>{
+ downloadCsv('ChemQuest_PrePost_30_Drafts.csv',csvText(assessmentSeed));
+ message('Pre/Post CSV downloaded. All 30 content items are source-aligned drafts, not yet teacher-approved.');
+});
 el('template').addEventListener('click',()=>downloadCsv('ChemQuest_Question_Template.csv',csvText([{
  kind:'bow',stage:1,level:1,order:1,prompt:'Example: What indicates a chemical change?',
  a:'Gas forms',b:'Object moves',c:'',d:'',correct:'A',hint:'Think about evidence.',explanation:'Gas formation can indicate a chemical reaction.'
