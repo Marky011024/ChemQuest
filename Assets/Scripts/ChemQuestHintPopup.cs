@@ -23,13 +23,12 @@ public static class ChemQuestHintPopup
         var canvas=obj.GetComponent<Canvas>();
         canvas.renderMode=RenderMode.ScreenSpaceOverlay;
         canvas.overrideSorting=true;
-        canvas.sortingOrder=900;
+        // Above the Prof Atom tutorial canvas (32000), so the retry action stays clickable.
+        canvas.sortingOrder=32050;
         var scaler=obj.GetComponent<CanvasScaler>();
         scaler.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution=new Vector2(1280,720);
-        scaler.screenMatchMode=CanvasScaler.ScaleMode.ScaleWithScreenSize == scaler.uiScaleMode
-            ? CanvasScaler.ScreenMatchMode.MatchWidthOrHeight
-            : CanvasScaler.ScreenMatchMode.Expand;
+        scaler.screenMatchMode=CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
         scaler.matchWidthOrHeight=.5f;
         if(UnityEngine.Object.FindFirstObjectByType<EventSystem>()==null)
             new GameObject("EventSystem",typeof(EventSystem),typeof(InputSystemUIInputModule));
