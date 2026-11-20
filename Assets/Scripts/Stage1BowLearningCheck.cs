@@ -85,7 +85,7 @@ public sealed class Stage1BowLearningCheck : MonoBehaviour
         questionIndex=0;
         mistakes=0;
         // Snapshot for this attempt. Later cloud updates cannot alter an active check.
-        lockedQuestions=stageLevel==1 ? ChemQuestBowSnapshot.TryLoadLevel1() : null;
+        lockedQuestions=ChemQuestBowSnapshot.TryLoad(stageLevel);
         EnsureUI();
         if(overlay==null)
         {
@@ -174,7 +174,7 @@ public sealed class Stage1BowLearningCheck : MonoBehaviour
             Vector2.zero,new Vector2(336,59));
     }
 
-    private Question Current => (stageLevel==1?(lockedQuestions??level1Questions):stageLevel==2?level2Questions:level3Questions)[questionIndex];
+    private Question Current => (lockedQuestions??(stageLevel==1?level1Questions:stageLevel==2?level2Questions:level3Questions))[questionIndex];
 
     [Serializable] private class SyncedQuestions { public int schema; public string version; public SyncedQuestion[] items; }
     [Serializable] private class SyncedQuestion
@@ -184,12 +184,12 @@ public sealed class Stage1BowLearningCheck : MonoBehaviour
     }
     private static class ChemQuestBowSnapshot
     {
-        public const string Key="ChemQuestBowS1L1SnapshotV1";
-        public static Question[] TryLoadLevel1()
+        public static string KeyFor(int level) { return "ChemQuestBowS1L"+level+"SnapshotV1"; }
+        public static Question[] TryLoad(int level)
         {
             try
             {
-                var raw=PlayerPrefs.GetString(Key,"");
+                var raw=PlayerPrefs.GetString(KeyFor(level),"");
                 if(string.IsNullOrEmpty(raw))return null;
                 var data=JsonUtility.FromJson<SyncedQuestions>(raw);
                 if(data==null||data.schema!=1||data.items==null||data.items.Length!=2||
@@ -215,7 +215,7 @@ public sealed class Stage1BowLearningCheck : MonoBehaviour
         }
     }
 
-    public static bool TryCacheApprovedLevel1(string json)
+    public static bool TryCacheApprovedLevel(int level,string json)
     {
         try
         {
@@ -231,7 +231,8 @@ public sealed class Stage1BowLearningCheck : MonoBehaviour
                    string.IsNullOrWhiteSpace(q.explanation)||string.Equals(q.a.Trim(),q.b.Trim(),StringComparison.OrdinalIgnoreCase))
                     return false;
             }
-            PlayerPrefs.SetString(ChemQuestBowSnapshot.Key,json);
+            if(level<1||level>3)return false;
+            PlayerPrefs.SetString(ChemQuestBowSnapshot.KeyFor(level),json);
             PlayerPrefs.Save();
             return true;
         }
