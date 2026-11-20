@@ -62,7 +62,7 @@ public static class ChemQuestStage1AtomViewPolish
             if(text.fontSize>=9 && text.fontSize<21)
             {
                 Undo.RecordObject(text,"Improve atom-view text legibility");
-                text.fontSize=Mathf.Min(24,text.fontSize+3);
+                text.fontSize=Mathf.Max(20,text.fontSize);
                 EditorUtility.SetDirty(text);improved++;
             }
         }
@@ -72,7 +72,7 @@ public static class ChemQuestStage1AtomViewPolish
             if(text.fontSize>=9 && text.fontSize<21)
             {
                 Undo.RecordObject(text,"Improve microscopic UI text legibility");
-                text.fontSize=Mathf.Min(24,text.fontSize+3);
+                text.fontSize=Mathf.Max(20,text.fontSize);
                 EditorUtility.SetDirty(text);improved++;
             }
         }
