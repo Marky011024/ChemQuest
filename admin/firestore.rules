@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function admin() {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.active == true;
+    }
+    // No client can create its own administrator privileges.
+    // Add the first authorized admin manually using Firebase Console.
+    match /admins/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+    match /questionBank/{questionId} {
+      // Only admin accounts can edit or publish. Unity should later read
+      // published VERSION SNAPSHOTS from a distinct read-only collection,
+      // rather than exposing drafts/answer keys to student clients.
+      allow read, create, update, delete: if admin();
+    }
+    // PILOT ONLY: one teacher-approved non-assessment test question.
+    // Authentication required; drafts are not visible to students.
+    // Never add confidential assessment answer keys to this test document.
+    match /syncPilot/{pilotId} {
+      allow get: if pilotId == "demo" && signedIn() &&
+        resource.data.status == "published";
+      allow list: if false;
+      allow create, update, delete: if admin() && pilotId == "demo";
+    }
+    // Approved formative BOW snapshot only. All questions in the snapshot are
+    // readable by students: NEVER store private pre/post assessment answer keys.
+    match /publishedBow/{snapshotId} {
+      allow get: if snapshotId in ["stage1-level1", "stage1-level2", "stage1-level3", "stage2-level1", "stage2-level2", "stage2-level3", "stage3-level1", "stage3-level2", "stage3-level3", "stage4-level1", "stage4-level2", "stage4-level3", "stage5-level1", "stage5-level2", "stage5-level3"] && signedIn() &&
+        resource.data.status == "published";
+      allow list: if false;
+      allow create, update, delete: if snapshotId in ["stage1-level1", "stage1-level2", "stage1-level3", "stage2-level1", "stage2-level2", "stage2-level3", "stage3-level1", "stage3-level2", "stage3-level3", "stage4-level1", "stage4-level2", "stage4-level3", "stage5-level1", "stage5-level2", "stage5-level3"] && admin();
+    }
+    // Read-only, approved Pre/Post item wording. The snapshot contains no
+    // answer keys. Student clients cannot list or modify assessments.
+    match /publishedAssessments/{kind} {
+      allow get: if kind in ["pre", "post"]
+        && signedIn() && resource.data.status == "published";
+      allow list: if false;
+      allow create, update, delete: if kind in ["pre", "post"] && admin();
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}

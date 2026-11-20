@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ChemQuest | Admin Question Bank</title>
+<style>
+:root{font-family:Inter,system-ui,Arial,sans-serif;color:#eaf5fc;background:#09182a}
+*{box-sizing:border-box}body{margin:0}header{background:#102d4d;border-bottom:2px solid #cfad58;padding:18px 26px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+h1{font-size:22px;margin:0;color:#ffda7b}h2{font-size:18px;color:#ffda7b}p{line-height:1.5;color:#b7cede}main{max-width:1200px;margin:24px auto;padding:0 16px}
+.panel{background:#112b48;border:1px solid #345570;border-radius:12px;padding:20px;margin-bottom:18px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+label{display:block;font-weight:600;font-size:13px;color:#cfe5ef}input,select,textarea{display:block;width:100%;margin-top:6px;background:#081d34;color:white;border:1px solid #5b8098;border-radius:7px;padding:11px;font:inherit}
+textarea{min-height:75px;resize:vertical}.wide{grid-column:1/-1}
+button{border:0;border-radius:7px;background:#17a6b4;color:#071729;font-weight:700;padding:10px 16px;cursor:pointer}button.secondary{background:#284967;color:white}button.gold{background:#f2c65d}button.danger{background:#b94c55;color:white}button:disabled{opacity:.5;cursor:not-allowed}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.item{padding:14px;border:1px solid #385b77;border-radius:9px;margin-top:10px;background:#0b2239}
+.itemHead{display:flex;align-items:center;justify-content:space-between;gap:12px}.tag{font-size:12px;border:1px solid #8fb5c7;border-radius:16px;padding:3px 9px}
+#message{min-height:24px;color:#f2c65d}small{color:#bdd0dd}#logout{display:none}#workspace{display:none}
+@media(max-width:760px){.grid,.fields{grid-template-columns:1fr}header{align-items:flex-start;flex-direction:column}}
+/* Admin UI refresh: readable, responsive, and usable on small screens */
+:root{color-scheme:dark;--ink:#f0f7ff;--muted:#a8c4d9;--accent:#60e0d7}
+body{background:radial-gradient(circle at 80% 0%,#153961 0,transparent 46%),#081626;min-height:100vh}
+header{position:sticky;top:0;z-index:10;background:rgba(12,35,61,.97);backdrop-filter:blur(12px);padding:16px max(22px,calc((100% - 1300px)/2));box-shadow:0 8px 30px #0003}
+main{max-width:1300px}
+h1{font-size:clamp(21px,3vw,27px);letter-spacing:.2px}
+h2{font-size:19px;margin-top:0}
+.panel{background:linear-gradient(145deg,#122f50,#0d233c);box-shadow:0 12px 35px #0002;border-color:#365a79}
+button{transition:filter .15s,transform .15s;min-height:40px}
+button:hover{filter:brightness(1.13);transform:translateY(-1px)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid #59e5de;outline-offset:2px}
+input,select,textarea{min-height:44px}
+textarea{line-height:1.5}
+.tag{font-weight:650;text-transform:capitalize}
+.item{border-color:#3b6482;transition:border-color .2s}
+.item:hover{border-color:#71b3ce}
+#message{padding:10px 14px;border-left:3px solid #f2c65d;background:#122a43;border-radius:5px;margin-bottom:16px}
+#message:empty{display:none}
+.assessment-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}.assessment-tabs button{border:1px solid #416c89;background:#143657;color:#deeffc}.assessment-tabs button.active{background:#f2c65d;color:#10223b}.import-panel{border:1px solid #416b84;padding:16px;border-radius:10px;margin-bottom:16px;background:#0e2743}.import-panel input[type=file]{padding:8px}.import-panel p{margin:4px 0 12px}.import-preview{max-height:180px;overflow:auto;border:1px solid #3b5f7b;padding:10px;border-radius:6px;white-space:pre-wrap;font-size:12px;color:#cfe5f3}.dashboard{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 18px}
+.metric{background:#112d4a;border:1px solid #355978;border-radius:12px;padding:16px}
+.metric .value{font-size:28px;font-weight:800;color:#ffe09a;margin-top:8px}
+.metric small{font-size:12px}
+.tool-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.hint-text{color:#b5cfe0;font-size:13px}
+.pill{background:#22445f;border-radius:99px;padding:5px 12px;font-size:12px;font-weight:700}
+.item p{color:#d0e7f4;margin-bottom:8px}
+#questionList:empty::after{content:"No questions match the selected filters.";display:block;color:#bbd0e0;text-align:center;padding:36px 12px;border:1px dashed #50738c;border-radius:8px}
+@media(max-width:920px){.grid{grid-template-columns:1fr}.dashboard{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){header{padding:12px 16px}.panel{padding:16px}.dashboard{gap:8px}.metric{padding:12px}.metric .value{font-size:24px}.actions button{flex:1}}
+
+/* Chemistry-themed administrator sign-in */
+#loginPanel{background:transparent;border:0;box-shadow:none;padding:0;margin:42px auto 26px;max-width:1130px}
+.login-shell{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:stretch}
+.login-intro,.login-card{background:linear-gradient(155deg,#143554,#0c233a);border:1px solid #3a5e79;border-radius:18px;padding:clamp(23px,4vw,42px);box-shadow:0 20px 50px #0003}
+.login-intro{position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:center;min-height:400px}
+.login-intro::after{content:"";position:absolute;width:260px;height:260px;border:1px solid #66dfe644;border-radius:50%;top:-112px;right:-100px;box-shadow:0 0 0 37px #54b5cc0a,0 0 0 76px #54b5cc07;pointer-events:none}
+.science-mark{font-size:40px;color:#f5cc69;line-height:1;margin-bottom:20px}
+.login-eyebrow{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#6ce1dc;font-weight:800}
+.login-intro h2{font-size:clamp(25px,3vw,35px);line-height:1.2;margin:13px 0;color:#ffdc80}
+.login-intro p{max-width:38ch}
+.login-feature{display:flex;gap:11px;align-items:center;color:#d4e5f1;font-size:14px;margin-top:16px}
+.login-feature::before{content:"✓";font-weight:bold;color:#73ecd6}
+.login-card{display:flex;flex-direction:column;justify-content:center}
+.login-card h2{font-size:26px;margin:0 0 8px}
+.login-card p{margin-top:0}
+.login-fields{display:grid;gap:16px}
+.login-fields label{font-size:13px}
+.login-fields input{min-height:48px}
+.password-row{display:flex;align-items:stretch;gap:8px}
+.password-row input{flex:1;min-width:0}
+.password-row button{margin-top:6px;padding:8px 12px;min-width:75px;font-size:12px}
+.login-submit{background:#efc660;color:#102039;width:100%;margin-top:4px;min-height:46px}
+.forgot-link{background:none;color:#8ddbe4;border:0;padding:5px 0;min-height:auto;text-decoration:underline}
+.login-help{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.login-footer{text-align:center;color:#99b8cd;font-size:12px;margin-top:22px}
+#loginFeedback{min-height:24px;color:#ffde8c;font-size:13px;line-height:1.4}
+@media(max-width:780px){.login-shell{grid-template-columns:1fr}#loginPanel{margin:20px auto}.login-intro{min-height:0}.login-intro,.login-card{padding:23px}}
+
+[hidden]{display:none!important}
+/* Dashboard usability: account, contextual validation, and help */
+.header-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+#adminIdentity{color:#c5e0ed;font-size:12px;overflow-wrap:anywhere}
+.help-button{background:#244b69;color:#f2f8fd}
+.field-error{color:#ffb5a6;font-size:12px;margin-top:5px;display:block}
+.invalid-input{border-color:#ef8989!important}
+.validation-box{border:1px solid #486887;border-radius:9px;padding:12px 14px;background:#09223c;font-size:13px;line-height:1.55}
+.validation-box strong{color:#f8d177}.validation-box ul{margin:6px 0;padding-left:21px}
+.validation-box li{margin:3px 0}
+.manual-dialog{background:#10283f;color:#ecf6ff;border:1px solid #4d7994;border-radius:16px;max-width:min(740px,94vw);width:94vw;max-height:85vh;overflow:auto;padding:24px;box-shadow:0 25px 75px #0009}
+.manual-dialog::backdrop{background:#020d1ac7}
+.manual-dialog h2,.manual-dialog h3{color:#ffdc86}.manual-dialog section{padding-bottom:8px;border-bottom:1px solid #3b5870;margin-bottom:13px}
+.manual-dialog li{margin:8px 0;line-height:1.5}
+.manual-dialog .tool-heading{position:sticky;top:-24px;background:#10283f;padding:10px 0;z-index:1}
+@media(max-width:600px){.header-actions{width:100%}.manual-dialog{padding:16px}.manual-dialog .tool-heading{top:-16px}}
+@media print{header,.assessment-tabs,.grid,.dashboard,#message,.manual-dialog .actions{display:none!important}.manual-dialog{max-height:none;overflow:visible;border:0;color:#000;background:#fff;box-shadow:none}.manual-dialog h2,.manual-dialog h3{color:#222}}
+</style></head><body>
+<header><div><h1>⚗ ChemQuest Admin</h1><small>Question Bank Management • Pre-test / BOW / Post-test</small></div><div class="header-actions"><span id="adminIdentity"></span><button id="helpOpen" class="help-button" type="button" hidden>Help / User Manual</button><button id="logout" class="secondary">Sign out</button></div></header>
+<main><p id="message" role="status"></p>
+<section id="loginPanel" aria-label="Administrator sign in">
+<div class="login-shell">
+<div class="login-intro"><div class="science-mark" aria-hidden="true">⚛</div><span class="login-eyebrow">ChemQuest • Grade 9 Science</span>
+<h2>Manage Learning Assessments</h2><p>A centralized question management portal for your chemistry learning experience.</p>
+<div class="login-feature">Pre-test and Post-test question banks</div>
+<div class="login-feature">BOW formative assessments</div>
+<div class="login-feature">Secure question review and publishing</div></div>
+<div class="login-card"><span class="login-eyebrow">Administrator portal</span><h2>Welcome back!</h2>
+<p>Sign in with your authorized ChemQuest administrator account.</p>
+<form id="loginForm" class="login-fields">
+<label>Email address<input id="email" type="email" autocomplete="username" placeholder="Enter your email" required></label>
+<label>Password<div class="password-row"><input id="password" type="password" autocomplete="current-password" placeholder="Enter your password" required><button id="togglePassword" class="secondary" type="button" aria-label="Show password" aria-pressed="false">Show</button></div></label>
+<div class="login-help"><small>Authorized administrators only</small><button id="resetPassword" type="button" class="forgot-link">Forgot password?</button></div>
+<button id="loginSubmit" class="login-submit" type="submit">Sign in securely</button>
+<div id="loginFeedback" role="status" aria-live="polite"></div>
+</form></div>
+</div><div class="login-footer">ChemQuest • Educational Assessment Management System</div>
+</section>
+<div id="workspace"><nav class="assessment-tabs" aria-label="Question assessment views"><button type="button" class="active" data-view="all">Overview</button><button type="button" data-view="pre">Pre-test</button><button type="button" data-view="bow">BOW</button><button type="button" data-view="post">Post-test</button></nav><div class="dashboard" aria-label="Question statistics">
+<div class="metric"><small>Total questions</small><div class="value" id="totalMetric">0</div></div>
+<div class="metric"><small>Published</small><div class="value" id="publishedMetric">0</div></div>
+<div class="metric"><small>Drafts</small><div class="value" id="draftMetric">0</div></div>
+<div class="metric"><small>BOW questions</small><div class="value" id="bowMetric">0</div></div>
+</div><div class="grid"><section class="panel"><div class="tool-heading"><h2 id="editorHeading">Create a question</h2><span class="pill">Science • Grade 9</span></div><p class="hint-text">Choose an assessment, provide the choices and correct answer, then save as a draft.</p>
+<form id="questionForm" class="fields">
+<label>Assessment<select id="kind"><option value="pre">Pre-test</option><option value="bow">BOW</option><option value="post">Post-test</option></select></label>
+<label>Stage<select id="stage"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+<label id="levelField">Level (BOW only)<select id="level"><option>1</option><option>2</option><option>3</option></select></label>
+<label>Question order<input id="order" type="number" min="1" max="999" value="1" required></label>
+<label class="wide">Question<textarea id="prompt" maxlength="800" required></textarea></label>
+<label>Choice A<input id="a" maxlength="400" required></label><label>Choice B<input id="b" maxlength="400" required></label>
+<label>Choice C<input id="c" maxlength="400"></label><label>Choice D<input id="d" maxlength="400"></label>
+<label>Correct answer<select id="answer"><option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option></select></label>
+<label class="wide">Hint (BOW)<textarea id="hint" maxlength="600"></textarea></label>
+<label class="wide">Explanation (BOW)<textarea id="explanation" maxlength="800"></textarea></label>
+<div class="wide validation-box" id="validationSummary" role="status" aria-live="polite">Enter your question to see validation feedback.</div><div class="wide actions"><button type="submit">Save draft</button><button id="clear" type="button" class="secondary">New question</button></div>
+</form><small>Changing an existing published question saves it as a draft. Publish separately after approval.</small>
+</section>
+<section class="panel"><div class="tool-heading"><h2>Question bank</h2><button id="refresh" type="button" class="secondary">↻ Refresh</button></div>
+<div class="import-panel"><div class="tool-heading"><strong>Unity BOW • All 5 stages × 3 levels</strong><span class="pill">Pilot</span></div><p class="hint-text">Import and review 30 BOW questions (two per level). Publish each approved question, then publish one level or all 15 sets together. Missing or unapproved sets block bulk publication. Existing gameplay changes only after a successful sync and the next BOW attempt.</p><div class="actions"><label style="max-width:200px">Stage<select id="publishBowStage"><option value="1">Stage 1</option><option value="2">Stage 2</option><option value="3">Stage 3</option><option value="4">Stage 4</option><option value="5">Stage 5</option></select></label><label style="max-width:200px">Level<select id="publishBowLevel"><option value="1">Level 1</option><option value="2">Level 2</option><option value="3">Level 3</option></select></label></div><div class="actions"><button id="publishBowSet" type="button" class="gold">Publish selected approved level to Unity</button><button id="publishAllBowSets" type="button" class="secondary">Publish ALL 15 approved sets</button></div><p id="bowSetStatus" class="hint-text" role="status">No Unity set published from this page yet.</p></div>
+<div class="import-panel"><div class="tool-heading"><strong>Unity Pre-test / Post-test</strong><span class="pill">15 items each</span></div><p class="hint-text">Student downloads contain question text and four choices only; scoring keys remain in the Unity assessment. For compatible scoring, approved answer positions must match the original built-in 15-item map. Teacher approval required.</p><div class="actions"><button id="downloadPrePostDrafts" type="button" class="secondary">Download 30 Pre/Post CSV questions</button><button id="approveAllPrePost" type="button" class="secondary">Mark all teacher-reviewed Pre/Post questions Published</button><button id="publishBothTests" type="button" class="gold">Publish BOTH approved tests to Unity</button></div><p id="testPublishStatus" class="hint-text" role="status">No Pre/Post assessment snapshots published from this page yet.</p></div>
+<div class="import-panel"><div class="tool-heading"><strong>Bulk import & backup</strong><button type="button" class="secondary" id="template">Download CSV template</button></div><p class="hint-text">Import approved questions as drafts. CSV columns: kind,stage,level,order,prompt,a,b,c,d,correct,hint,explanation. One question per row.</p><label>Choose a CSV file<input id="importFile" type="file" accept=".csv,text/csv"></label><p id="importSummary" class="hint-text" role="status">No CSV selected.</p><div id="importPreview" class="import-preview" hidden></div><div class="actions"><button type="button" id="importButton" disabled>Import validated drafts</button><button type="button" id="approveAllBow" class="secondary">Mark all 30 teacher-reviewed BOW questions Published</button><button type="button" id="exportButton" class="secondary">Export CSV backup</button></div></div><div class="fields"><label>Assessment filter<select id="filter"><option value="all">All assessments</option><option value="pre">Pre-test</option><option value="bow">BOW</option><option value="post">Post-test</option></select></label><label>Status<select id="statusFilter"><option value="all">All statuses</option><option value="draft">Draft</option><option value="published">Published</option></select></label><label class="wide">Search questions<input id="search" placeholder="Search by question text or choices"></label></div><p class="hint-text" id="count"></p><div id="questionList"></div></section></div>
+<section class="panel"><h2>Important for school assessments</h2><p>Publish only questions approved by your Science teacher. Do not change an assessment version while students are taking a pre-test or post-test. BOW synchronization covers all 15 stage-level slots when the updated Unity scripts are installed, rules are published, and teacher-reviewed snapshots are available. Test every level in Unity and Android before use with respondents. Pre-test and Post-test synchronization remains unchanged.</p></section></div></main>
+<dialog id="helpDialog" class="manual-dialog" aria-labelledby="manualTitle">
+<div class="tool-heading"><h2 id="manualTitle">ChemQuest Admin User Manual</h2><button type="button" id="helpClose" class="secondary">Close</button></div>
+<p>For approved administrators managing Grade 9 Science Pre-test, BOW, and Post-test questions.</p>
+<section><h3>1. Sign in</h3><ol><li>Open the ChemQuest Admin website.</li><li>Enter your Firebase administrator email and password.</li><li>Click <b>Sign in securely</b>. Only accounts authorized in Firestore can edit questions.</li><li>Use <b>Forgot password?</b> if you need reset instructions.</li></ol></section>
+<section><h3>2. Navigate assessments</h3><ol><li>Use the <b>Overview</b>, <b>Pre-test</b>, <b>BOW</b>, and <b>Post-test</b> tabs.</li><li>Select a stage. Only BOW uses a level.</li><li>Search or filter by publication status in the Question bank.</li></ol></section>
+<section><h3>3. Add or edit questions</h3><ol><li>Select assessment, stage, level if BOW, and question order.</li><li>Enter the question, choices, and correct answer.</li><li>For BOW, add a hint and explanation where needed for scaffolding.</li><li>Review the validation messages and click <b>Save draft</b>.</li><li>For an existing question, use <b>Edit</b>. Saving edits returns it to Draft.</li></ol></section>
+<section><h3>4. Preview and publish</h3><ol><li>Click <b>Preview</b> to inspect the question and correct answer.</li><li>Confirm teacher approval and check the warning messages.</li><li>Click <b>Publish</b>, then confirm. <b>Unpublish</b> returns it to draft.</li><li>For BOW in all 5 stages and 3 levels, approve and publish two questions per level, then publish the individual Unity set or all 15 sets together. Pre-test and Post-test are not synced.</li></ol></section>
+<section><h3>5. Import, export and restore</h3><ol><li>Click <b>Download CSV template</b> to see the required columns.</li><li>Fill the template and save it as CSV UTF-8.</li><li>Select the file, review validation, and click <b>Import validated drafts</b>. All imported questions are drafts.</li><li>Click <b>Export CSV backup</b> and save the file securely; it contains answer keys.</li><li>Use <b>History</b> to view available prior versions and restore one as a draft. Deleting a question also deletes its embedded revision history.</li></ol></section>
+<section><h3>6. Safety and assessment integrity</h3><ol><li>Use only Science teacher-approved questions.</li><li>Do not edit or republish questions while student assessments are active.</li><li>Keep exported CSV files private; they include correct answers.</li><li>Use <b>Sign out</b> on shared or school computers.</li><li>Stage 1 Level 1 BOW has an experimental approved-snapshot cache with offline fallback. Pre-test, Post-test, and other BOW levels are not yet synchronized.</li></ol></section>
+<div class="actions"><button id="helpPrint" type="button" class="gold">Print / Save as PDF</button><button type="button" id="helpCloseBottom" class="secondary">Close</button></div>
+</dialog>
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js';
+import { getAuth,signInWithEmailAndPassword,sendPasswordResetEmail,signOut,onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
+import { getFirestore,doc,getDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,setDoc,serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
+import { firebaseConfig } from './firebase-config.js';
+const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
+const el=id=>document.getElementById(id),message=s=>{el('message').textContent=s;};
+let records=[],selectedId=null,isAdmin=false,importRows=[];
+const escapeText=t=>String(t??'');
+function resetEditor(){selectedId=null;el('questionForm').reset();el('order').value='1';el('editorHeading').textContent='Create a question';el('kind').dispatchEvent(new Event('change'));refreshValidation();}
+el('kind').addEventListener('change',()=>{let isBow=el('kind').value==='bow';el('level').disabled=!isBow;el('levelField').hidden=!isBow;refreshValidation();});
+el('kind').dispatchEvent(new Event('change'));
+el('clear').addEventListener('click',resetEditor);
+el('logout').addEventListener('click',()=>signOut(auth));
+const manual=el('helpDialog');el('helpOpen').addEventListener('click',()=>manual.showModal());
+['helpClose','helpCloseBottom'].forEach(id=>el(id).addEventListener('click',()=>manual.close()));
+el('helpPrint').addEventListener('click',()=>{window.print();});
+manual.addEventListener('click',e=>{if(e.target===manual)manual.close();});
+
+const loginFeedback=s=>{el('loginFeedback').textContent=s;};
+el('togglePassword').addEventListener('click',()=>{
+ const hidden=el('password').type==='password';el('password').type=hidden?'text':'password';
+ el('togglePassword').textContent=hidden?'Hide':'Show';
+ el('togglePassword').setAttribute('aria-pressed',String(hidden));
+ el('togglePassword').setAttribute('aria-label',hidden?'Hide password':'Show password');
+});
+el('resetPassword').addEventListener('click',async()=>{
+ const email=el('email').value.trim();
+ if(!email){loginFeedback('Enter your registered email address first.');el('email').focus();return;}
+ if(!confirm('Send password reset instructions to '+email+'?'))return;
+ el('resetPassword').disabled=true;
+ try{await sendPasswordResetEmail(auth,email);loginFeedback('If this address is registered and eligible, password reset instructions will be sent.');}
+ catch(err){loginFeedback('Could not request password reset. Try again later or contact your administrator.');}
+ finally{el('resetPassword').disabled=false;}
+});
+function readableLoginError(code){
+ if(code==='auth/invalid-email')return 'Enter a valid email address.';
+ if(code==='auth/too-many-requests')return 'Too many attempts. Try again later.';
+ if(code==='auth/network-request-failed')return 'Connection problem. Check your internet and try again.';
+ return 'Sign-in failed. Check your email/password and administrator access.';
+}
+el('loginForm').addEventListener('submit',async e=>{
+ e.preventDefault();const button=el('loginSubmit');if(button.disabled)return;
+ button.disabled=true;button.textContent='Signing in…';loginFeedback('Checking your credentials…');
+ try{await signInWithEmailAndPassword(auth,el('email').value.trim(),el('password').value);el('password').value='';loginFeedback('');}
+ catch(err){loginFeedback(readableLoginError(err.code));}
+ finally{button.disabled=false;button.textContent='Sign in securely';}
+});
+onAuthStateChanged(auth,async user=>{
+isAdmin=false;el('workspace').style.display='none';el('logout').style.display=user?'block':'none';el('helpOpen').hidden=true;el('adminIdentity').textContent='';el('loginPanel').style.display=user?'none':'block';
+if(!user){message('');return;}
+try{const role=await getDoc(doc(db,'admins',user.uid));if(!role.exists()||role.data().active!==true){message('This account is not authorized as an administrator.');await signOut(auth);return;}
+isAdmin=true;el('adminIdentity').textContent=user.email||'Administrator';el('helpOpen').hidden=false;el('workspace').style.display='block';message('Signed in as authorized administrator.');await load();
+}catch(err){message('Could not verify administrator access: '+err.message);}
+});
+async function load(){if(!isAdmin)return;const snap=await getDocs(collection(db,'questionBank'));records=snap.docs.map(d=>({id:d.id,...d.data()}));render();}
+function makeButton(label,fn,className='secondary'){const b=document.createElement('button');b.type='button';b.className=className;b.textContent=label;b.addEventListener('click',fn);return b;}
+function render(){
+const q=el('search').value.trim().toLowerCase(),filter=el('filter').value,status=el('statusFilter').value;
+el('totalMetric').textContent=records.length;
+el('publishedMetric').textContent=records.filter(r=>r.status==='published').length;
+el('draftMetric').textContent=records.filter(r=>r.status!=='published').length;
+el('bowMetric').textContent=records.filter(r=>r.kind==='bow').length;
+const list=records.filter(r=>(filter==='all'||r.kind===filter)&&(status==='all'||(r.status||'draft')===status)&&([r.prompt,...(r.choices||[])].join(' ').toLowerCase().includes(q))).sort((a,b)=>String(a.kind).localeCompare(String(b.kind))||Number(a.stage)-Number(b.stage)||Number(a.level)-Number(b.level)||Number(a.order)-Number(b.order));
+el('count').textContent=list.length+' questions';el('questionList').replaceChildren();refreshValidation();
+for(const r of list){const card=document.createElement('div');card.className='item';const hd=document.createElement('div');hd.className='itemHead';const title=document.createElement('strong');title.textContent=(r.kind||'').toUpperCase()+' • Stage '+r.stage+(r.kind==='bow'?' / Level '+r.level:'')+' • #'+r.order;const status=document.createElement('span');status.className='tag';status.textContent=r.status||'draft';hd.append(title,status);card.append(hd);const p=document.createElement('p');p.textContent=escapeText(r.prompt);card.append(p);const actions=document.createElement('div');actions.className='actions';actions.append(makeButton('Edit',()=>edit(r)));actions.append(makeButton('Preview',()=>preview(r)));if(r.status!=='published')actions.append(makeButton('Publish',()=>publish(r),'gold'));else actions.append(makeButton('Unpublish',()=>unpublish(r)));actions.append(makeButton('History',()=>history(r)));actions.append(makeButton('Delete',()=>removeQuestion(r),'danger'));card.append(actions);el('questionList').append(card);}
+}
+document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>{
+ document.querySelectorAll('[data-view]').forEach(t=>t.classList.toggle('active',t===b));
+ const v=b.dataset.view;el('filter').value=v; if(v!=='all'){el('kind').value=v;el('kind').dispatchEvent(new Event('change'));}
+ render();
+}));
+el('filter').addEventListener('change',()=>{
+ document.querySelectorAll('[data-view]').forEach(t=>t.classList.toggle('active',t.dataset.view===el('filter').value));
+ render();
+});el('statusFilter').addEventListener('change',render);el('search').addEventListener('input',render);
+el('refresh').addEventListener('click',async()=>{try{await load();message('Question bank refreshed.');}catch(err){message('Refresh failed: '+err.message);}});
+function edit(r){selectedId=r.id;el('editorHeading').textContent='Edit question';for(const key of ['kind','stage','level','order','prompt','hint','explanation'])if(el(key))el(key).value=r[key]??'';['a','b','c','d'].forEach((k,i)=>el(k).value=(r.choices||[])[i]||'');el('answer').value=String(r.correct??0);el('kind').dispatchEvent(new Event('change'));window.scrollTo({top:0,behavior:'smooth'});message('Editing question; Save draft before publishing.');}
+function validationIssues(data,ignoreId=null,includeApproval=false){
+ const issues=[];
+ if(!Number.isInteger(data.stage)||data.stage<1||data.stage>5)issues.push('Select a valid stage (1–5).');
+ if(data.kind==='bow'&&(!Number.isInteger(data.level)||data.level<1||data.level>3))issues.push('Select a valid BOW level (1–3).');
+ if(!Number.isInteger(data.order)||data.order<1||data.order>999)issues.push('Question order must be from 1 to 999.');
+ if(!data.prompt||!data.prompt.trim())issues.push('Enter the question text.');
+ const choices=data.choices||[];
+ if(!choices[0]?.trim()||!choices[1]?.trim())issues.push('Choices A and B are required.');
+ if(data.kind!=='bow'&&(!choices[2]?.trim()||!choices[3]?.trim()))issues.push('Pre-test and Post-test need all four choices.');
+ if(!Number.isInteger(data.correct)||data.correct<0||data.correct>3||!choices[data.correct]?.trim())issues.push('Choose a correct answer that contains text.');
+ const active=choices.filter(c=>typeof c==='string'&&c.trim()).map(c=>c.trim().toLowerCase());
+ if(new Set(active).size!==active.length)issues.push('Answer choices must be different.');
+ if(records.some(r=>r.id!==ignoreId&&sameSlot(r,data)))issues.push('Another question already uses this assessment, stage, level, and order.');
+ if(includeApproval&&data.kind==='bow'&&(!data.hint?.trim()||!data.explanation?.trim()))issues.push('BOW publishing needs both a hint and an explanation.');
+ return issues;
+}
+function currentFormData(){return {kind:el('kind').value,stage:Number(el('stage').value),level:el('kind').value==='bow'?Number(el('level').value):null,order:Number(el('order').value),prompt:el('prompt').value.trim(),choices:['a','b','c','d'].map(k=>el(k).value.trim()),correct:Number(el('answer').value),hint:el('hint').value.trim(),explanation:el('explanation').value.trim()};}
+function refreshValidation(){
+ const data=currentFormData(),issues=validationIssues(data,selectedId,false),container=el('validationSummary');
+ container.replaceChildren();
+ const strong=document.createElement('strong');strong.textContent=issues.length?issues.length+' item(s) to review before saving':'Question checks passed — ready to save as draft.';container.append(strong);
+ if(issues.length){const ul=document.createElement('ul');issues.forEach(issue=>{const li=document.createElement('li');li.textContent=issue;ul.append(li);});container.append(ul);}
+}
+el('questionForm').addEventListener('input',refreshValidation);
+el('questionForm').addEventListener('change',refreshValidation);
+function dataFromForm(){const kind=el('kind').value,choices=['a','b','c','d'].map(k=>el(k).value.trim()),correct=Number(el('answer').value);if(!choices[correct])throw Error('Correct answer must have text.');if(kind!=='bow'&&choices.some(x=>!x))throw Error('Pre/Post-test requires all four choices.');if(kind==='bow'&&(!choices[0]||!choices[1]))throw Error('BOW requires at least A and B.');
+const data={kind,stage:Number(el('stage').value),level:kind==='bow'?Number(el('level').value):null,order:Number(el('order').value),prompt:el('prompt').value.trim(),choices,correct,hint:el('hint').value.trim(),explanation:el('explanation').value.trim(),status:'draft',updatedAt:serverTimestamp()};
+ const errors=validationIssues(data,selectedId,false);if(errors.length)throw Error(errors.join(' '));
+ return data;}
+let saving=false;
+function reviewedTest(kind){
+ const rows=records.filter(r=>r.kind===kind && r.status==='published').sort((a,b)=>Number(a.stage)-Number(b.stage)||Number(a.order)-Number(b.order));
+ if(rows.length!==15)return null;
+ for(let i=0;i<15;i++){
+   const r=rows[i], stage=Math.floor(i/3)+1,order=i%3+1;
+   if(Number(r.stage)!==stage||Number(r.order)!==order||r.choices?.length<4||
+      r.choices.slice(0,4).some(v=>!v?.trim())||
+      Number(r.correct)!==expectedAssessmentKeys[i]||
+      !r.prompt?.trim())return null;
+   const choices=r.choices.slice(0,4).map(x=>x.trim().toLowerCase());
+   if(new Set(choices).size!==4)return null;
+ }
+ return rows;
+}
+el('approveAllPrePost').addEventListener('click',async()=>{
+ if(!isAdmin)return;
+ try{
+   await load();
+   const tests=records.filter(r=>r.kind==='pre'||r.kind==='post');
+   const errs=[];
+   for(const kind of ['pre','post']){
+     const rows=tests.filter(r=>r.kind===kind);
+     if(rows.length!==15){errs.push(kind+': expected 15, got '+rows.length);continue;}
+     for(let i=0;i<15;i++){
+       const stage=Math.floor(i/3)+1,order=i%3+1;
+       const matches=rows.filter(r=>Number(r.stage)===stage&&Number(r.order)===order);
+       if(matches.length!==1 || Number(matches[0].correct)!==expectedAssessmentKeys[i] ||
+          validationIssues(matches[0],matches[0].id,true).length)
+         errs.push(kind+' S'+stage+' #'+order+' invalid or answer-key mismatch');
+     }
+   }
+   if(errs.length){message('Nothing changed. Review: '+errs.slice(0,8).join('; '));return;}
+   if(!confirm('Confirm: Your Grade 9 Science teacher has reviewed all 30 Pre/Post questions, answers, and wording. Mark all as Published in the admin bank?'))return;
+   let count=0;const errors=[];
+   for(const r of tests.filter(r=>r.status!=='published')){
+     try { await updateDoc(doc(db,'questionBank',r.id),{status:'published',updatedAt:serverTimestamp(),revisions:[...(r.revisions||[]).slice(-19),revisionOf(r,'published')]});count++; }
+     catch(e){errors.push(e.message);}
+   }
+   await load();message('Published '+count+' newly approved Pre/Post questions.'+(errors.length?' Errors: '+errors.join('; '):''));
+ }catch(e){message('Pre/Post approval failed: '+e.message);}
+});
+el('publishBothTests').addEventListener('click',async()=>{
+ if(!isAdmin)return;
+ try{
+   await load();
+   const pre=reviewedTest('pre'),post=reviewedTest('post');
+   if(!pre||!post){message('Both 15-item tests must be fully published and retain the original correct answer positions. No snapshot changed.');return;}
+   if(!confirm('Publish BOTH teacher-approved Pre/Post tests (15 questions each)? Student snapshots contain questions/choices ONLY. Unity uses its fixed scoring keys; review answer positions carefully.'))return;
+   const completed=[],errors=[];
+   for(const [kind,rows] of [['pre',pre],['post',post]]){
+     const version=kind+'-v1-'+new Date().toISOString().replace(/[^0-9TZ]/g,'');
+     const payload=JSON.stringify({schema:1,version,items:rows.map((r,i)=>({order:i+1,prompt:r.prompt,a:r.choices[0],b:r.choices[1],c:r.choices[2],d:r.choices[3]}))});
+     try {
+       await setDoc(doc(db,'publishedAssessments',kind),{status:'published',version,payload,updatedAt:serverTimestamp()});
+       completed.push(kind.toUpperCase());
+     }catch(e){errors.push(kind+': '+e.message);}
+   }
+   const summary='Published '+completed.length+'/2 assessment snapshots ('+completed.join(', ')+').'+(errors.length?' Errors: '+errors.join('; '):'');
+   el('testPublishStatus').textContent=summary;message(summary);
+ }catch(e){message('Pre/Post publication failed: '+e.message);}
+});
+function approvedBowRows(stage,level){
+ const rows=records.filter(r=>r.kind==='bow'&&Number(r.stage)===stage&&Number(r.level)===level&&r.status==='published').sort((a,b)=>Number(a.order)-Number(b.order));
+ if(rows.length!==2 || rows.some((r,i)=>Number(r.order)!==i+1 ||
+     r.choices?.length<2 || !r.choices[0]?.trim() || !r.choices[1]?.trim() ||
+     r.choices.slice(2).some(c=>c?.trim()) || ![0,1].includes(Number(r.correct)) ||
+     !r.prompt?.trim() || !r.hint?.trim() || !r.explanation?.trim()))return null;
+ return rows;
+}
+async function publishBowSet(stage,level,rows){
+ const version='bow-s'+stage+'l'+level+'-'+new Date().toISOString().replace(/[^0-9TZ]/g,'');
+ const payload=JSON.stringify({schema:1,version,items:rows.map(r=>({
+   order:Number(r.order),prompt:r.prompt,a:r.choices[0],b:r.choices[1],
+   correct:Number(r.correct),hint:r.hint,explanation:r.explanation
+ }))});
+ await setDoc(doc(db,'publishedBow','stage'+stage+'-level'+level),
+   {status:'published',version,payload,updatedAt:serverTimestamp()});
+ return version;
+}
+el('publishBowSet').addEventListener('click',async()=>{
+ if(!isAdmin)return;
+ const stage=Number(el('publishBowStage').value),level=Number(el('publishBowLevel').value);
+ try{
+   await load();
+   const rows=approvedBowRows(stage,level);
+   if(!rows){message('Stage '+stage+' Level '+level+' requires exactly two published approved BOW questions, orders 1–2, A/B only with hints and explanations.');return;}
+   if(!confirm('Publish teacher-approved BOW Stage '+stage+' Level '+level+' to Unity? Students can read these formative answer keys.'))return;
+   const version=await publishBowSet(stage,level,rows);
+   el('bowSetStatus').textContent='Published '+version+' (2 questions).';
+   message('Unity BOW Stage '+stage+' Level '+level+' published. Test in Unity.');
+ }catch(e){message('Publish failed: '+e.message);}
+});
+
+el('approveAllBow').addEventListener('click',async()=>{
+ if(!isAdmin)return;
+ try{
+   await load();
+   const all=records.filter(r=>r.kind==='bow' && Number(r.stage)>=1 && Number(r.stage)<=5 && Number(r.level)>=1 && Number(r.level)<=3);
+   if(all.length!==30){message('Bulk review requires exactly 30 BOW questions (2 per level). Currently '+all.length+'. Nothing changed.');return;}
+   const issues=[];
+   for(let stage=1;stage<=5;stage++)for(let level=1;level<=3;level++){
+     const pair=all.filter(r=>Number(r.stage)===stage && Number(r.level)===level);
+     if(pair.length!==2 || !pair.some(r=>Number(r.order)===1) || !pair.some(r=>Number(r.order)===2))
+       issues.push('Stage '+stage+' Level '+level+': missing/duplicate order');
+     for(const r of pair){
+       const errors=validationIssues(r,r.id,true);
+       if(errors.length || r.choices?.slice(2).some(c=>c?.trim()) || ![0,1].includes(Number(r.correct)))
+         issues.push('Stage '+stage+' Level '+level+' #'+r.order+': invalid two-choice question');
+     }
+   }
+   if(issues.length){message('Nothing changed. Fix these questions: '+issues.join('; '));return;}
+   if(!confirm('ONLY CONTINUE AFTER A SCIENCE TEACHER HAS REVIEWED AND APPROVED ALL 30 QUESTIONS. Mark all 30 BOW bank questions Published? This does NOT yet push snapshots to Unity.'))return;
+   if(!confirm('Confirm that all 30 Grade 9 BOW questions and answer keys have been reviewed. Mark all now?'))return;
+   let changed=0;const errors=[];
+   for(const r of all.filter(r=>r.status!=='published')){
+     try{
+       await updateDoc(doc(db,'questionBank',r.id),{status:'published',updatedAt:serverTimestamp(),
+         revisions:[...(r.revisions||[]).slice(-19),revisionOf(r,'bulk teacher-reviewed publish')]});
+       changed++;
+     }catch(e){errors.push('S'+r.stage+'L'+r.level+' #'+r.order+': '+e.message);}
+   }
+   await load();
+   message(changed+' questions marked Published.'+
+      (errors.length?' Failed: '+errors.join('; '):' All approved sets can now be published to Unity.'));
+ }catch(e){message('Bulk approval failed: '+e.message);}
+});
+el('publishAllBowSets').addEventListener('click',async()=>{
+ if(!isAdmin)return;
+ try{
+   await load();
+   const planned=[],missing=[];
+   for(let stage=1;stage<=5;stage++)for(let level=1;level<=3;level++){
+     const rows=approvedBowRows(stage,level);
+     if(rows)planned.push({stage,level,rows});else missing.push('S'+stage+'L'+level);
+   }
+   if(missing.length){
+     message('Nothing published. All 15 teacher-approved two-question BOW sets required. Missing/invalid: '+missing.join(', '));
+     return;
+   }
+   if(!confirm('Publish ALL 15 teacher-approved BOW sets (30 questions) to Unity? This replaces published formative snapshots. Student clients can read answer keys.'))return;
+   let count=0;const errors=[];
+   for(const item of planned){
+     try{await publishBowSet(item.stage,item.level,item.rows);count++;}
+     catch(e){errors.push('S'+item.stage+'L'+item.level+': '+e.message);}
+   }
+   const result='Published '+count+'/15 approved BOW sets.'+(errors.length?' Errors: '+errors.join('; '):'');
+   el('bowSetStatus').textContent=result;message(result);
+ }catch(e){message('Bulk publication failed: '+e.message);}
+});
+function sameSlot(a,b){return a.kind===b.kind && Number(a.stage)===Number(b.stage) &&
+  (a.kind!=='bow'||Number(a.level)===Number(b.level)) && Number(a.order)===Number(b.order);}
+function preview(r){
+ const letters=['A','B','C','D'];
+ const choices=(r.choices||[]).map((c,i)=>c?letters[i]+'. '+c:'').filter(Boolean).join('\n');
+ alert('QUESTION PREVIEW\n\n'+r.prompt+'\n\n'+choices+
+   '\n\nCorrect answer: '+letters[r.correct]+'\n\nHint: '+(r.hint||'(none)')+
+   '\nExplanation: '+(r.explanation||'(none)')+
+   '\n\nStatus: '+(r.status||'draft'));
+}
+async function removeQuestion(r){
+ if(!isAdmin||!confirm('Permanently delete this '+r.kind+' question (#'+r.order+')? This cannot be undone.'))return;
+ try{await deleteDoc(doc(db,'questionBank',r.id));if(selectedId===r.id)resetEditor();await load();message('Question deleted.');}
+ catch(err){message('Delete failed: '+err.message);}
+}
+el('questionForm').addEventListener('submit',async e=>{
+ e.preventDefault();if(!isAdmin||saving)return;
+ try{
+  const data=dataFromForm();
+  if(records.some(r=>r.id!==selectedId&&sameSlot(r,data)))
+    throw Error('A question already exists at this assessment, stage, level and order. Edit that question or choose another order.');
+  saving=true;el('questionForm').querySelector('button[type=submit]').disabled=true;
+  message('Saving draft…');
+  if(selectedId){
+   const previous=records.find(r=>r.id===selectedId);
+   const historyEntries=previous?.revisions||[];
+   await updateDoc(doc(db,'questionBank',selectedId),{...data,revisions:[...historyEntries.slice(-19),revisionOf(previous,'edited')]});
+  }
+  else await addDoc(collection(db,'questionBank'),{...data,createdAt:serverTimestamp()});
+  resetEditor();await load();message('Draft saved. Publish after review.');
+ }catch(err){message('Save failed: '+err.message);}
+ finally{saving=false;el('questionForm').querySelector('button[type=submit]').disabled=false;}
+});
+function revisionOf(r,operation){
+ return {operation,at:new Date().toISOString(),by:auth.currentUser?.email||'admin',
+ kind:r.kind,stage:r.stage,level:r.level??null,order:r.order,prompt:r.prompt,choices:[...(r.choices||[])],
+ correct:r.correct,hint:r.hint||'',explanation:r.explanation||'',status:r.status||'draft'};
+}
+async function setStatus(r,status){
+ if(!isAdmin)return;
+ if(status==='published'){
+ const problems=validationIssues(r,r.id,true);
+ if(problems.length){alert('Cannot publish this question yet:\n\n• '+problems.join('\n• '));return;}
+ }
+ if(!confirm((status==='published'?'Publish approved':'Unpublish')+' question #'+r.order+'?'))return;
+ try{await updateDoc(doc(db,'questionBank',r.id),{status,updatedAt:serverTimestamp(),
+ revisions:[...(r.revisions||[]).slice(-19),revisionOf(r,'status change')]});
+ await load();message(status==='published'?'Question marked published in admin bank. Publish the approved two-item BOW set separately for Unity.':'Question returned to draft.');
+ }catch(err){message('Status change failed: '+err.message);}
+}
+const publish=r=>setStatus(r,'published'),unpublish=r=>setStatus(r,'draft');
+async function history(r){
+ const revs=r.revisions||[];
+ if(!revs.length){alert('No previous saved revisions for this question yet.');return;}
+ const info=revs.map((x,i)=> (i+1)+'. '+x.at+' — '+x.operation+' — '+x.status+' — '+x.prompt.slice(0,65)).join('\n');
+ const choice=prompt('PREVIOUS REVISIONS (oldest to newest):\n'+info+'\n\nEnter a revision number to RESTORE it as a DRAFT, or Cancel:');
+ if(choice===null)return;
+ const index=Number(choice)-1;if(!Number.isInteger(index)||index<0||index>=revs.length){message('Invalid revision number.');return;}
+ const old=revs[index];if(!confirm('Restore revision '+(index+1)+' as a draft? Current content will be saved in history.'))return;
+ const data={kind:old.kind,stage:old.stage,level:old.level,order:old.order,prompt:old.prompt,choices:old.choices,
+ correct:old.correct,hint:old.hint,explanation:old.explanation,status:'draft',updatedAt:serverTimestamp(),
+ revisions:[...revs.slice(-19),revisionOf(r,'before restore')]};
+ if(records.some(x=>x.id!==r.id&&sameSlot(x,data))){message('Restore blocked: another question occupies this slot.');return;}
+ try{await updateDoc(doc(db,'questionBank',r.id),data);await load();message('Previous revision restored as draft.');}
+ catch(err){message('Restore failed: '+err.message);}
+}
+const assessmentSeed=[{"kind":"pre","stage":1,"level":null,"order":1,"prompt":"Zinc reacts with dilute hydrochloric acid. Which observation indicates chemical change?","a":"A new gas forms","b":"The flask is moved","c":"The metal is rearranged","d":"The table is shaken","correct":"A","hint":"","explanation":""},{"kind":"pre","stage":1,"level":null,"order":2,"prompt":"An experiment warms its surroundings. The reaction is best described as...","a":"Endothermic","b":"Exothermic","c":"A physical mixture","d":"A change of state only","correct":"B","hint":"","explanation":""},{"kind":"pre","stage":1,"level":null,"order":3,"prompt":"Why does limewater turn cloudy when carbon dioxide is introduced?","a":"Oxygen disappears","b":"A metal melts","c":"Calcium carbonate forms","d":"Only water evaporates","correct":"C","hint":"","explanation":""},{"kind":"pre","stage":2,"level":null,"order":1,"prompt":"When sodium forms Na+, it has...","a":"Gained a proton","b":"Shared two neutrons","c":"Gained an electron","d":"Lost one electron","correct":"D","hint":"","explanation":""},{"kind":"pre","stage":2,"level":null,"order":2,"prompt":"What holds Na+ and Cl- together in an ionic compound?","a":"Attraction of opposite charges","b":"Free-floating neutrons","c":"Sharing one electron pair","d":"An external magnet","correct":"A","hint":"","explanation":""},{"kind":"pre","stage":2,"level":null,"order":3,"prompt":"Why can molten sodium chloride conduct electricity?","a":"Its ions can move","b":"Its particles stop moving","c":"Its electrons disappear","d":"It turns into a metal","correct":"A","hint":"","explanation":""},{"kind":"pre","stage":3,"level":null,"order":1,"prompt":"In a covalent bond, atoms primarily...","a":"Transfer protons","b":"Share electron pairs","c":"Become positive ions only","d":"Lose their nuclei","correct":"B","hint":"","explanation":""},{"kind":"pre","stage":3,"level":null,"order":2,"prompt":"How many H-O covalent bonds are found in one H2O molecule?","a":"One","b":"Three","c":"Four","d":"Two","correct":"D","hint":"","explanation":""},{"kind":"pre","stage":3,"level":null,"order":3,"prompt":"In a typical ammonia (NH3) molecule, nitrogen forms how many N-H bonds?","a":"One","b":"Two","c":"Three","d":"Four","correct":"C","hint":"","explanation":""},{"kind":"pre","stage":4,"level":null,"order":1,"prompt":"What particles are mobile in the usual model of metallic bonding?","a":"Delocalized electrons","b":"Fixed positive ions","c":"Neutrons only","d":"Whole atoms escaping","correct":"A","hint":"","explanation":""},{"kind":"pre","stage":4,"level":null,"order":2,"prompt":"Why does a solid metal conduct electricity?","a":"Only its nuclei move","b":"It has freely moving ions","c":"Its electrons are mobile","d":"It contains dissolved salt","correct":"C","hint":"","explanation":""},{"kind":"pre","stage":4,"level":null,"order":3,"prompt":"A metal can be drawn into a thin wire. This property is...","a":"Brittleness","b":"Solubility","c":"Density","d":"Ductility","correct":"D","hint":"","explanation":""},{"kind":"pre","stage":5,"level":null,"order":1,"prompt":"A brittle sample shatters when struck. Which observation best supports this?","a":"It bends into a sheet","b":"It fractures rather than deforms","c":"It emits light","d":"Its mass increases","correct":"B","hint":"","explanation":""},{"kind":"pre","stage":5,"level":null,"order":2,"prompt":"Which state generally permits electrical conduction in a typical ionic compound?","a":"Solid crystal only","b":"Dry powder only","c":"Molten or dissolved","d":"Frozen solid only","correct":"C","hint":"","explanation":""},{"kind":"pre","stage":5,"level":null,"order":3,"prompt":"Can a heating test alone conclusively identify ionic, metallic, or covalent bonding?","a":"Yes, always","b":"Yes, for all solids","c":"Only by sample color","d":"No, use additional evidence","correct":"D","hint":"","explanation":""},{"kind":"post","stage":1,"level":null,"order":1,"prompt":"A flask containing zinc and acid produces bubbles. What do the bubbles suggest?","a":"New gas produced by a reaction","b":"Only movement of the flask","c":"The reaction stopped","d":"No chemical change","correct":"A","hint":"","explanation":""},{"kind":"post","stage":1,"level":null,"order":2,"prompt":"A reaction causes a measured temperature rise in the mixture. What is the most likely energy classification?","a":"Endothermic, heat absorbed","b":"Exothermic, heat released","c":"Neither: only color changed","d":"Evaporation without energy","correct":"B","hint":"","explanation":""},{"kind":"post","stage":1,"level":null,"order":3,"prompt":"A white precipitate makes CO2-treated limewater look milky. What is it?","a":"Sodium metal","b":"Hydrogen gas","c":"Calcium carbonate","d":"Copper sulfate","correct":"C","hint":"","explanation":""},{"kind":"post","stage":2,"level":null,"order":1,"prompt":"A neutral chlorine atom becomes Cl-. What happened?","a":"One proton was removed","b":"Its nucleus split","c":"It lost one electron","d":"It gained one electron","correct":"D","hint":"","explanation":""},{"kind":"post","stage":2,"level":null,"order":2,"prompt":"Why does an ionic crystal contain an ordered arrangement of positive and negative ions?","a":"Electrostatic attractions act between opposite ions","b":"All ions repel each other","c":"Electrons are shared in H-H bonds","d":"Metallic atoms flow freely","correct":"A","hint":"","explanation":""},{"kind":"post","stage":2,"level":null,"order":3,"prompt":"Solid salt does not light a conductivity tester, but melted salt does. Why?","a":"Mobile ions carry charge in the melt","b":"The melt has no ions","c":"Only solid ions move","d":"Melting creates metallic atoms","correct":"A","hint":"","explanation":""},{"kind":"post","stage":3,"level":null,"order":1,"prompt":"Two hydrogen atoms form H2. How is the bond formed?","a":"By exchanging neutrons","b":"By sharing electrons","c":"By losing both nuclei","d":"By turning into ions in water","correct":"B","hint":"","explanation":""},{"kind":"post","stage":3,"level":null,"order":2,"prompt":"Which molecular formula has two O-H single bonds?","a":"CO2","b":"NH3","c":"NaCl","d":"H2O","correct":"D","hint":"","explanation":""},{"kind":"post","stage":3,"level":null,"order":3,"prompt":"How many hydrogen atoms share electrons with nitrogen in NH3?","a":"One","b":"Two","c":"Three","d":"Five","correct":"C","hint":"","explanation":""},{"kind":"post","stage":4,"level":null,"order":1,"prompt":"In metallic bonding, what helps positive metal ions remain attracted together?","a":"A sea of delocalized electrons","b":"Fixed neutrons moving between ions","c":"An external electric current","d":"Water molecules","correct":"A","hint":"","explanation":""},{"kind":"post","stage":4,"level":null,"order":2,"prompt":"A copper wire carries electric current. What is the main mobile charge carrier?","a":"Copper nuclei","b":"Stationary metal ions","c":"Delocalized electrons","d":"Neutrons","correct":"C","hint":"","explanation":""},{"kind":"post","stage":4,"level":null,"order":3,"prompt":"A sample stretches into wire without breaking. What characteristic is shown?","a":"Brittleness","b":"Thermal insulation","c":"Solubility","d":"Ductility","correct":"D","hint":"","explanation":""},{"kind":"post","stage":5,"level":null,"order":1,"prompt":"Which result most clearly demonstrates brittleness in a strike test?","a":"The sample flattens","b":"The sample breaks into pieces","c":"The sample becomes magnetic","d":"The sample dissolves","correct":"B","hint":"","explanation":""},{"kind":"post","stage":5,"level":null,"order":2,"prompt":"An ionic sample fails to conduct as a dry solid. Which test should also be tried?","a":"Only its color","b":"Its shape alone","c":"Conductivity when molten or in solution","d":"Only its mass","correct":"C","hint":"","explanation":""},{"kind":"post","stage":5,"level":null,"order":3,"prompt":"For an unknown sample, which approach best supports identifying bonding type?","a":"Use just its melting appearance","b":"Use only a heat trial","c":"Use only one sample's color","d":"Combine conductivity and mechanical evidence","correct":"D","hint":"","explanation":""}];
+const expectedAssessmentKeys="012300132023123".split("").map(Number);
+const csvColumns=['kind','stage','level','order','prompt','a','b','c','d','correct','hint','explanation'];
+function csvEncode(value){const s=String(value??'');return /[",\r\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}
+function csvText(rows){return [csvColumns.join(','),...rows.map(r=>csvColumns.map(k=>csvEncode(r[k])).join(','))].join('\r\n');}
+function downloadCsv(filename,contents){
+ const url=URL.createObjectURL(new Blob(['\uFEFF'+contents],{type:'text/csv;charset=utf-8;'}));
+ const a=document.createElement('a');a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+el('downloadPrePostDrafts').addEventListener('click',()=>{
+ downloadCsv('ChemQuest_PrePost_30_Drafts.csv',csvText(assessmentSeed));
+ message('Pre/Post CSV downloaded. All 30 content items are source-aligned drafts, not yet teacher-approved.');
+});
+el('template').addEventListener('click',()=>downloadCsv('ChemQuest_Question_Template.csv',csvText([{
+ kind:'bow',stage:1,level:1,order:1,prompt:'Example: What indicates a chemical change?',
+ a:'Gas forms',b:'Object moves',c:'',d:'',correct:'A',hint:'Think about evidence.',explanation:'Gas formation can indicate a chemical reaction.'
+}])));
+el('exportButton').addEventListener('click',()=>{
+ if(!isAdmin)return;
+ downloadCsv('ChemQuest_Question_Backup_'+new Date().toISOString().slice(0,10)+'.csv',csvText(records.map(r=>({
+ kind:r.kind,stage:r.stage,level:r.level,order:r.order,prompt:r.prompt,
+ a:r.choices?.[0],b:r.choices?.[1],c:r.choices?.[2],d:r.choices?.[3],
+ correct:['A','B','C','D'][r.correct],hint:r.hint,explanation:r.explanation
+ }))));
+ message('CSV backup downloaded. Keep it private because it includes answer keys.');
+});
+function parseCsv(raw){
+ const rows=[];let row=[],field='',quoted=false;
+ raw=raw.replace(/^\uFEFF/,'');
+ for(let i=0;i<raw.length;i++){
+  const c=raw[i];
+  if(quoted){if(c==='"'&&raw[i+1]==='"'){field+='"';i++;}else if(c==='"')quoted=false;else field+=c;}
+  else if(c==='"'){if(field!=='')throw Error('Unexpected quote at position '+i);quoted=true;}
+  else if(c===','){row.push(field);field='';}
+  else if(c==='\n'||c==='\r'){if(c==='\r'&&raw[i+1]==='\n')i++;row.push(field);if(row.some(v=>v.trim()))rows.push(row);row=[];field='';}
+  else field+=c;
+ }
+ if(quoted)throw Error('Unclosed CSV quote');
+ row.push(field);if(row.some(v=>v.trim()))rows.push(row);
+ if(!rows.length)throw Error('Empty CSV');
+ const headers=rows.shift().map(x=>x.trim().toLowerCase());
+ if(csvColumns.some(k=>!headers.includes(k)))throw Error('CSV headers must be: '+csvColumns.join(','));
+ return rows.map((values,i)=>{
+ const obj=Object.fromEntries(headers.map((k,j)=>[k,(values[j]||'').trim()]));
+ if(values.length!==headers.length)throw Error('Row '+(i+2)+': column count mismatch');
+ const kind=obj.kind.toLowerCase(),stage=Number(obj.stage),level=kind==='bow'?Number(obj.level):null,order=Number(obj.order);
+ const correct=['A','B','C','D'].indexOf(obj.correct.toUpperCase());
+ const choices=['a','b','c','d'].map(k=>obj[k]);
+ if(!['pre','bow','post'].includes(kind)||new Set(choices.filter(Boolean).map(v=>v.toLowerCase())).size!==choices.filter(Boolean).length||!Number.isInteger(stage)||stage<1||stage>5||
+ (kind==='bow'&&(!Number.isInteger(level)||level<1||level>3))||
+ !Number.isInteger(order)||order<1||order>999||!obj.prompt||obj.prompt.length>800||
+ choices.some(x=>x.length>400)||obj.hint.length>600||obj.explanation.length>800||
+ correct<0||!choices[correct]||!choices[0]||!choices[1]||
+ (kind!=='bow'&&choices.some(x=>!x)))
+ throw Error('Row '+(i+2)+': invalid assessment, stage, level, order, answer, or text.');
+ return {kind,stage,level,order,prompt:obj.prompt,choices,correct,hint:obj.hint,explanation:obj.explanation};
+ });
+}
+el('importFile').addEventListener('change',async()=>{
+ importRows=[];el('importButton').disabled=true;el('importPreview').hidden=true;
+ const file=el('importFile').files?.[0];if(!file){el('importSummary').textContent='No CSV selected.';return;}
+ try{
+ if(file.size>2_000_000)throw Error('CSV exceeds 2 MB.');
+ const rows=parseCsv(await file.text());
+ const collisions=[];
+ rows.forEach((r,i)=>{
+  if(records.some(x=>sameSlot(x,r))||rows.slice(0,i).some(x=>sameSlot(x,r)))collisions.push('Line '+(i+2)+': '+r.kind+' Stage '+r.stage+' #'+r.order);
+ });
+ if(collisions.length)throw Error('Duplicate question slots detected: '+collisions.slice(0,5).join('; '));
+ if(rows.length>300)throw Error('Import max 300 questions per file.');
+ importRows=rows;
+ el('importSummary').textContent=rows.length+' valid questions ready to import as drafts. Review before importing.';
+ el('importPreview').hidden=false;
+ el('importPreview').textContent=rows.slice(0,12).map((r,i)=>(i+1)+'. '+r.kind+' / Stage '+r.stage+(r.kind==='bow'?' Level '+r.level:'')+' / #'+r.order+': '+r.prompt).join('\n')+(rows.length>12?'\n…':'');
+ el('importButton').disabled=!rows.length;
+ }catch(err){el('importSummary').textContent='Cannot import: '+err.message;}
+});
+el('importButton').addEventListener('click',async()=>{
+ if(!isAdmin||!importRows.length)return;
+ if(!confirm('Import '+importRows.length+' questions as DRAFTS? This does not publish them.'))return;
+ el('importButton').disabled=true;const rows=importRows;let count=0;
+ try{
+ await load();
+ for(const r of rows){
+  if(records.some(x=>sameSlot(x,r)))throw Error('A duplicate slot exists. Imported '+count+' questions before stopping.');
+  await addDoc(collection(db,'questionBank'),{...r,status:'draft',createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
+  records.push({...r,id:'local-import-'+count});count++;
+ }
+ importRows=[];el('importFile').value='';el('importPreview').hidden=true;
+ await load();message(count+' questions imported as drafts.');
+ }catch(err){await load();message('Import stopped after '+count+' rows: '+err.message+' Re-export and check before retrying.');}
+});
+</script></body></html>
