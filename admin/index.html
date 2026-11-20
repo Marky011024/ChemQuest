@@ -117,13 +117,35 @@ textarea{line-height:1.5}
 @media(max-width:960px){.home-hero{grid-template-columns:1fr}.home-art{min-height:210px}.home-art-orbit{width:210px;font-size:100px}.home-stages{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:680px){.home-hero{padding:24px}.home-cards,.home-stages,.home-steps{grid-template-columns:1fr 1fr}}
 @media(max-width:460px){.home-cards,.home-stages,.home-steps{grid-template-columns:1fr}.home-numbers{gap:15px}}
+
+/* ChemQuest Android download and beginner installation tutorial */
+.cq-download-layout{display:grid;grid-template-columns:1.4fr .8fr;gap:16px;align-items:stretch}
+.cq-download-card,.cq-qr-card,.cq-install-guide{border:1px solid #3b6785;background:linear-gradient(150deg,#143753,#0c243d);border-radius:17px;padding:26px}
+.cq-download-card{display:flex;flex-direction:column;justify-content:center}
+.cq-download-card h3{color:#ffdb88;font-size:clamp(23px,3vw,32px);margin:15px 0 4px}
+.cq-download-btn{display:inline-flex;align-items:center;justify-content:center;width:fit-content;min-height:48px;padding:12px 22px;margin:16px 0;border-radius:9px;background:#f2c65d;color:#0c223a;font-weight:800;text-decoration:none;box-shadow:0 7px 16px #0002}
+.cq-download-btn:hover,.cq-download-btn:focus-visible{filter:brightness(1.1);outline-offset:3px}
+.cq-download-note{font-size:12px;color:#b6cedf!important;line-height:1.65}
+.cq-qr-card{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:9px}
+.cq-qr-card img{display:block;max-width:100%;height:auto;image-rendering:pixelated;border-radius:12px;background:#fff;border:9px solid white}
+.cq-qr-card strong{font-size:18px;color:#ffdd92}
+.cq-qr-card p{font-size:13px;margin:0}
+.cq-qr-card a{font-size:13px;color:#91ebf5}
+.cq-install-guide{margin-top:16px}
+.cq-install-guide h3{font-size:21px;color:#ffda83;margin:0 0 18px}
+.cq-install-steps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;list-style:none;counter-reset:install;padding:0}
+.cq-install-steps li{counter-increment:install;display:flex;flex-direction:column;gap:7px;padding:15px 15px 15px 56px;border-radius:12px;background:#0a243c;border:1px solid #355672;position:relative;line-height:1.5}
+.cq-install-steps li::before{content:counter(install);position:absolute;left:14px;top:17px;width:29px;height:29px;border-radius:50%;display:grid;place-items:center;color:#122439;background:#f2c65d;font-weight:800}
+.cq-install-steps strong{color:#f3e4ae;font-size:14px}
+.cq-install-steps span{color:#c4dce9;font-size:13px}
+@media(max-width:780px){.cq-download-layout{grid-template-columns:1fr}.cq-install-steps{grid-template-columns:1fr}.cq-download-card,.cq-qr-card,.cq-install-guide{padding:19px}}
 </style></head><body>
-<header><div><h1>⚗ ChemQuest</h1><small>Grade 9 Chemistry • Puzzle Learning Game</small></div><div class="header-actions"><button type="button" class="secondary" id="navHome">Home</button><button type="button" class="gold" id="navLogin">Admin Login</button><span id="adminIdentity"></span><button id="helpOpen" class="help-button" type="button" hidden>Help / User Manual</button><button id="logout" class="secondary">Sign out</button></div></header>
+<header><div><h1>⚗ ChemQuest</h1><small>Grade 9 Chemistry • Puzzle Learning Game</small></div><div class="header-actions"><button type="button" class="secondary" id="navHome">Home</button><a class="cq-header-download" href="#downloadGame" id="navDownload" style="color:#f0db9e;font-weight:700;text-decoration:none;padding:8px 6px">Download Game</a><button type="button" class="gold" id="navLogin">Admin Login</button><span id="adminIdentity"></span><button id="helpOpen" class="help-button" type="button" hidden>Help / User Manual</button><button id="logout" class="secondary">Sign out</button></div></header>
 <main><section id="homeView" aria-label="ChemQuest game homepage">
 <div class="home-hero">
 <div><span class="home-kicker">⚛ CHEMQUEST • GRADE 9 SCIENCE</span><h2>Discover Chemistry.<br>Play. Learn. Achieve.</h2>
 <p>Explore an interactive 2D chemistry puzzle game featuring virtual experiments, challenging activities, and exciting discoveries. Learn chemical reactions, bonding and material properties through hands-on gameplay.</p>
-<div class="home-actions"><button type="button" class="gold" id="exploreGame">Explore ChemQuest</button><button type="button" class="secondary" data-admin-login>Administrator Login</button></div>
+<div class="home-actions"><a href="#downloadGame" class="cq-download-btn" style="margin:0">⬇ Download Game</a><button type="button" class="secondary" id="exploreGame">Explore ChemQuest</button><button type="button" class="secondary" data-admin-login>Administrator Login</button></div>
 <div class="home-numbers"><div><b>5</b> Chemistry stages</div><div><b>15</b> Puzzle levels</div><div><b>3</b> Assessment types</div></div></div>
 <div class="home-art" aria-hidden="true"><div class="home-art-orbit">⚗️</div><span class="home-art-atom">⚛</span><span class="home-art-formula">H₂O · NaCl · CO₂</span></div></div>
 <section class="home-block" id="aboutGame"><h2>What Is ChemQuest?</h2>
@@ -148,6 +170,36 @@ textarea{line-height:1.5}
 <div class="home-step"><span class="emoji">✅</span><strong>3. BOW &amp; Post-test</strong><small>Complete learning checks and the final assessment.</small></div>
 <div class="home-step"><span class="emoji">🎓</span><strong>4. Certificate</strong><small>Claim your certificate after meeting completion conditions.</small></div>
 </div></section>
+<section class="home-block" id="downloadGame" aria-labelledby="downloadTitle">
+<h2 id="downloadTitle">Download ChemQuest for Android</h2>
+<p class="home-lead">Ready to begin your chemistry adventure? Download the game from the official ChemQuest Google Drive link, or scan the QR code on your Android phone.</p>
+<div class="cq-download-layout">
+<div class="cq-download-card">
+<span class="home-kicker">ANDROID GAME • APK DOWNLOAD</span>
+<h3>Start your ChemQuest journey</h3>
+<p>Tap the button below to open the ChemQuest file on Google Drive. The game is installed on your Android device, not played inside this website.</p>
+<a class="cq-download-btn" href="https://drive.google.com/file/d/1lYKVcZ1tRzveQAOQEtKcYvSj0Cyek9Z7/view?usp=drive_link" target="_blank" rel="noopener noreferrer" aria-label="Open the ChemQuest game file on Google Drive">⬇ Download ChemQuest Game</a>
+<p class="cq-download-note">Google Drive may show a preview, a Download icon, or a file-safety confirmation. Only install the APK when you trust the source.</p>
+</div>
+<div class="cq-qr-card">
+<img src="./chemquest-download-qr.svg" width="245" height="245" alt="QR code that opens the ChemQuest Google Drive game download" loading="lazy">
+<strong>Scan to Download</strong>
+<p>Open your phone camera, scan the code, and tap the Google Drive link.</p>
+<a href="https://drive.google.com/file/d/1lYKVcZ1tRzveQAOQEtKcYvSj0Cyek9Z7/view?usp=drive_link" target="_blank" rel="noopener noreferrer">Open the same download link</a>
+</div>
+</div>
+<div class="cq-install-guide" aria-labelledby="installTitle">
+<h3 id="installTitle">How to Download and Install ChemQuest</h3>
+<ol class="cq-install-steps">
+<li><strong>Open the link or scan the QR code.</strong><span>The Google Drive page for the ChemQuest game will open.</span></li>
+<li><strong>Tap Download.</strong><span>Wait for the game file to finish downloading. If Google Drive shows a file-size or security warning, verify that it is the official file before proceeding.</span></li>
+<li><strong>Open the downloaded APK.</strong><span>On your Android phone, open Downloads or tap the completed download notification.</span></li>
+<li><strong>Allow installation if prompted.</strong><span>Android may ask you to allow installs from your browser or Files app. Only grant this temporarily if you trust the file, and turn the permission off afterward.</span></li>
+<li><strong>Tap Install, then Open.</strong><span>Launch ChemQuest and begin the learning activities.</span></li>
+</ol>
+<p class="cq-download-note">Android instructions may vary by phone model. This download is for Android devices; Windows and iPhone cannot directly install an Android APK. If the file cannot be accessed, request the current download permission from the game's distributor.</p>
+</div>
+</section>
 <section class="home-block home-callout home-card"><div class="emoji">🔐</div><h2>Administrator Question Management</h2>
 <p>Authorized administrators can add, edit, review and publish the game's Pre-test, BOW and Post-test questions through the secure management portal.</p><button type="button" class="gold" data-admin-login>Open Admin Portal</button></section>
 <footer class="home-footer">ChemQuest • Educational 2D Chemistry Puzzle Game • Grade 9 Science</footer>
