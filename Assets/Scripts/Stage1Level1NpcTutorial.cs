@@ -70,7 +70,7 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
         if (SceneManager.GetActiveScene().name != SceneName) { Destroy(gameObject); return; }
         completionKey = ProfileKey();
         DiscoverTargets();
-        BuildInterface();
+        if(!BindEditableHierarchy()) BuildInterface();
         // Always display on every Stage 1 Level 1 entry, including returning
         // students. No GUIDE button press or PlayerPrefs reset is needed.
         StartGuide();
@@ -226,12 +226,12 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
         // Bottom HUD strip leaves the zinc/flask and Sub-Microscopic View
         // button accessible. All labels use fixed top-left coordinates.
         var speech = Box(guideRoot.transform, "ProfAtomDialogueBar", Navy,
-            new Vector2(.5f, 0), new Vector2(0, 79), new Vector2(1180, 148));
+            new Vector2(.5f, 0), new Vector2(0, 89), new Vector2(1180, 164));
         Box(speech, "GoldLine", Gold, new Vector2(.5f, 1), new Vector2(0, -3),
             new Vector2(1180, 6), false);
 
         var portrait = Box(speech, "ProfAtomPortrait", new Color(.08f, .31f, .39f, 1),
-            new Vector2(0, .5f), new Vector2(79, 0), new Vector2(150, 138), false);
+            new Vector2(0, .5f), new Vector2(79, 0), new Vector2(150, 152), false);
         Sprite atomSprite = Resources.Load<Sprite>("ChemQuestTutorial/ProfAtom");
         if (atomSprite != null)
         {
@@ -253,21 +253,69 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
             TextAnchor.MiddleCenter, new Vector2(.5f, .5f), Vector2.zero,
             new Vector2(146, 26), FontStyle.Bold);
 
-        heading = TopLeftCaption(speech, "StepHeading", "", 22, Gold,
-            180, 13, 705, 36, FontStyle.Bold);
-        dialogue = TopLeftCaption(speech, "Speech", "", 20, Color.white,
-            180, 58, 755, 66);
+        heading = TopLeftCaption(speech, "StepHeading", "", 24, Gold,
+            180, 14, 730, 40, FontStyle.Bold);
+        dialogue = TopLeftCaption(speech, "Speech", "", 19, Color.white,
+            180, 65, 716, 69);
         dialogue.lineSpacing = 1.05f;
         progress = Caption(speech, "StepNumber", "", 16,
             new Color(.72f, .92f, .95f, 1), TextAnchor.MiddleCenter,
-            new Vector2(0, 0), new Vector2(236, 16), new Vector2(112, 24));
+            new Vector2(0, 0), new Vector2(236, 17), new Vector2(112, 26));
 
         MakeButton(speech, "Skip", "SKIP", new Color(.35f, .39f, .46f, 1),
-            new Vector2(1, 1), new Vector2(-198, -31), new Vector2(122, 43), FinishGuide);
+            new Vector2(1, 1), new Vector2(-198, -46), new Vector2(122, 49), FinishGuide);
         nextButton = MakeButton(speech, "Next", "NEXT", Teal,
-            new Vector2(1, 1), new Vector2(-65, -31), new Vector2(118, 43), NextStep);
+            new Vector2(1, 1), new Vector2(-65, -46), new Vector2(118, 49), NextStep);
         nextLabel = nextButton.GetComponentInChildren<Text>();
         guideRoot.SetActive(false);
+    }
+
+
+    // Author the same tutorial UI as saved scene GameObjects in Edit Mode.
+    // No generated-only Play Mode objects are required after installation.
+    public void BakeEditableHierarchy()
+    {
+        if(Application.isPlaying) return;
+        if(!BindEditableHierarchy()) BuildInterface();
+        step=0;
+        ShowStep();
+        guideRoot.SetActive(true);
+        if(halo!=null)halo.gameObject.SetActive(false);
+        if(trail!=null)trail.gameObject.SetActive(false);
+        if(handMarker!=null)handMarker.gameObject.SetActive(false);
+    }
+
+    private bool BindEditableHierarchy()
+    {
+        var root=transform.Find("ProfAtomGuideCanvas");
+        if(root==null)return false;
+        canvas=root.GetComponent<Canvas>();
+        var guide=root.Find("InGameTutorialLayer");
+        if(canvas==null||guide==null)return false;
+        var speech=guide.Find("ProfAtomDialogueBar");
+        if(speech==null)return false;
+        var newHeading=speech.Find("StepHeading")?.GetComponent<Text>();
+        var newDialogue=speech.Find("Speech")?.GetComponent<Text>();
+        var newProgress=speech.Find("StepNumber")?.GetComponent<Text>();
+        var next=speech.Find("Next")?.GetComponent<Button>();
+        var skip=speech.Find("Skip")?.GetComponent<Button>();
+        var newHand=guide.Find("AnimatedTutorialHand")?.GetComponent<Image>();
+        var newHalo=guide.Find("TargetGlow")?.GetComponent<Image>();
+        var newTrail=guide.Find("DragPath")?.GetComponent<Image>();
+        if(newHeading==null||newDialogue==null||newProgress==null||next==null||
+           skip==null||newHand==null||newHalo==null||newTrail==null)return false;
+        guideRoot=guide.gameObject;
+        heading=newHeading; dialogue=newDialogue; progress=newProgress;
+        handMarker=newHand;halo=newHalo;trail=newTrail;
+        nextButton=next;
+        nextLabel=next.GetComponentInChildren<Text>(true);
+        if(nextLabel==null)return false;
+        // Hook runtime callbacks even when the hierarchy was baked in Edit Mode.
+        next.onClick.RemoveAllListeners();
+        skip.onClick.RemoveAllListeners();
+        next.onClick.AddListener(NextStep);
+        skip.onClick.AddListener(FinishGuide);
+        return true;
     }
 
     private static void DrawScientist(RectTransform p)
