@@ -141,7 +141,7 @@ textarea{line-height:1.5}
 .cq-install-steps span{color:#c4dce9;font-size:13px}
 @media(max-width:780px){.cq-download-layout{grid-template-columns:1fr}.cq-install-steps{grid-template-columns:1fr}.cq-download-card,.cq-qr-card,.cq-install-guide{padding:19px}}
 </style><link rel="stylesheet" href="./chemquest-professional.css?v=20261120b"></head><body>
-<header><div><h1>⚗ ChemQuest</h1><small>Grade 9 Chemistry • Puzzle Learning Game</small></div><div class="header-actions"><button type="button" class="secondary" id="navHome">Home</button><a class="cq-header-download" href="#downloadGame" id="navDownload" style="color:#f0db9e;font-weight:700;text-decoration:none;padding:8px 6px">Download Game</a><button type="button" class="gold" id="navLogin">Admin Login</button><span id="adminIdentity"></span><button id="helpOpen" class="help-button" type="button" hidden>Help / User Manual</button><button id="logout" class="secondary">Sign out</button></div></header>
+<header><div><h1>⚗ ChemQuest</h1><small>Grade 9 Chemistry • Puzzle Learning Game</small></div><div class="header-actions"><button type="button" class="secondary" id="navHome">Home</button><a href="./user-manual.html" class="cq-header-download" id="navManual" style="color:#f0db9e;font-weight:700;text-decoration:none;padding:8px 6px">User Manual</a><a class="cq-header-download" href="#downloadGame" id="navDownload" style="color:#f0db9e;font-weight:700;text-decoration:none;padding:8px 6px">Download Game</a><button type="button" class="gold" id="navLogin">Admin Login</button><span id="adminIdentity"></span><a href="./user-manual.html" id="completeManual" class="help-button" style="display:none;text-decoration:none;padding:10px 14px;border-radius:8px;font-size:12px">Complete User Manual</a><button id="helpOpen" class="help-button" type="button" hidden>Help / User Manual</button><button id="logout" class="secondary">Sign out</button></div></header>
 <main><section id="homeView" aria-label="ChemQuest game homepage">
 <div class="home-hero">
 <div><span class="home-kicker">⚛ CHEMQUEST • GRADE 9 SCIENCE</span><h2>Discover Chemistry.<br>Play. Learn. Achieve.</h2>
@@ -201,6 +201,7 @@ textarea{line-height:1.5}
 <p class="cq-download-note">Android instructions may vary by phone model. This download is for Android devices; Windows and iPhone cannot directly install an Android APK. If the file cannot be accessed, request the current download permission from the game's distributor.</p>
 </div>
 </section>
+<section class="home-block home-callout home-card" aria-labelledby="manualHomeTitle"><div class="emoji">📖</div><h2 id="manualHomeTitle">ChemQuest User Manual</h2><p>Explore our step-by-step guides for students and administrators. Learn how to download the Android game, complete levels and assessments, claim certificates, and manage questions on the website.</p><a href="./user-manual.html" class="cq-download-btn" style="margin:14px auto 0">Read / Print User Manual</a></section>
 <section class="home-block home-callout home-card"><div class="emoji">🔐</div><h2>Administrator Question Management</h2>
 <p>Authorized administrators can add, edit, review and publish the game's Pre-test, BOW and Post-test questions through the secure management portal.</p><button type="button" class="gold" data-admin-login>Open Admin Portal</button></section>
 <footer class="home-footer">ChemQuest • Educational 2D Chemistry Puzzle Game • Grade 9 Science</footer>
@@ -319,10 +320,10 @@ el('loginForm').addEventListener('submit',async e=>{
  finally{button.disabled=false;button.textContent='Sign in securely';}
 });
 onAuthStateChanged(auth,async user=>{
-isAdmin=false;el('workspace').style.display='none';el('logout').style.display=user?'block':'none';el('helpOpen').hidden=true;el('adminIdentity').textContent='';el('loginPanel').style.display='none';
+isAdmin=false;el('workspace').style.display='none';el('logout').style.display=user?'block':'none';el('helpOpen').hidden=true;el('completeManual').style.display='none';el('adminIdentity').textContent='';el('loginPanel').style.display='none';
 if(!user){window.cqSiteAuth?.(false);message('');return;}
 try{const role=await getDoc(doc(db,'admins',user.uid));if(!role.exists()||role.data().active!==true){message('This account is not authorized as an administrator.');await signOut(auth);return;}
-isAdmin=true;el('adminIdentity').textContent=user.email||'Administrator';el('helpOpen').hidden=false;el('workspace').style.display='block';window.cqSiteAuth?.(true);message('Signed in as authorized administrator.');await load();
+isAdmin=true;el('adminIdentity').textContent=user.email||'Administrator';el('helpOpen').hidden=false;el('completeManual').style.display='inline-flex';el('workspace').style.display='block';window.cqSiteAuth?.(true);message('Signed in as authorized administrator.');await load();
 }catch(err){message('Could not verify administrator access: '+err.message);}
 });
 async function load(){if(!isAdmin)return;const snap=await getDocs(collection(db,'questionBank'));records=snap.docs.map(d=>({id:d.id,...d.data()}));render();}
