@@ -115,12 +115,13 @@ public sealed class ChemQuestQuestionSyncPilot : MonoBehaviour
                     " | kind=" + (doc.fields.kind?.stringValue ?? "unspecified") +
                     " | question=" + LastDownloadedQuestion +
                     " | No live assessment was changed.");
-                // Download each approved Stage 1 BOW snapshot; individual levels fall back safely.
+                // Download each approved BOW snapshot independently; no gameplay is overwritten.
+                for(int stage=1;stage<=5;stage++)
                 for(int level=1;level<=3;level++)
                 {
                     string bowUrl="https://firestore.googleapis.com/v1/projects/" +
                         UnityWebRequest.EscapeURL(projectId) +
-                        "/databases/(default)/documents/publishedBow/stage1-level"+level;
+                        "/databases/(default)/documents/publishedBow/stage"+stage+"-level"+level;
                     using(var bowRequest=UnityWebRequest.Get(bowUrl))
                     {
                         bowRequest.SetRequestHeader("Authorization","Bearer "+auth.idToken);
@@ -128,7 +129,7 @@ public sealed class ChemQuestQuestionSyncPilot : MonoBehaviour
                         yield return bowRequest.SendWebRequest();
                         if(bowRequest.result!=UnityWebRequest.Result.Success)
                         {
-                            Debug.LogWarning("ChemQuest Stage 1 BOW L"+level+
+                            Debug.LogWarning("ChemQuest Stage "+stage+" BOW L"+level+
                                 ": snapshot unavailable ("+bowRequest.responseCode+"); cached/original questions remain.");
                             continue;
                         }
@@ -137,11 +138,11 @@ public sealed class ChemQuestQuestionSyncPilot : MonoBehaviour
                         catch(Exception) {}
                         if(approved?.fields?.status?.stringValue=="published" &&
                            !string.IsNullOrEmpty(approved.fields.payload?.stringValue) &&
-                           Stage1BowLearningCheck.TryCacheApprovedLevel(level,approved.fields.payload.stringValue))
-                            Debug.Log("CHEMQUEST BOW SNAPSHOT SYNC OK | level="+level+
+                           Stage1BowLearningCheck.TryCacheApproved(stage,level,approved.fields.payload.stringValue))
+                            Debug.Log("CHEMQUEST BOW SNAPSHOT SYNC OK | stage="+stage+" | level="+level+
                                 " | version="+approved.fields.version?.stringValue+
                                 " | Effective on NEXT attempt.");
-                        else Debug.LogWarning("ChemQuest BOW L"+level+
+                        else Debug.LogWarning("ChemQuest BOW S"+stage+" L"+level+
                             ": invalid snapshot; keeping existing cached/original questions.");
                     }
                 }
