@@ -718,7 +718,7 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
                 if(failurePanel!=null)failurePanel.transform.SetAsLastSibling();
             }
             else if(bowHintText!=null)
-                bowHintText.text=approvedBow?.At(bowQuestionIndex)?.hint ?? "HINT: NH3 has three hydrogen atoms; covalent N-H bonds SHARE electrons.";
+                ChemQuestHintPopup.Show(approvedBow?.At(bowQuestionIndex)?.hint ?? "HINT: NH3 has three hydrogen atoms; covalent N-H bonds SHARE electrons.");
             return;
         }
         ChemQuestSoundtrack.Correct();
