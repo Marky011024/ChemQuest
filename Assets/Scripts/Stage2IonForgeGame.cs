@@ -787,9 +787,12 @@ public class Stage2IonForgeGame : MonoBehaviour
         mistakes++;
         if(mistakes==1)
         {
-            if(feedback!=null)feedback.text=Level==3?
-                "HINT: Check the ion charges, then RESET and try again.":
-                "HINT: Drag each donor electron into the matching receiver slot.";
+            string hint=bowCheckIndex>=0
+                ? (approvedBow?.At(bowCheckIndex)?.hint ?? "Review the ionic-bonding question and ion charges.")
+                : Level==3
+                    ? "Check the ion charges, then RESET and try again."
+                    : "Drag each donor electron into the matching receiver slot.";
+            ChemQuestHintPopup.Show(hint);
         }
         else
         {
