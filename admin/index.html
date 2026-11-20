@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ChemQuest | Admin Question Bank</title>
+<title>ChemQuest | Grade 9 Chemistry Puzzle Game</title>
 <style>
 :root{font-family:Inter,system-ui,Arial,sans-serif;color:#eaf5fc;background:#09182a}
 *{box-sizing:border-box}body{margin:0}header{background:#102d4d;border-bottom:2px solid #cfad58;padding:18px 26px;display:flex;justify-content:space-between;align-items:center;gap:12px}
@@ -90,10 +90,69 @@ textarea{line-height:1.5}
 .manual-dialog .tool-heading{position:sticky;top:-24px;background:#10283f;padding:10px 0;z-index:1}
 @media(max-width:600px){.header-actions{width:100%}.manual-dialog{padding:16px}.manual-dialog .tool-heading{top:-16px}}
 @media print{header,.assessment-tabs,.grid,.dashboard,#message,.manual-dialog .actions{display:none!important}.manual-dialog{max-height:none;overflow:visible;border:0;color:#000;background:#fff;box-shadow:none}.manual-dialog h2,.manual-dialog h3{color:#222}}
+
+/* Public educational landing page */
+#homeView{max-width:1240px;margin:12px auto 48px}
+.home-hero{border:1px solid #355c80;border-radius:22px;background:radial-gradient(circle at 80% 46%,#1a5680 0,transparent 38%),linear-gradient(125deg,#123351,#091d34);display:grid;grid-template-columns:1.13fr .87fr;align-items:center;gap:30px;padding:45px;box-shadow:0 22px 52px #0004}
+.home-kicker{color:#69ead6;font-size:12px;font-weight:800;letter-spacing:1.5px}
+.home-hero h2{font-size:clamp(36px,5vw,62px);line-height:1.1;letter-spacing:-1px;color:#ffdb88;margin:15px 0}
+.home-hero p{font-size:16px;line-height:1.75}
+.home-actions{display:flex;gap:12px;flex-wrap:wrap;margin:24px 0}
+.home-actions button{padding:13px 22px}
+.home-numbers{display:flex;gap:25px;flex-wrap:wrap}
+.home-numbers div{font-size:12px;color:#afcedb}.home-numbers b{display:block;font-size:27px;color:#fff}
+.home-art{min-height:320px;position:relative;display:grid;place-items:center}
+.home-art-orbit{width:min(320px,100%);aspect-ratio:1;border-radius:50%;border:1px solid #6de7ef70;box-shadow:0 0 0 31px #34c4d00a,0 0 0 63px #34c4d007,0 0 65px #24bdd620;display:grid;place-items:center;font-size:155px}
+.home-art-atom{position:absolute;top:3%;right:5%;font-size:42px;color:#ffdc84}
+.home-art-formula{position:absolute;bottom:4%;left:0;background:#103b5b;border:1px solid #4a8ba8;border-radius:12px;padding:11px 15px;color:#b3f8ff;font-weight:800;font-size:20px}
+.home-block{margin-top:42px}.home-block h2{font-size:clamp(25px,3vw,32px);text-align:center;color:#ffda83;margin:0 0 10px}.home-lead{text-align:center;max-width:760px;margin:0 auto 25px}
+.home-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.home-card,.home-stage,.home-step{border:1px solid #3c617b;border-radius:15px;background:linear-gradient(150deg,#153754,#0d253f);padding:24px}
+.home-card .emoji,.home-step .emoji{font-size:30px}.home-card h3,.home-stage h3{color:#ffdf9b;font-size:17px;margin:12px 0 5px}.home-card p,.home-stage p{font-size:14px;margin:6px 0}
+.home-stages{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}.home-stage{padding:20px 14px}.home-stage .stage-number{color:#65ead8;font-size:12px;font-weight:800;letter-spacing:1px}
+.home-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}.home-step{text-align:center;padding:20px 13px}.home-step strong{display:block;margin:10px 0;color:#fff}.home-step small{line-height:1.6}
+.home-callout{text-align:center;margin-top:38px}.home-callout p{max-width:750px;margin:12px auto 20px}
+.home-footer{text-align:center;padding:29px 0 6px;color:#9abacc;font-size:12px}
+#loginPanel[hidden],#homeView[hidden]{display:none!important}
+@media(max-width:960px){.home-hero{grid-template-columns:1fr}.home-art{min-height:210px}.home-art-orbit{width:210px;font-size:100px}.home-stages{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:680px){.home-hero{padding:24px}.home-cards,.home-stages,.home-steps{grid-template-columns:1fr 1fr}}
+@media(max-width:460px){.home-cards,.home-stages,.home-steps{grid-template-columns:1fr}.home-numbers{gap:15px}}
 </style></head><body>
-<header><div><h1>⚗ ChemQuest Admin</h1><small>Question Bank Management • Pre-test / BOW / Post-test</small></div><div class="header-actions"><span id="adminIdentity"></span><button id="helpOpen" class="help-button" type="button" hidden>Help / User Manual</button><button id="logout" class="secondary">Sign out</button></div></header>
-<main><p id="message" role="status"></p>
-<section id="loginPanel" aria-label="Administrator sign in">
+<header><div><h1>⚗ ChemQuest</h1><small>Grade 9 Chemistry • Puzzle Learning Game</small></div><div class="header-actions"><button type="button" class="secondary" id="navHome">Home</button><button type="button" class="gold" id="navLogin">Admin Login</button><span id="adminIdentity"></span><button id="helpOpen" class="help-button" type="button" hidden>Help / User Manual</button><button id="logout" class="secondary">Sign out</button></div></header>
+<main><section id="homeView" aria-label="ChemQuest game homepage">
+<div class="home-hero">
+<div><span class="home-kicker">⚛ CHEMQUEST • GRADE 9 SCIENCE</span><h2>Discover Chemistry.<br>Play. Learn. Achieve.</h2>
+<p>Explore an interactive 2D chemistry puzzle game featuring virtual experiments, challenging activities, and exciting discoveries. Learn chemical reactions, bonding and material properties through hands-on gameplay.</p>
+<div class="home-actions"><button type="button" class="gold" id="exploreGame">Explore ChemQuest</button><button type="button" class="secondary" data-admin-login>Administrator Login</button></div>
+<div class="home-numbers"><div><b>5</b> Chemistry stages</div><div><b>15</b> Puzzle levels</div><div><b>3</b> Assessment types</div></div></div>
+<div class="home-art" aria-hidden="true"><div class="home-art-orbit">⚗️</div><span class="home-art-atom">⚛</span><span class="home-art-formula">H₂O · NaCl · CO₂</span></div></div>
+<section class="home-block" id="aboutGame"><h2>What Is ChemQuest?</h2>
+<p class="home-lead">ChemQuest is a Unity-based Grade 9 educational puzzle game designed to make chemistry lessons engaging and understandable through interactive investigations.</p>
+<div class="home-cards">
+<article class="home-card"><div class="emoji">🧪</div><h3>Virtual Science Lab</h3><p>Observe reactions, investigate evidence of chemical change, and explore laboratory challenges.</p></article>
+<article class="home-card"><div class="emoji">🧩</div><h3>Learn Through Puzzles</h3><p>Discover ionic, covalent and metallic bonds through interactive gameplay.</p></article>
+<article class="home-card"><div class="emoji">🏆</div><h3>Complete Your Quest</h3><p>Finish stages and assessments to qualify for an in-game completion certificate.</p></article>
+</div></section>
+<section class="home-block"><h2>Explore the Five Stages</h2><p class="home-lead">Three interactive puzzle levels in every stage.</p>
+<div class="home-stages">
+<article class="home-stage"><span class="stage-number">STAGE 01</span><h3>Chemical Changes</h3><p>Investigate reactions, gas formation and changes in matter.</p></article>
+<article class="home-stage"><span class="stage-number">STAGE 02</span><h3>Ionic Bonding</h3><p>Learn about ion formation and crystalline structures.</p></article>
+<article class="home-stage"><span class="stage-number">STAGE 03</span><h3>Covalent Bonding</h3><p>Explore shared electrons and molecular formation.</p></article>
+<article class="home-stage"><span class="stage-number">STAGE 04</span><h3>Metallic Bonding</h3><p>Investigate mobile electrons and metallic properties.</p></article>
+<article class="home-stage"><span class="stage-number">STAGE 05</span><h3>Material Testing</h3><p>Test conductivity, brittleness and other material properties.</p></article>
+</div></section>
+<section class="home-block"><h2>How the Game Works</h2><p class="home-lead">Learn step by step and receive a certificate after completing the required activities.</p>
+<div class="home-steps">
+<div class="home-step"><span class="emoji">📋</span><strong>1. Pre-test</strong><small>Answer the introductory assessment.</small></div>
+<div class="home-step"><span class="emoji">🎮</span><strong>2. Play Levels</strong><small>Explore five stages and fifteen puzzles.</small></div>
+<div class="home-step"><span class="emoji">✅</span><strong>3. BOW &amp; Post-test</strong><small>Complete learning checks and the final assessment.</small></div>
+<div class="home-step"><span class="emoji">🎓</span><strong>4. Certificate</strong><small>Claim your certificate after meeting completion conditions.</small></div>
+</div></section>
+<section class="home-block home-callout home-card"><div class="emoji">🔐</div><h2>Administrator Question Management</h2>
+<p>Authorized administrators can add, edit, review and publish the game's Pre-test, BOW and Post-test questions through the secure management portal.</p><button type="button" class="gold" data-admin-login>Open Admin Portal</button></section>
+<footer class="home-footer">ChemQuest • Educational 2D Chemistry Puzzle Game • Grade 9 Science</footer>
+</section><p id="message" role="status"></p>
+<section id="loginPanel" aria-label="Administrator sign in" hidden>
 <div class="login-shell">
 <div class="login-intro"><div class="science-mark" aria-hidden="true">⚛</div><span class="login-eyebrow">ChemQuest • Grade 9 Science</span>
 <h2>Manage Learning Assessments</h2><p>A centralized question management portal for your chemistry learning experience.</p>
@@ -147,6 +206,16 @@ textarea{line-height:1.5}
 <section><h3>6. Safety and assessment integrity</h3><ol><li>Use only Science teacher-approved questions.</li><li>Do not edit or republish questions while student assessments are active.</li><li>Keep exported CSV files private; they include correct answers.</li><li>Use <b>Sign out</b> on shared or school computers.</li><li>Stage 1 Level 1 BOW has an experimental approved-snapshot cache with offline fallback. Pre-test, Post-test, and other BOW levels are not yet synchronized.</li></ol></section>
 <div class="actions"><button id="helpPrint" type="button" class="gold">Print / Save as PDF</button><button type="button" id="helpCloseBottom" class="secondary">Close</button></div>
 </dialog>
+<script>
+(()=>{const home=document.getElementById('homeView'),login=document.getElementById('loginPanel'),ws=document.getElementById('workspace'),adminBtn=document.getElementById('navLogin');
+let active='home';window.cqSiteView=(view)=>{active=view;const loggedIn=ws.dataset.authorized==='yes';home.hidden=view!=='home';login.hidden=view!=='login'||loggedIn;login.style.display=(view==='login'&&!loggedIn)?'block':'none';ws.style.display=loggedIn&&view!=='home'?'block':'none';adminBtn.textContent=loggedIn?'Admin Dashboard':'Admin Login';if(view==='login'&&!loggedIn)document.getElementById('email').focus();};
+window.cqSiteAuth=(loggedIn)=>{ws.dataset.authorized=loggedIn?'yes':'no';window.cqSiteView(loggedIn?'login':'home');};
+document.getElementById('navHome').addEventListener('click',()=>window.cqSiteView('home'));
+adminBtn.addEventListener('click',()=>window.cqSiteView('login'));
+document.querySelectorAll('[data-admin-login]').forEach(b=>b.addEventListener('click',()=>window.cqSiteView('login')));
+document.getElementById('exploreGame').addEventListener('click',()=>document.getElementById('aboutGame').scrollIntoView({behavior:'smooth'}));
+window.cqSiteView('home');})();
+</script>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js';
 import { getAuth,signInWithEmailAndPassword,sendPasswordResetEmail,signOut,onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
@@ -196,10 +265,10 @@ el('loginForm').addEventListener('submit',async e=>{
  finally{button.disabled=false;button.textContent='Sign in securely';}
 });
 onAuthStateChanged(auth,async user=>{
-isAdmin=false;el('workspace').style.display='none';el('logout').style.display=user?'block':'none';el('helpOpen').hidden=true;el('adminIdentity').textContent='';el('loginPanel').style.display=user?'none':'block';
-if(!user){message('');return;}
+isAdmin=false;el('workspace').style.display='none';el('logout').style.display=user?'block':'none';el('helpOpen').hidden=true;el('adminIdentity').textContent='';el('loginPanel').style.display='none';
+if(!user){window.cqSiteAuth?.(false);message('');return;}
 try{const role=await getDoc(doc(db,'admins',user.uid));if(!role.exists()||role.data().active!==true){message('This account is not authorized as an administrator.');await signOut(auth);return;}
-isAdmin=true;el('adminIdentity').textContent=user.email||'Administrator';el('helpOpen').hidden=false;el('workspace').style.display='block';message('Signed in as authorized administrator.');await load();
+isAdmin=true;el('adminIdentity').textContent=user.email||'Administrator';el('helpOpen').hidden=false;el('workspace').style.display='block';window.cqSiteAuth?.(true);message('Signed in as authorized administrator.');await load();
 }catch(err){message('Could not verify administrator access: '+err.message);}
 });
 async function load(){if(!isAdmin)return;const snap=await getDocs(collection(db,'questionBank'));records=snap.docs.map(d=>({id:d.id,...d.data()}));render();}
