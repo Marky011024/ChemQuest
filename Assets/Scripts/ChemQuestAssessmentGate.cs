@@ -97,6 +97,74 @@ public sealed class ChemQuestAssessmentGate : MonoBehaviour
             "Use just its melting appearance","Use only a heat trial","Use only one sample's color","Combine conductivity and mechanical evidence",3)
     };
 
+
+    // Firestore snapshots contain only wording and A-D choices; built-in answer
+    // keys remain unchanged. Lock the selected set before an attempt starts.
+    [Serializable] private sealed class PublishedItem
+    {
+        public int order; public string prompt,a,b,c,d;
+    }
+    [Serializable] private sealed class PublishedTest
+    {
+        public int schema; public string version; public PublishedItem[] items;
+    }
+    private static string CloudKey(bool isPost)=>isPost?"CQ_PostApprovedSnapshotV1":"CQ_PreApprovedSnapshotV1";
+    private static string LockedKey(bool isPost)=>isPost?"CQ_PostAttemptLockedSnapshotV1":"CQ_PreAttemptLockedSnapshotV1";
+    private PublishedTest attemptSnapshot;
+    private static PublishedTest Parse(string raw)
+    {
+        if(string.IsNullOrWhiteSpace(raw))return null;
+        try
+        {
+            var data=JsonUtility.FromJson<PublishedTest>(raw);
+            if(data==null||data.schema!=1||data.items==null||
+               data.items.Length!=ItemCount||string.IsNullOrWhiteSpace(data.version))return null;
+            for(int i=0;i<ItemCount;i++)
+            {
+                var q=data.items[i];
+                if(q==null||q.order!=i+1||string.IsNullOrWhiteSpace(q.prompt)||
+                   string.IsNullOrWhiteSpace(q.a)||string.IsNullOrWhiteSpace(q.b)||
+                   string.IsNullOrWhiteSpace(q.c)||string.IsNullOrWhiteSpace(q.d))return null;
+                var opts=new[]{q.a.Trim(),q.b.Trim(),q.c.Trim(),q.d.Trim()};
+                for(int j=0;j<4;j++)for(int k=j+1;k<4;k++)
+                    if(string.Equals(opts[j],opts[k],StringComparison.OrdinalIgnoreCase))return null;
+            }
+            return data;
+        }
+        catch(Exception){return null;}
+    }
+    public static bool TryCacheApprovedTest(string kind,string json)
+    {
+        bool isPost=kind=="post";
+        if(!isPost&&kind!="pre")return false;
+        if(Parse(json)==null)return false;
+        PlayerPrefs.SetString(CloudKey(isPost),json);
+        PlayerPrefs.Save();
+        return true;
+    }
+    private void LockAttemptSnapshot()
+    {
+        // Once selected, even app restart will use the same assessment version.
+        string key=LockedKey(post);
+        if(PlayerPrefs.HasKey(key))
+        {
+            attemptSnapshot=Parse(PlayerPrefs.GetString(key,""));
+            return;
+        }
+        string raw=PlayerPrefs.GetString(CloudKey(post),"");
+        attemptSnapshot=Parse(raw);
+        PlayerPrefs.SetString(key,attemptSnapshot==null?"":raw);
+        PlayerPrefs.Save();
+        if(attemptSnapshot!=null)
+            Debug.Log("CHEMQUEST "+(post?"POST":"PRE")+"-TEST: locked approved snapshot "+attemptSnapshot.version);
+    }
+    private Item GetItem(int index)
+    {
+        var original=(post?PostItems:PreItems)[index];
+        var q=attemptSnapshot!=null?attemptSnapshot.items[index]:null;
+        return q==null?original:new Item(q.prompt,q.a,q.b,q.c,q.d,original.key);
+    }
+
     private bool post;
     private GameObject overlay;
     private TMP_Text titleLabel, progressLabel, questionLabel, hintLabel;
@@ -128,6 +196,7 @@ public sealed class ChemQuestAssessmentGate : MonoBehaviour
         if(overlay!=null)return;
         post=isPost;
         finished=false;
+        LockAttemptSnapshot();
         CreatePanel();
         DisplayNext();
     }
@@ -142,7 +211,7 @@ public sealed class ChemQuestAssessmentGate : MonoBehaviour
         if(finished)return;
         int index=Mathf.Clamp(PlayerPrefs.GetInt(ProgressKey,0),0,ItemCount);
         if(index>=ItemCount){Finish();return;}
-        var item=(post?PostItems:PreItems)[index];
+        var item=GetItem(index);
         titleLabel.text=post?"CHEMQUEST  •  POST-TEST":"CHEMQUEST  •  PRE-TEST";
         progressLabel.text="QUESTION "+(index+1)+" / "+ItemCount+"     •     "+
             "STAGE "+(index/3+1)+" TOPIC";
@@ -156,7 +225,7 @@ public sealed class ChemQuestAssessmentGate : MonoBehaviour
         if(finished)return;
         int index=PlayerPrefs.GetInt(ProgressKey,0);
         if(index<0||index>=ItemCount)return;
-        var item=(post?PostItems:PreItems)[index];
+        var item=GetItem(index);
         PlayerPrefs.SetInt(AnswerPrefix+index,selected);
         if(selected==item.key)PlayerPrefs.SetInt(ScoreKey,
             PlayerPrefs.GetInt(ScoreKey,0)+1);
