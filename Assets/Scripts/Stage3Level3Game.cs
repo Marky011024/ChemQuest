@@ -746,8 +746,9 @@ public class Stage3Level3Game : MonoBehaviour
         mistakes++;
         if(mistakes==1)
         {
-            if(feedback!=null)feedback.text=
-                "HINT: Place BLUE pairs between atoms, GOLD lone pairs outside oxygen atoms.";
+            ChemQuestHintPopup.Show(bowQuestionIndex>=0
+                ? (approvedBow?.At(bowQuestionIndex)?.hint ?? "Check how many electron pairs are shared.")
+                : "Place BLUE pairs between atoms and GOLD lone pairs outside oxygen atoms.");
         }
         else
         {
