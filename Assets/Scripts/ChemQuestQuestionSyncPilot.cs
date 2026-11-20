@@ -82,39 +82,34 @@ public sealed class ChemQuestQuestionSyncPilot : MonoBehaviour
             string url = "https://firestore.googleapis.com/v1/projects/" +
                 UnityWebRequest.EscapeURL(projectId) +
                 "/databases/(default)/documents/syncPilot/demo";
+            // The original demo document is optional. Never block approved BOW
+            // sync if the old pilot was deleted or its status changed.
             using(var docReq = UnityWebRequest.Get(url))
             {
                 docReq.SetRequestHeader("Authorization", "Bearer " + auth.idToken);
-                docReq.timeout = 20;
+                docReq.timeout = 15;
                 yield return docReq.SendWebRequest();
-                if(docReq.result != UnityWebRequest.Result.Success)
+                if(docReq.result == UnityWebRequest.Result.Success)
                 {
-                    Debug.LogError("ChemQuest sync pilot: Firestore read failed (" +
-                        docReq.responseCode + "). Check syncPilot/demo and deployed rules. " +
-                        SafeError(docReq.downloadHandler.text));
-                    yield break;
+                    try
+                    {
+                        DocumentReply doc = JsonUtility.FromJson<DocumentReply>(docReq.downloadHandler.text);
+                        if(doc?.fields?.status?.stringValue == "published" &&
+                           !string.IsNullOrWhiteSpace(doc.fields.prompt?.stringValue))
+                        {
+                            LastDownloadedQuestion = doc.fields.prompt.stringValue;
+                            Debug.Log("CHEMQUEST SYNC PILOT OK | version=" +
+                                (doc.fields.version?.stringValue ?? "unspecified") +
+                                " | No live assessment was changed.");
+                        }
+                    }
+                    catch(Exception e)
+                    {
+                        Debug.LogWarning("ChemQuest demo pilot decode skipped: " + e.Message);
+                    }
                 }
-
-                DocumentReply doc;
-                try { doc = JsonUtility.FromJson<DocumentReply>(docReq.downloadHandler.text); }
-                catch(Exception e)
-                {
-                    Debug.LogError("ChemQuest sync pilot: cannot decode Firestore document. " + e.Message);
-                    yield break;
-                }
-                if(doc?.fields?.status?.stringValue != "published" ||
-                   string.IsNullOrWhiteSpace(doc.fields.prompt?.stringValue))
-                {
-                    Debug.LogWarning("ChemQuest sync pilot: document is not a valid published test question.");
-                    yield break;
-                }
-
-                LastDownloadedQuestion = doc.fields.prompt.stringValue;
-                Debug.Log("CHEMQUEST SYNC PILOT OK | version=" +
-                    (doc.fields.version?.stringValue ?? "unspecified") +
-                    " | kind=" + (doc.fields.kind?.stringValue ?? "unspecified") +
-                    " | question=" + LastDownloadedQuestion +
-                    " | No live assessment was changed.");
+                else Debug.LogWarning("ChemQuest demo pilot unavailable; continuing with approved BOW sync.");
+            }
                 // Download each approved BOW snapshot independently; no gameplay is overwritten.
                 for(int stage=1;stage<=5;stage++)
                 for(int level=1;level<=3;level++)
@@ -146,7 +141,6 @@ public sealed class ChemQuestQuestionSyncPilot : MonoBehaviour
                             ": invalid snapshot; keeping existing cached/original questions.");
                     }
                 }
-            }
         }
     }
 
