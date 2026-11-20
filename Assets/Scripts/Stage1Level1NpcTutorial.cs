@@ -432,7 +432,6 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
         skip.onClick.RemoveAllListeners();
         next.onClick.AddListener(NextStep);
         skip.onClick.AddListener(FinishGuide);
-        BindAtomViewShortcut();
         return true;
     }
 
