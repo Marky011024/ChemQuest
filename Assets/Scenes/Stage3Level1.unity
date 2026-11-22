@@ -2348,7 +2348,7 @@ MonoBehaviour:
   m_text: 'SINGLE BOND SYNERGY
 
 
-    Form H<sub>2</sub> and H<sub>2</sub>O molecules by sharing electrons between atoms. Complete the covalent bonds to proceed!'
+    Drag the colored electron dots into the bond slots between atoms. Each slot needs 2 electrons.'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -4797,7 +4797,9 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'PUZZLE 1: HYDROGEN (H<sub>2</sub>)'
+  m_text: 'PUZZLE 1: HYDROGEN (H<sub>2</sub>)
+
+    <color=#FFD366>Drag the gold dots</color> into the center slot.'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -6919,7 +6921,9 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'PUZZLE 2: WATER (H<sub>2</sub>O)'
+  m_text: 'PUZZLE 2: WATER (H<sub>2</sub>O)
+
+    <color=#FFD366>Gold</color> + <color=#66E6B0>green</color> dots go into the bond slots.'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
