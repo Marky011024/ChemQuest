@@ -27,8 +27,7 @@ public class ChemQuestCertificate : MonoBehaviour
     public static bool AllLevelsComplete()
     {
         for(int stage=1;stage<=5;stage++)
-            for(int level=1;level<=3;level++)
-                if(PlayerPrefs.GetInt("Stage"+stage+"Level"+level+"Completed",0)!=1)return false;
+            if(!ChemQuestStudentProgress.IsStageComplete(stage))return false;
         return true;
     }
     public static void RecordIfEligible()
@@ -53,18 +52,18 @@ public class ChemQuestCertificate : MonoBehaviour
         PlayerPrefs.SetString(CodeKey,"CQ-"+id);
         PlayerPrefs.Save();
     }
-    private static int Best(int stage,int level)=>Mathf.Clamp(
+    internal static int SavedScore(int stage,int level)=>Mathf.Clamp(
         PlayerPrefs.GetInt("Stage"+stage+"Level"+level+"Score",0),0,100);
     private static int Total()
     {
         int sum=0;
-        for(int s=1;s<=5;s++)for(int l=1;l<=3;l++)sum+=Best(s,l);
+        for(int s=1;s<=5;s++)for(int l=1;l<=3;l++)sum+=SavedScore(s,l);
         return sum;
     }
     private static string StageStars(int stage)
     {
         int sum=0;
-        for(int l=1;l<=3;l++)sum+=Best(stage,l);
+        for(int l=1;l<=3;l++)sum+=SavedScore(stage,l);
         // Scores alone cannot prove that no earlier failed run occurred.
         // Therefore show performance bands, not invented attempt-history awards.
         if(sum==300)return "3-star score band";
@@ -336,6 +335,14 @@ public class ChemQuestCertificate : MonoBehaviour
         var old=Find("Transcript");
         if(old!=null)old.gameObject.SetActive(false);
     }
+    internal static bool TryGetRetries(int stage, int level, out int retries)
+    {
+        string prefix = "Stage" + stage + "Level" + level;
+        retries = PlayerPrefs.GetInt(prefix + "RetryCount");
+        return PlayerPrefs.HasKey(prefix + "RetryTrackingStarted") ||
+            PlayerPrefs.HasKey(prefix + "RetryCount");
+    }
+
     private void PopulatePerformanceTable()
     {
         for(int s=1;s<=5;s++)
@@ -343,11 +350,8 @@ public class ChemQuestCertificate : MonoBehaviour
             for(int l=1;l<=3;l++)
             {
                 string id="S"+s+"L"+l;
-                int score=Best(s,l);
-                string retryKey="Stage"+s+"Level"+l+"RetryCount";
-                bool known=PlayerPrefs.HasKey("Stage"+s+"Level"+l+"RetryTrackingStarted") ||
-                    PlayerPrefs.HasKey(retryKey);
-                int retries=PlayerPrefs.GetInt(retryKey,0);
+                int score=SavedScore(s,l);
+                bool known = TryGetRetries(s, l, out int retries);
                 Set(id+"Score",score+"/100");
                 Set(id+"Retries",known?retries.ToString():"--");
                 Set(id+"Result",!known?
@@ -575,7 +579,7 @@ public class ChemQuestCertificate : MonoBehaviour
             transcript.Append(new[]{"","CATALYST CHRONICLES","ION FORGE","ORBITAL OVERLAP","ELECTRON OCEAN","ELEMENT CRUCIBLE"}[s]).Append("    |    ");
             for(int l=1;l<=3;l++)
             {
-                transcript.Append("L").Append(l).Append(" ").Append(Best(s,l)).Append("/100");
+                transcript.Append("L").Append(l).Append(" ").Append(SavedScore(s,l)).Append("/100");
                 if(l<3)transcript.Append("   |   ");
             }
             if(s<5)transcript.Append("\n");
