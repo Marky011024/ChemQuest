@@ -3987,7 +3987,7 @@ GameObject:
   - component: {fileID: 975569314}
   - component: {fileID: 975569313}
   m_Layer: 0
-  m_Name: StageSelectionButton
+  m_Name: ContinueButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

@@ -63,7 +63,7 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
                 new Color32(11,34,59,234));
             AddButton(root,"StartButton","START  /  ENTER ACADEMY",
                 new Vector2(0,4),new Vector2(420,68),Teal);
-            AddButton(root,"StageSelectionButton","CONTINUE",
+            AddButton(root,"ContinueButton","CONTINUE",
                 new Vector2(0,-81),new Vector2(420,68),MidNavy);
             AddButton(root,"SettingsButton","SETTINGS",
                 new Vector2(0,-166),new Vector2(420,68),MidNavy);
@@ -113,9 +113,9 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
 
         // Handles buttons generated in Edit Mode where runtime click events cannot persist.
         Bind(root,"StartButton",()=>Open("StageSelection"));
-        var continueLabel = root.Find("StageSelectionButton/Label")?.GetComponent<TMP_Text>();
+        var continueLabel = root.Find("ContinueButton/Label")?.GetComponent<TMP_Text>();
         if (continueLabel != null) continueLabel.text = "CONTINUE";
-        Bind(root, "StageSelectionButton", ContinueGame);
+        Bind(root, "ContinueButton", ContinueGame);
         Bind(root,"SettingsButton",()=>Settings(true));
         Bind(root,"CertificateButton",()=>Open("ChemQuestCertificate"));
         Bind(root,"ProfileOpenButton",()=>Profile(true));
