@@ -23,7 +23,6 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
         "Catalyst Chronicles", "Ion Forge", "Orbital Overlap", "Electron Ocean", "Element Crucible"
     };
     private Transform achievementsPanel;
-    private Transform stageCertificatePanel;
 
     private void Start()
     {
@@ -188,22 +187,6 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
                 new Vector2(0, -196), new Vector2(760, 54), Teal);
         }
 
-        stageCertificatePanel = overlay.Find("StageCertificatePanel");
-        if (stageCertificatePanel == null)
-        {
-            stageCertificatePanel = CreateAwardPanel(overlay, "StageCertificatePanel",
-                "CERTIFICATE OF STAGE COMPLETION");
-            Label(stageCertificatePanel, "Recipient", "", new Vector2(0, 135),
-                new Vector2(780, 54), 31, Color.white);
-            Label(stageCertificatePanel, "StageTitle", "", new Vector2(0, 68),
-                new Vector2(780, 56), 30, Gold);
-            for (int level = 1; level <= 3; level++)
-            {
-                Label(stageCertificatePanel, "Level" + level + "Results", "",
-                    new Vector2(0, 22 - level * 53), new Vector2(780, 42), 23, Color.white);
-            }
-        }
-
         for (int stage = 1; stage <= StageTitles.Length; stage++)
         {
             int selectedStage = stage;
@@ -213,9 +196,7 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
 
         Bind(achievementsPanel, "OverallCertificateButton", () => Open("ChemQuestCertificate"));
         Bind(achievementsPanel, "BackButton", () => achievementsPanel.gameObject.SetActive(false));
-        Bind(stageCertificatePanel, "BackButton", ShowAchievements);
         achievementsPanel.gameObject.SetActive(false);
-        stageCertificatePanel.gameObject.SetActive(false);
     }
 
     private static Transform CreateAwardPanel(Transform overlay, string name, string title)
@@ -244,7 +225,6 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
                 StageHeading(stage) + (earned ? "  |  VIEW CERTIFICATE" : "  |  LOCKED");
         }
 
-        stageCertificatePanel.gameObject.SetActive(false);
         achievementsPanel.SetAsLastSibling();
         achievementsPanel.gameObject.SetActive(true);
     }
@@ -256,21 +236,8 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
         if (!ChemQuestStudentProgress.IsStageComplete(stage))
             return;
 
-        stageCertificatePanel.Find("Recipient").GetComponent<TMP_Text>().text =
-            "Presented to " + PlayerPrefs.GetString("StudentName", "Student");
-        stageCertificatePanel.Find("StageTitle").GetComponent<TMP_Text>().text = StageHeading(stage);
-        for (int level = 1; level <= 3; level++)
-        {
-            int score = ChemQuestCertificate.SavedScore(stage, level);
-            bool known = ChemQuestCertificate.TryGetRetries(stage, level, out int retries);
-            string retryText = known ? retries.ToString() : "Not recorded";
-            stageCertificatePanel.Find("Level" + level + "Results").GetComponent<TMP_Text>().text =
-                "Level " + level + "  •  Score " + score + "/100  •  Retries " + retryText;
-        }
-
-        achievementsPanel.gameObject.SetActive(false);
-        stageCertificatePanel.SetAsLastSibling();
-        stageCertificatePanel.gameObject.SetActive(true);
+        if (Application.CanStreamedLevelBeLoaded("ChemQuestCertificate"))
+            ChemQuestCertificate.OpenStageCertificate(stage, StageHeading(stage));
     }
 
     private static void EnsureEventSystem()

@@ -24,6 +24,19 @@ public class ChemQuestCertificate : MonoBehaviour
     private static readonly Color32 Gold=new Color32(228,183,85,255);
     private static readonly Color32 Blue=new Color32(46,133,178,255);
 
+    private static (int Stage, string Title) pendingStage;
+    private int certificateStage;
+    private string stageTitle;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetPendingStage() => pendingStage = default;
+
+    internal static void OpenStageCertificate(int stage, string title)
+    {
+        pendingStage = (stage, title);
+        SceneManager.LoadScene("ChemQuestCertificate");
+    }
+
     public static bool AllLevelsComplete()
     {
         for(int stage=1;stage<=5;stage++)
@@ -72,6 +85,8 @@ public class ChemQuestCertificate : MonoBehaviour
     }
     private void Start()
     {
+        (certificateStage, stageTitle) = pendingStage;
+        pendingStage = default;
         Time.timeScale=1f;
         if(transform.Find("CertificateCanvas")==null)BuildEditableUI();
         EnsureInputSystem();
@@ -80,6 +95,7 @@ public class ChemQuestCertificate : MonoBehaviour
         EnsurePerformanceTable();
         Bind();
         Refresh();
+        if (certificateStage != 0) return;
         // Once all 15 levels are complete, the final BOW/games are finished.
         // Present the separate unassisted post-test before awarding/exporting.
         var assessment=GetComponent<ChemQuestAssessmentGate>();
@@ -277,7 +293,20 @@ public class ChemQuestCertificate : MonoBehaviour
         // Re-create only the display table when applying the design in Edit Mode.
         // This never touches gameplay data, scores, or retry keys.
         var previous=Find("CertificatePerformanceTable");
-        if(previous!=null){if(Application.isPlaying)return;DestroyImmediate(previous.gameObject);}
+        if (previous != null)
+        {
+            if (Application.isPlaying)
+            {
+                if (certificateStage == 0) return;
+                previous.gameObject.SetActive(false);
+                previous.name = "UnusedOverallPerformanceTable";
+                Destroy(previous.gameObject);
+            }
+            else
+            {
+                DestroyImmediate(previous.gameObject);
+            }
+        }
 
         var navy=new Color32(8,40,66,255);
         var ink=new Color32(20,52,71,255);
@@ -289,9 +318,9 @@ public class ChemQuestCertificate : MonoBehaviour
         rt.anchoredPosition=new Vector2(0,-128);
         rt.sizeDelta=new Vector2(1010,161);
         string[] headings={"LEVEL","SCORE","RETRIES","RESULT"};
-        for(int side=0;side<2;side++)
+        for(int side=0;side<(certificateStage == 0 ? 2 : 1);side++)
         {
-            float origin=side==0?-251f:251f;
+            float origin=certificateStage != 0 ? 0f : side==0?-251f:251f;
             var panel=Image(table.transform,"TablePanel"+side,
                 new Vector2(origin,0),new Vector2(491,161),cream);
             panel.raycastTarget=false;
@@ -303,27 +332,28 @@ public class ChemQuestCertificate : MonoBehaviour
             for(int j=0;j<4;j++)
                 Txt(head.transform,"Heading"+j,headings[j],17,
                     new Vector2(x[j],0),new Vector2(w[j],23),Color.white);
-            for(int row=0;row<8;row++)
+            for(int row=0;row<(certificateStage == 0 ? 8 : 3);row++)
             {
                 int index=side*8+row;
                 if(index>=15)break;
-                int stage=index/3+1,level=index%3+1;
+                int stage=certificateStage == 0 ? index/3+1 : certificateStage,level=index%3+1;
                 string id="S"+stage+"L"+level;
-                float y=43-row*16.3f;
+                float y=certificateStage == 0 ? 43-row*16.3f : 34-row*39f;
+                float rowHeight=certificateStage == 0 ? 16f : 36f;
                 if(row%2==1)
                 {
                     var stripe=Image(panel.transform,"RowStripe"+row,
-                        new Vector2(0,y),new Vector2(487,16),new Color32(225,240,239,255));
+                        new Vector2(0,y),new Vector2(487,rowHeight),new Color32(225,240,239,255));
                     stripe.raycastTarget=false;
                 }
-                Txt(panel.transform,id+"Level",id,17,new Vector2(x[0],y),
-                    new Vector2(w[0],16),ink);
+                Txt(panel.transform,id+"Level",certificateStage == 0 ? id : "Level "+level,17,new Vector2(x[0],y),
+                    new Vector2(w[0],rowHeight),ink);
                 Txt(panel.transform,id+"Score","--",17,new Vector2(x[1],y),
-                    new Vector2(w[1],16),aqua);
+                    new Vector2(w[1],rowHeight),aqua);
                 Txt(panel.transform,id+"Retries","--",17,new Vector2(x[2],y),
-                    new Vector2(w[2],16),ink);
+                    new Vector2(w[2],rowHeight),ink);
                 Txt(panel.transform,id+"Result","--",16,new Vector2(x[3],y),
-                    new Vector2(w[3],16),ink);
+                    new Vector2(w[3],rowHeight),ink);
             }
         }
         table.transform.SetAsLastSibling();
@@ -518,7 +548,14 @@ public class ChemQuestCertificate : MonoBehaviour
         status=Find("Status")?.GetComponent<TMP_Text>();
         BindButton("ExportPNG",()=>StartCoroutine(Export(false)));
         BindButton("ExportPDF",()=>StartCoroutine(Export(true)));
-        BindButton("BackButton",ReturnToStageSelection);
+        if (certificateStage == 0)
+            BindButton("BackButton",ReturnToStageSelection);
+        else
+        {
+            var label = Find("BackButton")?.GetComponentInChildren<TMP_Text>(true);
+            if (label != null) label.text = "MAIN MENU";
+            BindButton("BackButton", () => SceneManager.LoadScene("MainMenu"));
+        }
     }
     private void BindButton(string name,UnityEngine.Events.UnityAction action)
     {
@@ -533,6 +570,27 @@ public class ChemQuestCertificate : MonoBehaviour
     }
     private void Refresh()
     {
+        if (certificateStage != 0)
+        {
+            SetLockedVisuals(false, 3);
+            for (int row = 1; row <= 5; row++)
+                Find("TranscriptRow" + row)?.gameObject.SetActive(false);
+            Set("DocumentTitle", "CERTIFICATE OF STAGE COMPLETION");
+            Set("RecipientLabel", "Presented to");
+            Set("RecipientName", PlayerPrefs.GetString("StudentName", "STUDENT"));
+            Set("Identity", PlayerPrefs.GetString("StudentSchool") + "  •  " +
+                PlayerPrefs.GetString("StudentSection"));
+            Set("Achievement", stageTitle);
+            int total = SavedScore(certificateStage, 1) + SavedScore(certificateStage, 2) +
+                SavedScore(certificateStage, 3);
+            Set("Score", total + "/300\nSTAGE SCORE");
+            Set("Stages", "3-LEVEL TRANSCRIPT");
+            Set("CertificateMetadata", "-- = RETRIES NOT RECORDED");
+            SetPerformanceTableVisible(true);
+            PopulatePerformanceTable();
+            return;
+        }
+
         RecordIfEligible();
         bool hasAssessments=ChemQuestAssessmentGate.PreCompleted && ChemQuestAssessmentGate.PostCompleted;
         bool awardReady=AllLevelsComplete() && hasAssessments && PlayerPrefs.HasKey(IssuedAtKey);
@@ -593,8 +651,11 @@ public class ChemQuestCertificate : MonoBehaviour
     }
     private IEnumerator Export(bool pdf)
     {
-        if(!AllLevelsComplete() || !ChemQuestAssessmentGate.PreCompleted ||
-           !ChemQuestAssessmentGate.PostCompleted || !PlayerPrefs.HasKey(IssuedAtKey))yield break;
+        bool exportAllowed = certificateStage != 0
+            ? ChemQuestStudentProgress.IsStageComplete(certificateStage)
+            : AllLevelsComplete() && ChemQuestAssessmentGate.PreCompleted &&
+                ChemQuestAssessmentGate.PostCompleted && PlayerPrefs.HasKey(IssuedAtKey);
+        if (!exportAllowed) yield break;
         // Capture the certificate itself, not the Game View background or buttons.
         yield return new WaitForEndOfFrame();
         var screenshot=ScreenCapture.CaptureScreenshotAsTexture();
@@ -616,8 +677,10 @@ public class ChemQuestCertificate : MonoBehaviour
             cropped.Apply();
             var bytes=pdf?EncodePdf(cropped.EncodeToJPG(95),cropped.width,cropped.height):
                 cropped.EncodeToPNG();
-            string file="ChemQuest_"+PlayerPrefs.GetString(CodeKey,"Certificate").Replace("-","_")+
-                (pdf?".pdf":".png");
+            string certificateName = certificateStage == 0
+                ? PlayerPrefs.GetString(CodeKey,"Certificate").Replace("-","_")
+                : "Stage_" + certificateStage + "_Certificate";
+            string file = "ChemQuest_" + certificateName + (pdf ? ".pdf" : ".png");
             string savedLocation;
 #if UNITY_ANDROID && !UNITY_EDITOR
             if(GetAndroidApiLevel()>=29)
