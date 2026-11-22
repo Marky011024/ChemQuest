@@ -572,7 +572,7 @@ public class ChemQuestCertificate : MonoBehaviour
         var text=Find(name)?.GetComponent<TMP_Text>();
         if(text!=null)text.text=value;
     }
-    private void ApplyIvoryCertificateDesign()
+    private void ApplyIvoryCertificateDesign(bool locked = false)
     {
         var ink = new Color32(12, 28, 57, 255);
         var paper = new Color32(255, 250, 237, 255);
@@ -586,7 +586,7 @@ public class ChemQuestCertificate : MonoBehaviour
         }
 
         bool mastery = certificateStage == 0;
-        Find("Stages")?.gameObject.SetActive(mastery);
+        Find("Stages")?.gameObject.SetActive(mastery && !locked);
         Find("IvoryPaper").GetComponent<Image>().color = paper;
         Find("GoldBorder").GetComponent<Image>().color = amber;
         var decoration = Image(page, "IvoryCertificateDecoration", Vector2.zero, Vector2.zero, Color.clear);
@@ -603,6 +603,13 @@ public class ChemQuestCertificate : MonoBehaviour
         PositionText("Brand", new Vector2(0, 233), new Vector2(800, 40), 26, ink);
         PositionText("DocumentTitle", new Vector2(0, 183), new Vector2(1000, 64), 40, ink);
         PositionText("Achievement", new Vector2(0, 128), new Vector2(950, 42), 25, amber);
+        if (locked)
+        {
+            var progressFill = Find("LockedProgressFill")?.GetComponent<Image>();
+            if (progressFill != null) progressFill.color = amber;
+            return;
+        }
+
         PositionText("RecipientLabel", new Vector2(-218, 71), new Vector2(490, 30), 20, ink);
         PositionText("RecipientName", new Vector2(-218, 25), new Vector2(490, 58), 43, ink);
         PositionText("Identity", new Vector2(-218, -24), new Vector2(490, 34), 20, ink);
@@ -694,7 +701,8 @@ public class ChemQuestCertificate : MonoBehaviour
         SetLockedVisuals(!awardReady,CompletedCount());
         if(!awardReady)
         {
-            Set("DocumentTitle","CERTIFICATE LOCKED");
+            ApplyIvoryCertificateDesign(locked: true);
+            Set("DocumentTitle","Certificate of Chemical Mastery");
             Set("RecipientLabel","PROGRESS TOWARDS CHEMICAL MASTERY");
             Set("Identity","Your progress is saved across all five stages.");
             Set("RecipientName",AllLevelsComplete()?
