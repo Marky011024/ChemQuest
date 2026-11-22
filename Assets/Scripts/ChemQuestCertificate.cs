@@ -27,6 +27,8 @@ public class ChemQuestCertificate : MonoBehaviour
     private static (int Stage, string Title) pendingStage;
     private int certificateStage;
     private string stageTitle;
+    private Texture2D stageSealTexture;
+    private Sprite stageSealSprite;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetPendingStage() => pendingStage = default;
@@ -311,7 +313,7 @@ public class ChemQuestCertificate : MonoBehaviour
         var navy=new Color32(8,40,66,255);
         var ink=new Color32(20,52,71,255);
         var aqua=new Color32(18,113,136,255);
-        var cream=new Color32(243,249,246,255);
+        var cream=certificateStage == 0 ? new Color32(243,249,246,255) : new Color32(255,250,237,255);
         var table=new GameObject("CertificatePerformanceTable",typeof(RectTransform));
         table.transform.SetParent(cert,false);
         var rt=table.GetComponent<RectTransform>();
@@ -321,14 +323,16 @@ public class ChemQuestCertificate : MonoBehaviour
         for(int side=0;side<(certificateStage == 0 ? 2 : 1);side++)
         {
             float origin=certificateStage != 0 ? 0f : side==0?-251f:251f;
+            bool stageAward = certificateStage != 0;
+            float width = stageAward ? 930f : 491f;
             var panel=Image(table.transform,"TablePanel"+side,
-                new Vector2(origin,0),new Vector2(491,161),cream);
+                new Vector2(origin,0),new Vector2(width,161),cream);
             panel.raycastTarget=false;
             var head=Image(panel.transform,"Header",new Vector2(0,68),
-                new Vector2(486,24),navy);
+                new Vector2(width-5,24),navy);
             head.raycastTarget=false;
-            float[] x={-180,-56,40,157};
-            float[] w={116,100,91,141};
+            float[] x=stageAward ? new[]{-344f,-114f,114f,344f} : new[]{-180f,-56f,40f,157f};
+            float[] w=stageAward ? new[]{225f,225f,225f,225f} : new[]{116f,100f,91f,141f};
             for(int j=0;j<4;j++)
                 Txt(head.transform,"Heading"+j,headings[j],17,
                     new Vector2(x[j],0),new Vector2(w[j],23),Color.white);
@@ -343,7 +347,7 @@ public class ChemQuestCertificate : MonoBehaviour
                 if(row%2==1)
                 {
                     var stripe=Image(panel.transform,"RowStripe"+row,
-                        new Vector2(0,y),new Vector2(487,rowHeight),new Color32(225,240,239,255));
+                        new Vector2(0,y),new Vector2(width-4,rowHeight),stageAward ? new Color32(248,239,215,255) : new Color32(225,240,239,255));
                     stripe.raycastTarget=false;
                 }
                 Txt(panel.transform,id+"Level",certificateStage == 0 ? id : "Level "+level,17,new Vector2(x[0],y),
@@ -568,6 +572,79 @@ public class ChemQuestCertificate : MonoBehaviour
         var text=Find(name)?.GetComponent<TMP_Text>();
         if(text!=null)text.text=value;
     }
+    private void ApplyStageCertificateDesign()
+    {
+        var ink = new Color32(12, 28, 57, 255);
+        var paper = new Color32(255, 250, 237, 255);
+        var amber = new Color32(151, 84, 9, 255);
+        foreach (string name in new[] { "GameDesignHeader", "GameDesignHeaderAccent",
+            "ChemistryEmblem", "AtomEmblem", "StudentIdentityPanel", "StudentIdentityAccent",
+            "AccuracyBadgePanel", "AccuracyBadgeAccent", "BadgeLabel", "PerformanceHeader",
+            "PerformanceHeaderAccent", "CongratulationsBanner", "Stages" })
+        {
+            Find(name)?.gameObject.SetActive(false);
+        }
+
+        Find("IvoryPaper").GetComponent<Image>().color = paper;
+        Find("GoldBorder").GetComponent<Image>().color = amber;
+        var decoration = Image(page, "StageCertificateDecoration", Vector2.zero, Vector2.zero, Color.clear);
+        decoration.raycastTarget = false;
+        var border = Image(decoration.transform, "InnerGoldBorder", Vector2.zero,
+            new Vector2(1038, 541), paper);
+        border.raycastTarget = false;
+        var outline = border.gameObject.AddComponent<Outline>();
+        outline.effectColor = amber;
+        outline.effectDistance = new Vector2(1, 1);
+        // Keep the background decoration behind the live TextMeshPro fields.
+        decoration.transform.SetSiblingIndex(Find("IvoryPaper").GetSiblingIndex() + 1);
+
+        PositionText("Brand", new Vector2(0, 233), new Vector2(800, 40), 26, ink);
+        PositionText("DocumentTitle", new Vector2(0, 183), new Vector2(1000, 64), 40, ink);
+        PositionText("Achievement", new Vector2(0, 128), new Vector2(950, 42), 25, amber);
+        PositionText("RecipientLabel", new Vector2(-218, 71), new Vector2(490, 30), 20, ink);
+        PositionText("RecipientName", new Vector2(-218, 25), new Vector2(490, 58), 43, ink);
+        PositionText("Identity", new Vector2(-218, -24), new Vector2(490, 34), 20, ink);
+        foreach (string name in new[] { "RecipientLabel", "RecipientName", "Identity" })
+            Find(name).GetComponent<TMP_Text>().alignment = TextAlignmentOptions.MidlineLeft;
+
+        Image(decoration.transform, "RecipientRule", new Vector2(-218, -5),
+            new Vector2(490, 2), Gold).raycastTarget = false;
+        var seal = Image(decoration.transform, "GoldScoreSeal", new Vector2(340, 36),
+            new Vector2(182, 182), Color.white);
+        seal.raycastTarget = false;
+        const int size = 192;
+        stageSealTexture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        var pixels = new Color32[size * size];
+        var center = Vector2.one * (size - 1) * .5f;
+        for (int y = 0; y < size; y++)
+        for (int x = 0; x < size; x++)
+        {
+            var offset = new Vector2(x, y) - center;
+            float radius = offset.magnitude;
+            float edge = 90f + 3f * Mathf.Cos(20f * Mathf.Atan2(offset.y, offset.x));
+            Color32 color = radius < 83f && radius > 79f ? amber : Gold;
+            if (radius < 77f) color = new Color32(253, 222, 142, 255);
+            color.a = (byte)Mathf.Clamp(Mathf.RoundToInt((edge - radius) * 255f), 0, 255);
+            pixels[y * size + x] = color;
+        }
+        stageSealTexture.SetPixels32(pixels);
+        stageSealTexture.Apply(false, true);
+        stageSealSprite = Sprite.Create(stageSealTexture, new Rect(0, 0, size, size),
+            Vector2.one * .5f);
+        seal.sprite = stageSealSprite;
+        PositionText("Score", new Vector2(340, 24), new Vector2(151, 86), 22, ink);
+        Txt(page, "ScoreSealMark", "CQ", 24, new Vector2(340, 79),
+            new Vector2(84, 34), amber);
+        PositionText("CertificateMetadata", new Vector2(0, -244),
+            new Vector2(950, 26), 13, ink);
+    }
+
+    private void OnDestroy()
+    {
+        if (stageSealSprite != null) Destroy(stageSealSprite);
+        if (stageSealTexture != null) Destroy(stageSealTexture);
+    }
+
     private void Refresh()
     {
         if (certificateStage != 0)
@@ -575,7 +652,8 @@ public class ChemQuestCertificate : MonoBehaviour
             SetLockedVisuals(false, 3);
             for (int row = 1; row <= 5; row++)
                 Find("TranscriptRow" + row)?.gameObject.SetActive(false);
-            Set("DocumentTitle", "CERTIFICATE OF STAGE COMPLETION");
+            ApplyStageCertificateDesign();
+            Set("DocumentTitle", "Certificate of Stage Completion");
             Set("RecipientLabel", "Presented to");
             Set("RecipientName", PlayerPrefs.GetString("StudentName", "STUDENT"));
             Set("Identity", PlayerPrefs.GetString("StudentSchool") + "  •  " +
