@@ -9,6 +9,7 @@ using UnityEngine;
 public static class ChemQuestStudentProgress
 {
     private const string ActiveProfileKey="CQ_ActiveProfile_v1";
+    private const string LastPlayedLevelKey = "CQ_LastPlayedLevel";
     private const string SnapshotPrefix="CQ_Profile_v1_";
     private static readonly string[] GlobalIntKeys={
         "Stage1Completed","Stage2Completed","Stage3Completed","Stage4Completed","Stage5Completed",
@@ -18,9 +19,46 @@ public static class ChemQuestStudentProgress
         "CQ_PostTestDone","CQ_PostTestScore","CQ_PostTestNext"
     };
     private static readonly string[] GlobalStringKeys={
+        LastPlayedLevelKey,
         "EnergyLastUpdateUTC","ChemQuestCertificateIssuedUtc","ChemQuestCertificateId",
         "CQ_PreTestFinishedUtc","CQ_PostTestFinishedUtc"
     };
+    public static void RecordPlayedLevel(string scene)
+    {
+        if (PlayerPrefs.GetString(LastPlayedLevelKey) == scene)
+            return;
+
+        PlayerPrefs.SetString(LastPlayedLevelKey, scene);
+        PlayerPrefs.Save();
+    }
+
+    public static string GetContinueScene()
+    {
+        string lastPlayed = PlayerPrefs.GetString(LastPlayedLevelKey);
+        string firstIncomplete = null;
+        bool reachedLastPlayed = false;
+
+        for (int stage = 1; stage <= 5; stage++)
+        {
+            for (int level = 1; level <= 3; level++)
+            {
+                string scene = "Stage" + stage + "Level" + level;
+                if (scene == lastPlayed)
+                    reachedLastPlayed = true;
+
+                if (PlayerPrefs.GetInt(scene + "Completed") == 1)
+                    continue;
+
+                if (reachedLastPlayed)
+                    return scene;
+
+                firstIncomplete ??= scene;
+            }
+        }
+
+        return firstIncomplete ?? "ChemQuestCertificate";
+    }
+
     private static IEnumerable<string> ProgressIntKeys()
     {
         foreach(var key in GlobalIntKeys)yield return key;
