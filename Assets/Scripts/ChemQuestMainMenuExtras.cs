@@ -26,7 +26,7 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
     private Transform achievementsPanel;
     private GameObject openingPanel;
     private Coroutine openingAnimation;
-    internal const string OpeningSeenKey = "ChemQuestOpeningSeen";
+    internal const string OpeningSeenKey = "ChemQuestAnimatedOpeningSeen";
 
     private static readonly string[] OpeningHeadings =
     {
@@ -533,46 +533,90 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
         {
             var jar = Panel(samples, "Sample" + (char)('A' + index),
                 new Vector2((index - 1) * 152, 0), new Vector2(108, 116), MidNavy);
-            Panel(jar.transform, "SampleContents", new Vector2(0, -18),
-                new Vector2(92, 65), index == 1 ? Teal : new Color32(61, 86, 147, 255));
-            Label(jar.transform, "Unknown", "?", new Vector2(0, 6),
-                new Vector2(86, 60), 52, Color.white);
+            var material = Panel(jar.transform, "SampleContents", new Vector2(0, 12),
+                new Vector2(76, 72), Color.white);
+            material.sprite = Resources.Load<Sprite>("ChemQuestStage5Modular/Sample" + (char)('A' + index));
+            material.preserveAspect = true;
+            if (material.sprite == null)
+                material.color = Teal;
             Label(jar.transform, "SampleLabel", ((char)('A' + index)).ToString(),
                 new Vector2(0, -37), new Vector2(80, 29), 22, Gold);
         }
 
-        var montage = Label(content.transform, "LabPreview",
-            "CHEMICAL CHANGE   •   IONIC BONDING\nCOVALENT BONDING   •   METALLIC BONDING\nMATERIAL PROPERTY TESTING",
-            new Vector2(110, 38), new Vector2(650, 145), 24, Gold);
+        var particles = Rect(content.transform, "ParticleCloseup", new Vector2(110, 55),
+            new Vector2(520, 130));
+        for (int index = 0; index < 6; index++)
+        {
+            Label(particles, "Particle" + index, "●", Vector2.zero, new Vector2(42, 42),
+                31, index % 2 == 0 ? Gold : new Color32(68, 195, 231, 255));
+        }
+        var montage = Label(content.transform, "LabPreview", "",
+            new Vector2(110, 28), new Vector2(650, 52), 31, Gold);
         var transition = content.gameObject.AddComponent<CanvasGroup>();
         AddButton(shade.transform, "OpeningAction", "SKIP INTRO",
             new Vector2(0, -305), new Vector2(248, 55), Teal);
         var action = shade.transform.Find("OpeningAction/Label").GetComponent<TMP_Text>();
         Bind(shade.transform, "OpeningAction", () => FinishOpening(destination));
         openingAnimation = StartCoroutine(AnimateOpening(
-            transition, title, dialogue, samples, montage, action));
+            transition, title, dialogue, portrait.rectTransform, samples, particles, montage, action));
     }
 
     private IEnumerator AnimateOpening(CanvasGroup transition, TMP_Text title,
-        TMP_Text dialogue, RectTransform samples, TMP_Text montage, TMP_Text action)
+        TMP_Text dialogue, RectTransform portrait, RectTransform samples, RectTransform particles,
+        TMP_Text montage, TMP_Text action)
     {
         var panel = (RectTransform)transition.transform;
         for (int beat = 0; beat < OpeningLines.Length; beat++)
         {
             title.text = OpeningHeadings[beat];
             dialogue.text = OpeningLines[beat];
-            samples.gameObject.SetActive(beat == 1 || beat == 2 || beat == 4);
+            samples.gameObject.SetActive(beat == 1 || beat == 4);
+            particles.gameObject.SetActive(beat == 2 || beat == 3);
             montage.gameObject.SetActive(beat == 3);
             if (beat == OpeningLines.Length - 1)
                 action.text = "ENTER ACADEMY";
 
             float duration = beat == 3 ? 10f : 6f;
+            int lab = -1;
             for (float elapsed = 0; elapsed < duration; elapsed += Time.unscaledDeltaTime)
             {
                 float progress = Mathf.Clamp01(elapsed / .55f);
                 transition.alpha = progress;
                 panel.anchoredPosition = Vector2.right * (1f - progress) * 35f;
-                samples.localScale = Vector3.one * (1f + Mathf.Sin(elapsed * 2f) * .035f);
+                float entrance = Mathf.SmoothStep(0, 1, Mathf.Clamp01(elapsed / 1.25f));
+                portrait.anchoredPosition = new Vector2(-349 - (beat == 0 ? (1 - entrance) * 160 : 0),
+                    24 + Mathf.Sin(elapsed * 4f) * 4f);
+                portrait.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(elapsed * 3f) * 2f);
+                if (samples.gameObject.activeSelf)
+                {
+                    for (int index = 0; index < samples.childCount; index++)
+                    {
+                        float place = Mathf.SmoothStep(0, 1,
+                            Mathf.Clamp01((elapsed - index * .24f) / .75f));
+                        var sample = (RectTransform)samples.GetChild(index);
+                        sample.anchoredPosition = new Vector2((index - 1) * 152, (1 - place) * 78);
+                        sample.localScale = Vector3.one * Mathf.Lerp(.25f, 1f, place);
+                    }
+                }
+                if (particles.gameObject.activeSelf)
+                {
+                    for (int index = 0; index < particles.childCount; index++)
+                    {
+                        float angle = elapsed * 1.9f + index * Mathf.PI / 3f;
+                        var particle = (RectTransform)particles.GetChild(index);
+                        particle.anchoredPosition = new Vector2(Mathf.Cos(angle) * 145,
+                            (beat == 3 ? 58 : 0) + Mathf.Sin(angle) * 24);
+                    }
+                }
+                if (beat == 3)
+                {
+                    int nextLab = Mathf.Min(StageTitles.Length - 1, Mathf.FloorToInt(elapsed / 2f));
+                    if (lab != nextLab)
+                    {
+                        lab = nextLab;
+                        montage.text = StageTitles[lab];
+                    }
+                }
                 yield return null;
             }
         }
