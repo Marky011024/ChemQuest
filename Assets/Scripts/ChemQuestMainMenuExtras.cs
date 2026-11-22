@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Video;
 using UnityEngine.SceneManagement;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
@@ -26,22 +27,9 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
     private Transform achievementsPanel;
     private GameObject openingPanel;
     private Coroutine openingAnimation;
-    internal const string OpeningSeenKey = "ChemQuestAnimatedOpeningSeen";
+    internal const string OpeningSeenKey = "ChemQuestVideoOpeningSeen";
 
-    private static readonly string[] OpeningHeadings =
-    {
-        "Welcome to ChemQuest Academy", "Three Mystery Samples",
-        "A Clue Beneath the Surface", "Five Labs to Explore", "Your First Mission"
-    };
-
-    private static readonly string[] OpeningLines =
-    {
-        "I'm Prof. Atom. I need a new investigator in the chemistry lab.",
-        "The labels on samples A, B, and C are missing. Can you identify their bonding types?",
-        "Their particles can be bonded in different ways. Those bonds help explain how each sample behaves.",
-        "Observe chemical changes, explore three kinds of bonding, and test the samples for evidence.",
-        "Start in Catalyst Chronicles. In the final stage, use your lab evidence to classify the mystery samples."
-    };
+    private RenderTexture openingTexture;
 
     private void Start()
     {
@@ -503,9 +491,16 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
 
     private void ShowOpening(string destination)
     {
+        var clip = Resources.Load<VideoClip>("ChemQuestTutorial/ChemQuestOpening");
+        if (clip == null)
+        {
+            Debug.LogWarning("ChemQuest opening video could not be loaded.");
+            OpenAfterPreTest(destination);
+            return;
+        }
+
         var overlay = GameObject.Find("ChemQuestMenuOverlay").transform;
-        var shade = Panel(overlay, "ChemQuestOpening", Vector2.zero, Vector2.zero,
-            new Color32(5, 18, 37, 225));
+        var shade = Panel(overlay, "ChemQuestOpening", Vector2.zero, Vector2.zero, Color.black);
         shade.rectTransform.anchorMin = Vector2.zero;
         shade.rectTransform.anchorMax = Vector2.one;
         shade.rectTransform.sizeDelta = Vector2.zero;
@@ -514,127 +509,86 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
         openingPanel = shade.gameObject;
         EventSystem.current?.SetSelectedGameObject(null);
 
-        var content = Panel(shade.transform, "StoryPanel", Vector2.zero,
-            new Vector2(1050, 520), Navy);
-        var portrait = Panel(content.transform, "ProfAtom", new Vector2(-349, 24),
-            new Vector2(237, 310), Color.white);
-        portrait.sprite = Resources.Load<Sprite>("ChemQuestTutorial/ProfAtom");
-        portrait.preserveAspect = true;
-        portrait.enabled = portrait.sprite != null;
-        Label(content.transform, "Speaker", "PROF. ATOM", new Vector2(-349, -150),
-            new Vector2(237, 44), 23, Gold);
-        var title = Label(content.transform, "SceneTitle", "", new Vector2(110, 164),
-            new Vector2(650, 62), 38, Gold);
-        var dialogue = Label(content.transform, "Dialogue", "", new Vector2(110, -104),
-            new Vector2(625, 105), 25, Color.white);
-        var samples = Rect(content.transform, "MysterySamples", new Vector2(110, 38),
-            new Vector2(590, 130));
-        for (int index = 0; index < 3; index++)
-        {
-            var jar = Panel(samples, "Sample" + (char)('A' + index),
-                new Vector2((index - 1) * 152, 0), new Vector2(108, 116), MidNavy);
-            var material = Panel(jar.transform, "SampleContents", new Vector2(0, 12),
-                new Vector2(76, 72), Color.white);
-            material.sprite = Resources.Load<Sprite>("ChemQuestStage5Modular/Sample" + (char)('A' + index));
-            material.preserveAspect = true;
-            if (material.sprite == null)
-                material.color = Teal;
-            Label(jar.transform, "SampleLabel", ((char)('A' + index)).ToString(),
-                new Vector2(0, -37), new Vector2(80, 29), 22, Gold);
-        }
+        var frame = Rect(shade.transform, "OpeningVideo", Vector2.zero, new Vector2(1120, 630));
+        var picture = frame.gameObject.AddComponent<RawImage>();
+        picture.raycastTarget = false;
+        openingTexture = new RenderTexture((int)clip.width, (int)clip.height, 0);
+        picture.texture = openingTexture;
+        picture.enabled = false;
 
-        var particles = Rect(content.transform, "ParticleCloseup", new Vector2(110, 55),
-            new Vector2(520, 130));
-        for (int index = 0; index < 6; index++)
-        {
-            Label(particles, "Particle" + index, "●", Vector2.zero, new Vector2(42, 42),
-                31, index % 2 == 0 ? Gold : new Color32(68, 195, 231, 255));
-        }
-        var montage = Label(content.transform, "LabPreview", "",
-            new Vector2(110, 28), new Vector2(650, 52), 31, Gold);
-        var transition = content.gameObject.AddComponent<CanvasGroup>();
+        var player = shade.gameObject.AddComponent<VideoPlayer>();
+        player.playOnAwake = false;
+        player.source = VideoSource.VideoClip;
+        player.clip = clip;
+        player.renderMode = VideoRenderMode.RenderTexture;
+        player.targetTexture = openingTexture;
+        player.audioOutputMode = VideoAudioOutputMode.None;
+        player.waitForFirstFrame = true;
+
         AddButton(shade.transform, "OpeningAction", "SKIP INTRO",
-            new Vector2(0, -305), new Vector2(248, 55), Teal);
-        var action = shade.transform.Find("OpeningAction/Label").GetComponent<TMP_Text>();
+            new Vector2(0, -326), new Vector2(220, 48), Teal);
         Bind(shade.transform, "OpeningAction", () => FinishOpening(destination));
-        openingAnimation = StartCoroutine(AnimateOpening(
-            transition, title, dialogue, portrait.rectTransform, samples, particles, montage, action));
+        player.loopPointReached += _ => FinishOpening(destination);
+        player.errorReceived += (_, error) =>
+        {
+            Debug.LogWarning("ChemQuest opening video: " + error);
+            FinishOpening(destination);
+        };
+        openingAnimation = StartCoroutine(PrepareOpeningVideo(player, picture, destination));
     }
 
-    private IEnumerator AnimateOpening(CanvasGroup transition, TMP_Text title,
-        TMP_Text dialogue, RectTransform portrait, RectTransform samples, RectTransform particles,
-        TMP_Text montage, TMP_Text action)
+    private IEnumerator PrepareOpeningVideo(VideoPlayer player, RawImage picture, string destination)
     {
-        var panel = (RectTransform)transition.transform;
-        for (int beat = 0; beat < OpeningLines.Length; beat++)
-        {
-            title.text = OpeningHeadings[beat];
-            dialogue.text = OpeningLines[beat];
-            samples.gameObject.SetActive(beat == 1 || beat == 4);
-            particles.gameObject.SetActive(beat == 2 || beat == 3);
-            montage.gameObject.SetActive(beat == 3);
-            if (beat == OpeningLines.Length - 1)
-                action.text = "ENTER ACADEMY";
-
-            float duration = beat == 3 ? 10f : 6f;
-            int lab = -1;
-            for (float elapsed = 0; elapsed < duration; elapsed += Time.unscaledDeltaTime)
-            {
-                float progress = Mathf.Clamp01(elapsed / .55f);
-                transition.alpha = progress;
-                panel.anchoredPosition = Vector2.right * (1f - progress) * 35f;
-                float entrance = Mathf.SmoothStep(0, 1, Mathf.Clamp01(elapsed / 1.25f));
-                portrait.anchoredPosition = new Vector2(-349 - (beat == 0 ? (1 - entrance) * 160 : 0),
-                    24 + Mathf.Sin(elapsed * 4f) * 4f);
-                portrait.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(elapsed * 3f) * 2f);
-                if (samples.gameObject.activeSelf)
-                {
-                    for (int index = 0; index < samples.childCount; index++)
-                    {
-                        float place = Mathf.SmoothStep(0, 1,
-                            Mathf.Clamp01((elapsed - index * .24f) / .75f));
-                        var sample = (RectTransform)samples.GetChild(index);
-                        sample.anchoredPosition = new Vector2((index - 1) * 152, (1 - place) * 78);
-                        sample.localScale = Vector3.one * Mathf.Lerp(.25f, 1f, place);
-                    }
-                }
-                if (particles.gameObject.activeSelf)
-                {
-                    for (int index = 0; index < particles.childCount; index++)
-                    {
-                        float angle = elapsed * 1.9f + index * Mathf.PI / 3f;
-                        var particle = (RectTransform)particles.GetChild(index);
-                        particle.anchoredPosition = new Vector2(Mathf.Cos(angle) * 145,
-                            (beat == 3 ? 58 : 0) + Mathf.Sin(angle) * 24);
-                    }
-                }
-                if (beat == 3)
-                {
-                    int nextLab = Mathf.Min(StageTitles.Length - 1, Mathf.FloorToInt(elapsed / 2f));
-                    if (lab != nextLab)
-                    {
-                        lab = nextLab;
-                        montage.text = StageTitles[lab];
-                    }
-                }
-                yield return null;
-            }
-        }
+        // Let StartCoroutine return before a decoder callback can close the overlay.
+        yield return null;
+        player.Prepare();
+        float timeout = Time.realtimeSinceStartup + 8f;
+        while (!player.isPrepared && Time.realtimeSinceStartup < timeout)
+            yield return null;
 
         openingAnimation = null;
+        if (!player.isPrepared)
+        {
+            Debug.LogWarning("ChemQuest opening video preparation timed out.");
+            FinishOpening(destination);
+            yield break;
+        }
+
+        picture.enabled = true;
+        player.Play();
     }
+
+    private void ReleaseOpeningTexture()
+    {
+        if (openingTexture == null)
+            return;
+
+        openingTexture.Release();
+        Destroy(openingTexture);
+        openingTexture = null;
+    }
+
+    private void OnDestroy() => ReleaseOpeningTexture();
 
     private void FinishOpening(string destination)
     {
+        if (openingPanel == null)
+            return;
+
         if (openingAnimation != null)
         {
             StopCoroutine(openingAnimation);
             openingAnimation = null;
         }
 
-        openingPanel.SetActive(false);
-        Destroy(openingPanel);
+        var panel = openingPanel;
         openingPanel = null;
+        var player = panel.GetComponent<VideoPlayer>();
+        player.Stop();
+        player.targetTexture = null;
+        panel.SetActive(false);
+        Destroy(panel);
+        ReleaseOpeningTexture();
         PlayerPrefs.SetInt(OpeningSeenKey, 1);
         PlayerPrefs.Save();
         OpenAfterPreTest(destination);
