@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Security.Cryptography;
 using System.Text;
 using UnityEngine;
@@ -65,12 +66,17 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
         Debug.Log("CHEMQUEST: Prof. Atom interactive hand guide attached.");
     }
 
-    private void Start()
+    private IEnumerator Start()
     {
-        if (SceneManager.GetActiveScene().name != SceneName) { Destroy(gameObject); return; }
+        if (SceneManager.GetActiveScene().name != SceneName) { Destroy(gameObject); yield break; }
         completionKey = ProfileKey();
         DiscoverTargets();
         if(!BindEditableHierarchy()) BuildInterface();
+        if (guideRoot != null) guideRoot.SetActive(false);
+
+        var briefing = FindFirstObjectByType<ChemQuestFirstTimeTutorial>();
+        while (briefing != null && briefing.HasPendingBriefing)
+            yield return null;
         // Always display on every Stage 1 Level 1 entry, including returning
         // students. No GUIDE button press or PlayerPrefs reset is needed.
         StartGuide();
@@ -625,6 +631,11 @@ public sealed class Stage1Level1NpcTutorial : MonoBehaviour
             return;
         }
         if (!activeGuide) return;
+        bool gameplayRunning = Time.timeScale > 0f;
+        if (guideRoot.activeSelf != gameplayRunning)
+            guideRoot.SetActive(gameplayRunning);
+        if (!gameplayRunning) return;
+
         animationClock += Time.unscaledDeltaTime;
         // Tutorial stays synchronized with real student interactions; never automates them.
         if (step == 1 && flask != null && flask.zincAdded) { step = 2; ShowStep(); }

@@ -54,6 +54,12 @@ public class ChemQuestFirstTimeTutorial : MonoBehaviour
 
     internal static string BriefingKey(int stage) => "ChemQuest_StageBriefing_" + stage;
 
+    internal bool HasPendingBriefing =>
+        isActiveAndEnabled && Level == 1 && ShowOnFirstPlay &&
+        Stage >= 1 && Stage <= StageTitles.Length &&
+        overlay != null && title != null && body != null && nextLabel != null &&
+        PlayerPrefs.GetInt(BriefingKey(Stage)) == 0;
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void RegisterBriefings()
     {
@@ -161,8 +167,7 @@ public class ChemQuestFirstTimeTutorial : MonoBehaviour
         // Wait for each scene's gameplay controller to initialize its own HUD.
         yield return null;
         yield return null;
-        if (Level == 1 && ShowOnFirstPlay && Stage >= 1 && Stage <= StageTitles.Length &&
-            PlayerPrefs.GetInt(BriefingKey(Stage)) == 0)
+        if (HasPendingBriefing)
             ShowBriefing();
     }
     public void BuildEditableUI()
