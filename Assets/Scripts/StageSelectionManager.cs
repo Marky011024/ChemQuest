@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -6,41 +7,48 @@ public class StageSelectionManager : MonoBehaviour
 {
     private void Start()
     {
-        // StageSelection.unity has a visible Stage3SelectButton with empty OnClick.
-        // Connect it directly, without touching other stage navigation.
-        foreach (var button in FindObjectsOfType<Button>(true))
+        foreach (var button in FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None))
         {
-            if (button.gameObject.name == "BackButton")
+            if (button.name == "BackButton")
             {
                 button.onClick.RemoveAllListeners();
                 button.onClick.AddListener(ReturnToMainMenu);
-                button.interactable=true;
+                button.interactable = true;
+                continue;
             }
-            else if (button.gameObject.name == "Stage3SelectButton")
+
+            for (int stage = 1; stage <= 5; stage++)
             {
-                button.onClick=new Button.ButtonClickedEvent();
-                button.onClick.AddListener(OpenStage3);
-                button.interactable=true;
-            }
-            else if(button.gameObject.name=="Stage2SelectButton")
-            {
-                button.onClick=new Button.ButtonClickedEvent();
-                button.onClick.AddListener(OpenStage2);
-                button.interactable=true;
-            }
-            else if(button.gameObject.name=="Stage5SelectButton")
-            {
-                button.onClick=new Button.ButtonClickedEvent();
-                button.onClick.AddListener(OpenStage5);
-                button.interactable=true;
-            }
-            else if(button.gameObject.name=="Stage4SelectButton")
-            {
-                button.onClick=new Button.ButtonClickedEvent();
-                button.onClick.AddListener(OpenStage4);
-                button.interactable=true;
+                if (button.name == "Stage" + stage + "SelectButton")
+                {
+                    int selectedStage = stage;
+                    button.onClick = new Button.ButtonClickedEvent();
+                    button.onClick.AddListener(() => OpenStage(selectedStage));
+                    button.interactable = ChemQuestStudentProgress.IsStageUnlocked(stage);
+
+                    var label = button.GetComponentInChildren<TMP_Text>(true);
+                    if (label != null)
+                        label.text = button.interactable ? "SELECT" : "LOCKED";
+
+                    break;
+                }
+
+                if (button.name == "Stage" + stage + "Button")
+                {
+                    button.interactable = ChemQuestStudentProgress.IsStageUnlocked(stage);
+                    var lockedText = button.transform.Find("LockedText");
+                    if (lockedText != null)
+                        lockedText.gameObject.SetActive(!button.interactable);
+                    break;
+                }
             }
         }
+    }
+
+    private void OpenStage(int stage)
+    {
+        if (ChemQuestStudentProgress.IsStageUnlocked(stage))
+            OpenScene("Stage" + stage + "LevelSelection");
     }
 
     private void OpenScene(string sceneName)
@@ -55,9 +63,9 @@ public class StageSelectionManager : MonoBehaviour
     }
 
     public void ReturnToMainMenu() { OpenScene("MainMenu"); }
-    public void OpenStage1() { OpenScene("Stage1LevelSelection"); }
-    public void OpenStage2() { OpenScene("Stage2LevelSelection"); }
-    public void OpenStage3() { OpenScene("Stage3LevelSelection"); }
-    public void OpenStage4() { OpenScene("Stage4LevelSelection"); }
-    public void OpenStage5() { OpenScene("Stage5LevelSelection"); }
+    public void OpenStage1() { OpenStage(1); }
+    public void OpenStage2() { OpenStage(2); }
+    public void OpenStage3() { OpenStage(3); }
+    public void OpenStage4() { OpenStage(4); }
+    public void OpenStage5() { OpenStage(5); }
 }

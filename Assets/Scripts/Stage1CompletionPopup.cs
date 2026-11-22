@@ -78,7 +78,8 @@ public sealed class Stage1CompletionPopup : MonoBehaviour
             Slate,font,()=>Navigate("Stage1LevelSelection"));
         nextButton=MakeButton(card.transform,"NextLevelButton",
             "NEXT LEVEL",new Vector2(149,-145),new Vector2(263,61),
-            Teal,font,()=>Navigate(activeLevel==3?"Stage2Level1":
+            Teal,font,()=>Navigate(activeLevel==3?
+                (ChemQuestStudentProgress.IsStageUnlocked(2)?"Stage2Level1":"Stage1LevelSelection"):
                 "Stage1Level"+(activeLevel+1)));
     }
 

@@ -6,9 +6,9 @@ public class Level3SceneNavigator : MonoBehaviour
 {
     public void ContinueToStage2Level1()
     {
-        if (PlayerPrefs.GetInt("Stage1Level3Completed", 0) != 1)
+        if (!ChemQuestStudentProgress.IsStageUnlocked(2))
         {
-            Debug.LogWarning("Stage 1 Level 3 is not yet completed!");
+            Debug.LogWarning("Stage 1 is not yet completed!");
             return;
         }
 

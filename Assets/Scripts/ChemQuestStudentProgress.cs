@@ -32,13 +32,27 @@ public static class ChemQuestStudentProgress
         PlayerPrefs.Save();
     }
 
+    public static bool IsStageUnlocked(int stage)
+    {
+        for (int previous = 1; previous < stage; previous++)
+        {
+            for (int level = 1; level <= 3; level++)
+            {
+                if (PlayerPrefs.GetInt("Stage" + previous + "Level" + level + "Completed") != 1)
+                    return false;
+            }
+        }
+
+        return true;
+    }
+
     public static string GetContinueScene()
     {
         string lastPlayed = PlayerPrefs.GetString(LastPlayedLevelKey);
         string firstIncomplete = null;
         bool reachedLastPlayed = false;
 
-        for (int stage = 1; stage <= 5; stage++)
+        for (int stage = 1; stage <= 5 && IsStageUnlocked(stage); stage++)
         {
             for (int level = 1; level <= 3; level++)
             {
