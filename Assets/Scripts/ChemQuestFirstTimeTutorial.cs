@@ -7,7 +7,7 @@ using TMPro;
 /// <summary>
 /// First-play, skippable guided introduction only for Level 1 of each stage.
 /// UI is editable in the scene before Play, no gameplay scripts replaced.
-/// Each stage introduction is shown only once per local PlayerPrefs profile.
+/// Each stage briefing is shown once per local student profile.
 /// </summary>
 public class ChemQuestFirstTimeTutorial : MonoBehaviour
 {
@@ -26,6 +26,65 @@ public class ChemQuestFirstTimeTutorial : MonoBehaviour
     private static readonly Color32 Card=new Color32(22,48,82,255);
     private static readonly Color32 Cyan=new Color32(65,193,232,255);
     private static readonly Color32 Gold=new Color32(255,214,104,255);
+
+    private bool showingBriefing;
+
+    private static readonly string[] StageTitles =
+    {
+        "Catalyst Chronicles", "Ion Forge", "Orbital Overlap", "Electron Ocean", "Element Crucible"
+    };
+
+    private static readonly string[] LearningGoals =
+    {
+        "Recognize evidence that a chemical reaction has occurred.",
+        "Explain how valence-electron transfer can form ions.",
+        "Build covalent bonds by sharing pairs of valence electrons.",
+        "Explain how mobile electrons allow metals to conduct electricity.",
+        "Use multiple test results to classify materials by bonding type."
+    };
+
+    private static readonly string[] ChemistryTips =
+    {
+        "Gas bubbles can be evidence that a reaction formed a new substance.",
+        "The electron donor loses an electron. The acceptor gains it.",
+        "Hydrogen needs two electrons in its outer shell. Each single bond contains two shared electrons.",
+        "In a metal, delocalized electrons can move through the lattice.",
+        "Compare heating, mechanical, and conductivity evidence before classifying a sample."
+    };
+
+    internal static string BriefingKey(int stage) => "ChemQuest_StageBriefing_" + stage;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    private static void RegisterBriefings()
+    {
+        SceneManager.sceneLoaded -= AddBriefing;
+        SceneManager.sceneLoaded += AddBriefing;
+    }
+
+    private static void AddBriefing(Scene scene, LoadSceneMode mode)
+    {
+        for (int stage = 1; stage <= StageTitles.Length; stage++)
+        {
+            if (scene.name != "Stage" + stage + "Level1")
+                continue;
+
+            foreach (var root in scene.GetRootGameObjects())
+            {
+                var existing = root.GetComponentInChildren<ChemQuestFirstTimeTutorial>(true);
+                if (existing != null && existing.isActiveAndEnabled)
+                    return;
+            }
+
+            if (PlayerPrefs.GetInt(BriefingKey(stage)) == 0)
+            {
+                var host = new GameObject("ChemQuestStageBriefing");
+                SceneManager.MoveGameObjectToScene(host, scene);
+                host.AddComponent<ChemQuestFirstTimeTutorial>().Stage = stage;
+            }
+
+            return;
+        }
+    }
 
     private string Key=>Prefix+"S"+Stage+"_L"+Level+"_"+TutorialVersion;
     private string[] Titles => new[]{"WELCOME TO CHEMQUEST","HOW TO PLAY","READY TO EXPERIMENT?"};
@@ -102,12 +161,9 @@ public class ChemQuestFirstTimeTutorial : MonoBehaviour
         // Wait for each scene's gameplay controller to initialize its own HUD.
         yield return null;
         yield return null;
-        if(Level==1 && ShowOnFirstPlay && PlayerPrefs.GetInt(Key,0)!=1)
-        {
-            index=0;
-            practice=false;
-            Show();
-        }
+        if (Level == 1 && ShowOnFirstPlay && Stage >= 1 && Stage <= StageTitles.Length &&
+            PlayerPrefs.GetInt(BriefingKey(Stage)) == 0)
+            ShowBriefing();
     }
     public void BuildEditableUI()
     {
@@ -137,7 +193,7 @@ public class ChemQuestFirstTimeTutorial : MonoBehaviour
         CreateText(shade.transform,"TutorialTitle","WELCOME TO CHEMQUEST",33,
             new Vector2(0,102),new Vector2(695,64),Gold);
         CreateText(shade.transform,"TutorialBody","Learn the controls before starting.",23,
-            new Vector2(0,2),new Vector2(646,144),Color.white);
+            new Vector2(0,2),new Vector2(646,184),Color.white);
         CreateText(shade.transform,"PageCounter","STEP 1 / 3",15,
             new Vector2(0,-106),new Vector2(390,35),Cyan);
         CreateButton(shade.transform,"BackButton","BACK",new Vector2(-221,-165),
@@ -215,12 +271,41 @@ public class ChemQuestFirstTimeTutorial : MonoBehaviour
         if(skipButton!=null){skipButton.onClick.RemoveAllListeners();skipButton.onClick.AddListener(Skip);}
         if(gotItButton!=null){gotItButton.onClick.RemoveAllListeners();gotItButton.onClick.AddListener(EndPractice);}
     }
+    private void ShowBriefing()
+    {
+        if (overlay == null || title == null || body == null || nextLabel == null)
+            return;
+
+        showingBriefing = true;
+        overlay.SetActive(true);
+        overlay.transform.SetAsLastSibling();
+        SetEyebrow("STAGE " + Stage + " BRIEFING");
+        title.text = StageTitles[Stage - 1];
+        body.text = "<b>Learning goal</b>\n" + LearningGoals[Stage - 1] +
+            "\n\n<b>Chemistry tip</b>\n" + ChemistryTips[Stage - 1];
+        if (counter != null) counter.gameObject.SetActive(false);
+        if (backButton != null) backButton.gameObject.SetActive(false);
+        if (skipButton != null) skipButton.gameObject.SetActive(false);
+        nextLabel.text = "START PUZZLE";
+    }
+
+    private void SetEyebrow(string value)
+    {
+        var eyebrow = Find("Eyebrow")?.GetComponent<TMP_Text>();
+        if (eyebrow != null) eyebrow.text = value;
+    }
+
     private void Show()
     {
         if(overlay==null)return;
         overlay.SetActive(true);
         overlay.transform.SetAsLastSibling();
         if(practiceBanner!=null)practiceBanner.SetActive(false);
+        showingBriefing = false;
+        SetEyebrow("CHEMQUEST  •  FIRST-TIME GUIDE");
+        counter.gameObject.SetActive(true);
+        if (backButton != null) backButton.gameObject.SetActive(true);
+        if (skipButton != null) skipButton.gameObject.SetActive(true);
         title.text=Titles[index];
         body.text=Messages[index];
         counter.text="STEP "+(index+1)+" / "+Titles.Length;
@@ -229,6 +314,14 @@ public class ChemQuestFirstTimeTutorial : MonoBehaviour
     }
     private void Next()
     {
+        if (showingBriefing)
+        {
+            PlayerPrefs.SetInt(BriefingKey(Stage), 1);
+            PlayerPrefs.Save();
+            showingBriefing = false;
+            overlay.SetActive(false);
+            return;
+        }
         if(index<Titles.Length-1){index++;Show();return;}
         FinishGuide(false);
     }

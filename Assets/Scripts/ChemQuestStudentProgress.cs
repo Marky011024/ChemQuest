@@ -84,6 +84,8 @@ public static class ChemQuestStudentProgress
     private static IEnumerable<string> ProgressIntKeys()
     {
         foreach(var key in GlobalIntKeys)yield return key;
+        for (int stage = 1; stage <= 5; stage++)
+            yield return ChemQuestFirstTimeTutorial.BriefingKey(stage);
         // Preserve each submitted response so switching profiles cannot alter
         // assessment records or allow re-taking previous questions.
         for(int i=0;i<ChemQuestAssessmentGate.ItemCount;i++)
