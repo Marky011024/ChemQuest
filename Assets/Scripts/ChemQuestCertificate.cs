@@ -572,7 +572,7 @@ public class ChemQuestCertificate : MonoBehaviour
         var text=Find(name)?.GetComponent<TMP_Text>();
         if(text!=null)text.text=value;
     }
-    private void ApplyStageCertificateDesign()
+    private void ApplyIvoryCertificateDesign()
     {
         var ink = new Color32(12, 28, 57, 255);
         var paper = new Color32(255, 250, 237, 255);
@@ -585,9 +585,11 @@ public class ChemQuestCertificate : MonoBehaviour
             Find(name)?.gameObject.SetActive(false);
         }
 
+        bool mastery = certificateStage == 0;
+        Find("Stages")?.gameObject.SetActive(mastery);
         Find("IvoryPaper").GetComponent<Image>().color = paper;
         Find("GoldBorder").GetComponent<Image>().color = amber;
-        var decoration = Image(page, "StageCertificateDecoration", Vector2.zero, Vector2.zero, Color.clear);
+        var decoration = Image(page, "IvoryCertificateDecoration", Vector2.zero, Vector2.zero, Color.clear);
         decoration.raycastTarget = false;
         var border = Image(decoration.transform, "InnerGoldBorder", Vector2.zero,
             new Vector2(1038, 541), paper);
@@ -609,7 +611,8 @@ public class ChemQuestCertificate : MonoBehaviour
 
         Image(decoration.transform, "RecipientRule", new Vector2(-218, -5),
             new Vector2(490, 2), Gold).raycastTarget = false;
-        var seal = Image(decoration.transform, "GoldScoreSeal", new Vector2(340, 36),
+        float sealY = mastery ? 54f : 36f;
+        var seal = Image(decoration.transform, "GoldScoreSeal", new Vector2(340, sealY),
             new Vector2(182, 182), Color.white);
         seal.raycastTarget = false;
         const int size = 192;
@@ -632,9 +635,25 @@ public class ChemQuestCertificate : MonoBehaviour
         stageSealSprite = Sprite.Create(stageSealTexture, new Rect(0, 0, size, size),
             Vector2.one * .5f);
         seal.sprite = stageSealSprite;
-        PositionText("Score", new Vector2(340, 24), new Vector2(151, 86), 22, ink);
-        Txt(page, "ScoreSealMark", "CQ", 24, new Vector2(340, 79),
-            new Vector2(84, 34), amber);
+        PositionText("Score", new Vector2(340, sealY - 12), new Vector2(151, 86), 22, ink);
+        Txt(page, "ScoreSealMark", mastery ? "MASTERY" : "CQ", mastery ? 18 : 24,
+            new Vector2(340, sealY + 43), new Vector2(112, 34), amber);
+        if (mastery)
+        {
+            PositionText("Stages", new Vector2(0, -48), new Vector2(960, 24), 16, ink);
+            var table = Find("CertificatePerformanceTable");
+            if (table != null)
+            {
+                table.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -140);
+                foreach (var image in table.GetComponentsInChildren<Image>(true))
+                {
+                    if (image.name.StartsWith("TablePanel", StringComparison.Ordinal))
+                        image.color = paper;
+                    else if (image.name.StartsWith("RowStripe", StringComparison.Ordinal))
+                        image.color = new Color32(248, 239, 215, 255);
+                }
+            }
+        }
         PositionText("CertificateMetadata", new Vector2(0, -244),
             new Vector2(950, 26), 13, ink);
     }
@@ -652,7 +671,7 @@ public class ChemQuestCertificate : MonoBehaviour
             SetLockedVisuals(false, 3);
             for (int row = 1; row <= 5; row++)
                 Find("TranscriptRow" + row)?.gameObject.SetActive(false);
-            ApplyStageCertificateDesign();
+            ApplyIvoryCertificateDesign();
             Set("DocumentTitle", "Certificate of Stage Completion");
             Set("RecipientLabel", "Presented to");
             Set("RecipientName", PlayerPrefs.GetString("StudentName", "STUDENT"));
@@ -691,7 +710,8 @@ public class ChemQuestCertificate : MonoBehaviour
             p=Find("ExportPDF")?.GetComponent<Button>();if(p!=null)p.interactable=false;
             return;
         }
-        Set("DocumentTitle","CERTIFICATE OF CHEMICAL MASTERY");
+        ApplyIvoryCertificateDesign();
+        Set("DocumentTitle","Certificate of Chemical Mastery");
         Set("RecipientLabel","Presented to");
         Set("Achievement","For successfully completing all 15 levels across five chemistry stages.");
         Set("RecipientName",PlayerPrefs.GetString("StudentName","STUDENT"));
