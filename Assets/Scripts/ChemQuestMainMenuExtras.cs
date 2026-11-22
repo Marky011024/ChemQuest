@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
@@ -23,6 +24,24 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
         "Catalyst Chronicles", "Ion Forge", "Orbital Overlap", "Electron Ocean", "Element Crucible"
     };
     private Transform achievementsPanel;
+    private GameObject openingPanel;
+    private Coroutine openingAnimation;
+    internal const string OpeningSeenKey = "ChemQuestOpeningSeen";
+
+    private static readonly string[] OpeningHeadings =
+    {
+        "Welcome to ChemQuest Academy", "Three Mystery Samples",
+        "A Clue Beneath the Surface", "Five Labs to Explore", "Your First Mission"
+    };
+
+    private static readonly string[] OpeningLines =
+    {
+        "I'm Prof. Atom. I need a new investigator in the chemistry lab.",
+        "The labels on samples A, B, and C are missing. Can you identify their bonding types?",
+        "Their particles can be bonded in different ways. Those bonds help explain how each sample behaves.",
+        "Observe chemical changes, explore three kinds of bonding, and test the samples for evidence.",
+        "Start in Catalyst Chronicles. In the final stage, use your lab evidence to classify the mystery samples."
+    };
 
     private void Start()
     {
@@ -32,7 +51,6 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
         // Before any first-time gameplay, require the unassisted baseline test.
         var assessment=GetComponent<ChemQuestAssessmentGate>();
         if(assessment==null)assessment=gameObject.AddComponent<ChemQuestAssessmentGate>();
-        assessment.OpenPreIfNeeded();
     }
 
     public void Build()
@@ -117,7 +135,7 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
         feedback=message.GetComponent<TMP_Text>();
 
         // Handles buttons generated in Edit Mode where runtime click events cannot persist.
-        Bind(root,"StartButton",()=>Open("StageSelection"));
+        Bind(root,"StartButton",StartGame);
         var continueLabel = root.Find("ContinueButton/Label")?.GetComponent<TMP_Text>();
         if (continueLabel != null) continueLabel.text = "CONTINUE";
         Bind(root, "ContinueButton", ContinueGame);
@@ -457,15 +475,125 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
             UpdateMuteStatus(settingsPanel.transform.Find("SettingsCard"));
         }
     }
-    private void ContinueGame()
+    private void StartGame() => EnterAcademy("StageSelection");
+
+    private void ContinueGame() => EnterAcademy(ChemQuestStudentProgress.GetContinueScene());
+
+    private void EnterAcademy(string destination)
     {
-        if (!ChemQuestAssessmentGate.PreCompleted)
+        if (openingPanel != null)
+            return;
+
+        if (PlayerPrefs.GetInt(OpeningSeenKey) == 0)
         {
-            GetComponent<ChemQuestAssessmentGate>()?.OpenPreIfNeeded();
+            ShowOpening(destination);
             return;
         }
 
-        Open(ChemQuestStudentProgress.GetContinueScene());
+        OpenAfterPreTest(destination);
+    }
+
+    private void OpenAfterPreTest(string destination)
+    {
+        if (ChemQuestAssessmentGate.PreCompleted)
+            Open(destination);
+        else
+            GetComponent<ChemQuestAssessmentGate>()?.OpenPreIfNeeded(() => Open(destination));
+    }
+
+    private void ShowOpening(string destination)
+    {
+        var overlay = GameObject.Find("ChemQuestMenuOverlay").transform;
+        var shade = Panel(overlay, "ChemQuestOpening", Vector2.zero, Vector2.zero,
+            new Color32(5, 18, 37, 225));
+        shade.rectTransform.anchorMin = Vector2.zero;
+        shade.rectTransform.anchorMax = Vector2.one;
+        shade.rectTransform.sizeDelta = Vector2.zero;
+        shade.raycastTarget = true;
+        shade.transform.SetAsLastSibling();
+        openingPanel = shade.gameObject;
+        EventSystem.current?.SetSelectedGameObject(null);
+
+        var content = Panel(shade.transform, "StoryPanel", Vector2.zero,
+            new Vector2(1050, 520), Navy);
+        var portrait = Panel(content.transform, "ProfAtom", new Vector2(-349, 24),
+            new Vector2(237, 310), Color.white);
+        portrait.sprite = Resources.Load<Sprite>("ChemQuestTutorial/ProfAtom");
+        portrait.preserveAspect = true;
+        portrait.enabled = portrait.sprite != null;
+        Label(content.transform, "Speaker", "PROF. ATOM", new Vector2(-349, -150),
+            new Vector2(237, 44), 23, Gold);
+        var title = Label(content.transform, "SceneTitle", "", new Vector2(110, 164),
+            new Vector2(650, 62), 38, Gold);
+        var dialogue = Label(content.transform, "Dialogue", "", new Vector2(110, -104),
+            new Vector2(625, 105), 25, Color.white);
+        var samples = Rect(content.transform, "MysterySamples", new Vector2(110, 38),
+            new Vector2(590, 130));
+        for (int index = 0; index < 3; index++)
+        {
+            var jar = Panel(samples, "Sample" + (char)('A' + index),
+                new Vector2((index - 1) * 152, 0), new Vector2(108, 116), MidNavy);
+            Panel(jar.transform, "SampleContents", new Vector2(0, -18),
+                new Vector2(92, 65), index == 1 ? Teal : new Color32(61, 86, 147, 255));
+            Label(jar.transform, "Unknown", "?", new Vector2(0, 6),
+                new Vector2(86, 60), 52, Color.white);
+            Label(jar.transform, "SampleLabel", ((char)('A' + index)).ToString(),
+                new Vector2(0, -37), new Vector2(80, 29), 22, Gold);
+        }
+
+        var montage = Label(content.transform, "LabPreview",
+            "CHEMICAL CHANGE   •   IONIC BONDING\nCOVALENT BONDING   •   METALLIC BONDING\nMATERIAL PROPERTY TESTING",
+            new Vector2(110, 38), new Vector2(650, 145), 24, Gold);
+        var transition = content.gameObject.AddComponent<CanvasGroup>();
+        AddButton(shade.transform, "OpeningAction", "SKIP INTRO",
+            new Vector2(0, -305), new Vector2(248, 55), Teal);
+        var action = shade.transform.Find("OpeningAction/Label").GetComponent<TMP_Text>();
+        Bind(shade.transform, "OpeningAction", () => FinishOpening(destination));
+        openingAnimation = StartCoroutine(AnimateOpening(
+            transition, title, dialogue, samples, montage, action));
+    }
+
+    private IEnumerator AnimateOpening(CanvasGroup transition, TMP_Text title,
+        TMP_Text dialogue, RectTransform samples, TMP_Text montage, TMP_Text action)
+    {
+        var panel = (RectTransform)transition.transform;
+        for (int beat = 0; beat < OpeningLines.Length; beat++)
+        {
+            title.text = OpeningHeadings[beat];
+            dialogue.text = OpeningLines[beat];
+            samples.gameObject.SetActive(beat == 1 || beat == 2 || beat == 4);
+            montage.gameObject.SetActive(beat == 3);
+            if (beat == OpeningLines.Length - 1)
+                action.text = "ENTER ACADEMY";
+
+            float duration = beat == 3 ? 10f : 6f;
+            for (float elapsed = 0; elapsed < duration; elapsed += Time.unscaledDeltaTime)
+            {
+                float progress = Mathf.Clamp01(elapsed / .55f);
+                transition.alpha = progress;
+                panel.anchoredPosition = Vector2.right * (1f - progress) * 35f;
+                samples.localScale = Vector3.one * (1f + Mathf.Sin(elapsed * 2f) * .035f);
+                yield return null;
+            }
+        }
+
+        openingAnimation = null;
+    }
+
+    private void FinishOpening(string destination)
+    {
+        if (openingAnimation != null)
+        {
+            StopCoroutine(openingAnimation);
+            openingAnimation = null;
+        }
+
+        openingPanel.SetActive(false);
+        Destroy(openingPanel);
+        openingPanel = null;
+        PlayerPrefs.SetInt(OpeningSeenKey, 1);
+        PlayerPrefs.Save();
+        OpenAfterPreTest(destination);
     }
 
     private void Open(string scene)
