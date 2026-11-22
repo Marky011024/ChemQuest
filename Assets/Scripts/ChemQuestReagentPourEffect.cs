@@ -9,7 +9,7 @@ public sealed class ChemQuestReagentPourEffect : MonoBehaviour
     [SerializeField] float duration = 1.2f;
     [SerializeField] int particleCount = 15;
 
-    public IEnumerator Play(Sprite sprite, Vector3 sourceWorld, bool sodium)
+    public IEnumerator Play(Sprite sprite, Color tint, Vector3 sourceWorld, bool sodium)
     {
         var canvas = GetComponentInParent<Canvas>();
         var target = GetComponent<RectTransform>();
@@ -30,7 +30,7 @@ public sealed class ChemQuestReagentPourEffect : MonoBehaviour
         var rt = (RectTransform)body.transform;
         rt.sizeDelta = new Vector2(100,140);
         var img = body.GetComponent<Image>();
-        img.sprite=sprite; img.preserveAspect=true; img.raycastTarget=false;
+        img.sprite=sprite; img.color=tint; img.preserveAspect=true; img.raycastTarget=false;
 
         var particles = new RectTransform[particleCount];
         var graphics = new Image[particleCount];
@@ -52,7 +52,8 @@ public sealed class ChemQuestReagentPourEffect : MonoBehaviour
             rt.anchoredPosition=Vector2.Lerp(a,hover,Mathf.SmoothStep(0,1,Mathf.Clamp01(t/.33f)));
             float tilt=Mathf.SmoothStep(0,1,Mathf.Clamp01((t-.26f)/.23f));
             rt.localRotation=Quaternion.Euler(0,0,(sodium?1:-1)*62*tilt);
-            img.color=new Color(1,1,1,t>.86f?(1-t)/.14f:1);
+            float opacity = t > .86f ? (1 - t) / .14f : 1;
+            img.color = new Color(tint.r, tint.g, tint.b, tint.a * opacity);
             for(int i=0;i<particleCount;i++)
             {
                 float start=.39f+i*.025f;

@@ -105,9 +105,10 @@ public class Level2ReactionDropZone : MonoBehaviour, IDropHandler
         var rect = reagent.GetComponent<RectTransform>();
         var artwork = reagent.transform.Find("ReagentIllustration");
         var picture = artwork != null ? artwork.GetComponent<Image>() : null;
+        if (picture == null || picture.sprite == null)
+            picture = reagent.GetComponent<Image>();
         Sprite sprite = picture != null ? picture.sprite : null;
-        if (sprite == null)
-            sprite = reagent.GetComponent<Image>()?.sprite;
+        Color tint = picture != null ? picture.color : Color.white;
         Vector3 startingWorld = rect != null ? rect.position : reagent.transform.position;
         poursInProgress++;
         // Existing name-based validation already happened; hide the original
@@ -118,7 +119,7 @@ public class Level2ReactionDropZone : MonoBehaviour, IDropHandler
             if (!TryGetComponent<ChemQuestReagentPourEffect>(out var effect))
                 effect = gameObject.AddComponent<ChemQuestReagentPourEffect>();
 
-            yield return StartCoroutine(effect.Play(sprite, startingWorld, sodium));
+            yield return StartCoroutine(effect.Play(sprite, tint, startingWorld, sodium));
         }
         poursInProgress--;
         TryStartReaction();
