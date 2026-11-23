@@ -275,7 +275,7 @@ window.cqSiteView('home');})();
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js';
 import { getAuth,GoogleAuthProvider,signInWithPopup,signInWithEmailAndPassword,sendPasswordResetEmail,signOut,onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
-import { getFirestore,doc,getDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,setDoc,serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
+import { getFirestore,doc,getDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,setDoc,serverTimestamp,runTransaction } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
 import { firebaseConfig } from './firebase-config.js';
 const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
 const el=id=>document.getElementById(id),message=s=>{el('message').textContent=s;};
@@ -320,6 +320,28 @@ el('loginForm').addEventListener('submit',async e=>{
  catch(err){loginFeedback(readableLoginError(err.code));}
  finally{button.disabled=false;button.textContent='Sign in securely';}
 });
+async function saveGoogleAdminProfile(user) {
+ const google = user.providerData.find(profile => profile.providerId === 'google.com');
+ if (!google?.uid || !user.email) throw new Error('Google profile information is missing.');
+ const profileRef = doc(db, 'users', user.uid);
+ await runTransaction(db, async transaction => {
+  const existing = await transaction.get(profileRef);
+  const activity = {
+   email: user.email,
+   name: google.displayName ?? '',
+   picture_url: google.photoURL ?? '',
+   last_login: serverTimestamp()
+  };
+  if (existing.exists()) {
+   transaction.update(profileRef, activity);
+  } else {
+   transaction.set(profileRef, {
+    ...activity, id: user.uid, google_sub: google.uid, role: 'admin',
+    created_at: serverTimestamp()
+   });
+  }
+ });
+}
 el('googleLogin').addEventListener('click', async () => {
  const googleButton = el('googleLogin'), passwordButton = el('loginSubmit');
  if (googleButton.disabled || passwordButton.disabled) return;
@@ -328,7 +350,18 @@ el('googleLogin').addEventListener('click', async () => {
  try {
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({prompt: 'select_account'});
-  await signInWithPopup(auth, provider);
+  const { user } = await signInWithPopup(auth, provider);
+  try {
+   const access = await getDoc(doc(db, 'admins', user.uid));
+   if (access.data()?.active === true && auth.currentUser?.uid === user.uid) {
+    await saveGoogleAdminProfile(user);
+   }
+  } catch (err) {
+   if (auth.currentUser?.uid === user.uid) {
+    message('Signed in, but the account profile could not be saved. Contact your administrator.');
+   }
+   console.error('Google administrator profile save failed:', err.code ?? err.message);
+  }
  } catch (err) {
   const messages = {
    'auth/popup-closed-by-user': 'Google Sign-In was canceled.',
