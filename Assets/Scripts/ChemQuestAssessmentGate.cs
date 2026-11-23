@@ -174,17 +174,9 @@ public sealed class ChemQuestAssessmentGate : MonoBehaviour
     public static bool PreCompleted=>PlayerPrefs.GetInt(PreDone,0)==1;
     public static bool PostCompleted=>PlayerPrefs.GetInt(PostDone,0)==1;
 
-    private System.Action afterPreTest;
-
-    public void OpenPreIfNeeded() => OpenPreIfNeeded(null);
-
-    public void OpenPreIfNeeded(System.Action onComplete)
+    public void OpenPreIfNeeded()
     {
-        if (PreCompleted || !HasProfile() || overlay != null)
-            return;
-
-        afterPreTest = onComplete;
-        Open(false);
+        if(!PreCompleted && HasProfile())Open(false);
     }
 
     public void OpenPostIfEligible()
@@ -258,12 +250,6 @@ public sealed class ChemQuestAssessmentGate : MonoBehaviour
         {
             // Reopen to refresh the certificate, which now includes test scores.
             SceneManager.LoadScene("ChemQuestCertificate");
-        }
-        else
-        {
-            var completed = afterPreTest;
-            afterPreTest = null;
-            completed?.Invoke();
         }
     }
 

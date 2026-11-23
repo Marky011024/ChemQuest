@@ -1,7 +1,5 @@
-using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.Video;
 using UnityEngine.SceneManagement;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
@@ -25,11 +23,6 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
         "Catalyst Chronicles", "Ion Forge", "Orbital Overlap", "Electron Ocean", "Element Crucible"
     };
     private Transform achievementsPanel;
-    private GameObject openingPanel;
-    private Coroutine openingAnimation;
-    internal const string OpeningSeenKey = "ChemQuestVideoOpeningSeen";
-
-    private RenderTexture openingTexture;
 
     private void Start()
     {
@@ -39,6 +32,7 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
         // Before any first-time gameplay, require the unassisted baseline test.
         var assessment=GetComponent<ChemQuestAssessmentGate>();
         if(assessment==null)assessment=gameObject.AddComponent<ChemQuestAssessmentGate>();
+        assessment.OpenPreIfNeeded();
     }
 
     public void Build()
@@ -123,7 +117,7 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
         feedback=message.GetComponent<TMP_Text>();
 
         // Handles buttons generated in Edit Mode where runtime click events cannot persist.
-        Bind(root,"StartButton",StartGame);
+        Bind(root,"StartButton",()=>Open("StageSelection"));
         var continueLabel = root.Find("ContinueButton/Label")?.GetComponent<TMP_Text>();
         if (continueLabel != null) continueLabel.text = "CONTINUE";
         Bind(root, "ContinueButton", ContinueGame);
@@ -463,135 +457,15 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
             UpdateMuteStatus(settingsPanel.transform.Find("SettingsCard"));
         }
     }
-    private void StartGame() => EnterAcademy("StageSelection");
-
-    private void ContinueGame() => EnterAcademy(ChemQuestStudentProgress.GetContinueScene());
-
-    private void EnterAcademy(string destination)
+    private void ContinueGame()
     {
-        if (openingPanel != null)
-            return;
-
-        if (PlayerPrefs.GetInt(OpeningSeenKey) == 0)
+        if (!ChemQuestAssessmentGate.PreCompleted)
         {
-            ShowOpening(destination);
+            GetComponent<ChemQuestAssessmentGate>()?.OpenPreIfNeeded();
             return;
         }
 
-        OpenAfterPreTest(destination);
-    }
-
-    private void OpenAfterPreTest(string destination)
-    {
-        if (ChemQuestAssessmentGate.PreCompleted)
-            Open(destination);
-        else
-            GetComponent<ChemQuestAssessmentGate>()?.OpenPreIfNeeded(() => Open(destination));
-    }
-
-    private void ShowOpening(string destination)
-    {
-        var clip = Resources.Load<VideoClip>("ChemQuestTutorial/ChemQuestOpening");
-        if (clip == null)
-        {
-            Debug.LogWarning("ChemQuest opening video could not be loaded.");
-            OpenAfterPreTest(destination);
-            return;
-        }
-
-        var overlay = GameObject.Find("ChemQuestMenuOverlay").transform;
-        var shade = Panel(overlay, "ChemQuestOpening", Vector2.zero, Vector2.zero, Color.black);
-        shade.rectTransform.anchorMin = Vector2.zero;
-        shade.rectTransform.anchorMax = Vector2.one;
-        shade.rectTransform.sizeDelta = Vector2.zero;
-        shade.raycastTarget = true;
-        shade.transform.SetAsLastSibling();
-        openingPanel = shade.gameObject;
-        EventSystem.current?.SetSelectedGameObject(null);
-
-        var frame = Rect(shade.transform, "OpeningVideo", Vector2.zero, new Vector2(1120, 630));
-        var picture = frame.gameObject.AddComponent<RawImage>();
-        picture.raycastTarget = false;
-        openingTexture = new RenderTexture((int)clip.width, (int)clip.height, 0);
-        picture.texture = openingTexture;
-        picture.enabled = false;
-
-        var player = shade.gameObject.AddComponent<VideoPlayer>();
-        player.playOnAwake = false;
-        player.source = VideoSource.VideoClip;
-        player.clip = clip;
-        player.renderMode = VideoRenderMode.RenderTexture;
-        player.targetTexture = openingTexture;
-        player.audioOutputMode = VideoAudioOutputMode.None;
-        player.waitForFirstFrame = true;
-
-        AddButton(shade.transform, "OpeningAction", "SKIP INTRO",
-            new Vector2(0, -326), new Vector2(220, 48), Teal);
-        Bind(shade.transform, "OpeningAction", () => FinishOpening(destination));
-        player.loopPointReached += _ => FinishOpening(destination);
-        player.errorReceived += (_, error) =>
-        {
-            Debug.LogWarning("ChemQuest opening video: " + error);
-            FinishOpening(destination);
-        };
-        openingAnimation = StartCoroutine(PrepareOpeningVideo(player, picture, destination));
-    }
-
-    private IEnumerator PrepareOpeningVideo(VideoPlayer player, RawImage picture, string destination)
-    {
-        // Let StartCoroutine return before a decoder callback can close the overlay.
-        yield return null;
-        player.Prepare();
-        float timeout = Time.realtimeSinceStartup + 8f;
-        while (!player.isPrepared && Time.realtimeSinceStartup < timeout)
-            yield return null;
-
-        openingAnimation = null;
-        if (!player.isPrepared)
-        {
-            Debug.LogWarning("ChemQuest opening video preparation timed out.");
-            FinishOpening(destination);
-            yield break;
-        }
-
-        picture.enabled = true;
-        player.Play();
-    }
-
-    private void ReleaseOpeningTexture()
-    {
-        if (openingTexture == null)
-            return;
-
-        openingTexture.Release();
-        Destroy(openingTexture);
-        openingTexture = null;
-    }
-
-    private void OnDestroy() => ReleaseOpeningTexture();
-
-    private void FinishOpening(string destination)
-    {
-        if (openingPanel == null)
-            return;
-
-        if (openingAnimation != null)
-        {
-            StopCoroutine(openingAnimation);
-            openingAnimation = null;
-        }
-
-        var panel = openingPanel;
-        openingPanel = null;
-        var player = panel.GetComponent<VideoPlayer>();
-        player.Stop();
-        player.targetTexture = null;
-        panel.SetActive(false);
-        Destroy(panel);
-        ReleaseOpeningTexture();
-        PlayerPrefs.SetInt(OpeningSeenKey, 1);
-        PlayerPrefs.Save();
-        OpenAfterPreTest(destination);
+        Open(ChemQuestStudentProgress.GetContinueScene());
     }
 
     private void Open(string scene)
