@@ -220,6 +220,7 @@ textarea{line-height:1.5}
 <label>Password<div class="password-row"><input id="password" type="password" autocomplete="current-password" placeholder="Enter your password" required><button id="togglePassword" class="secondary" type="button" aria-label="Show password" aria-pressed="false">Show</button></div></label>
 <div class="login-help"><small>Authorized administrators only</small><button id="resetPassword" type="button" class="forgot-link">Forgot password?</button></div>
 <button id="loginSubmit" class="login-submit" type="submit">Sign in securely</button>
+<button id="googleLogin" class="login-submit" type="button">Sign in with Google</button>
 <div id="loginFeedback" role="status" aria-live="polite"></div>
 </form></div>
 </div><div class="login-footer">ChemQuest • Educational Assessment Management System</div>
@@ -273,7 +274,7 @@ window.cqSiteView('home');})();
 </script>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js';
-import { getAuth,signInWithEmailAndPassword,sendPasswordResetEmail,signOut,onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
+import { getAuth,GoogleAuthProvider,signInWithPopup,signInWithEmailAndPassword,sendPasswordResetEmail,signOut,onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 import { getFirestore,doc,getDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,setDoc,serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
 import { firebaseConfig } from './firebase-config.js';
 const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
@@ -319,11 +320,33 @@ el('loginForm').addEventListener('submit',async e=>{
  catch(err){loginFeedback(readableLoginError(err.code));}
  finally{button.disabled=false;button.textContent='Sign in securely';}
 });
+el('googleLogin').addEventListener('click', async () => {
+ const googleButton = el('googleLogin'), passwordButton = el('loginSubmit');
+ if (googleButton.disabled || passwordButton.disabled) return;
+ googleButton.disabled = passwordButton.disabled = true;
+ loginFeedback('Opening Google Sign-In…');
+ try {
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({prompt: 'select_account'});
+  await signInWithPopup(auth, provider);
+ } catch (err) {
+  const messages = {
+   'auth/popup-closed-by-user': 'Google Sign-In was canceled.',
+   'auth/popup-blocked': 'Allow pop-ups for this site, then try again.',
+   'auth/operation-not-allowed': 'Google Sign-In has not been enabled for this dashboard.',
+   'auth/unauthorized-domain': 'This dashboard address has not been authorized for Google Sign-In.',
+   'auth/account-exists-with-different-credential': 'Use the existing sign-in method for this administrator account.'
+  };
+  loginFeedback(messages[err.code] || 'Google Sign-In failed. Try again or contact your administrator.');
+ } finally {
+  googleButton.disabled = passwordButton.disabled = false;
+ }
+});
 onAuthStateChanged(auth,async user=>{
 isAdmin=false;el('workspace').style.display='none';el('logout').style.display=user?'block':'none';el('helpOpen').hidden=true;el('completeManual').style.display='none';el('adminIdentity').textContent='';el('loginPanel').style.display='none';
 if(!user){window.cqSiteAuth?.(false);message('');return;}
-try{const role=await getDoc(doc(db,'admins',user.uid));if(!role.exists()||role.data().active!==true){message('This account is not authorized as an administrator.');await signOut(auth);return;}
-isAdmin=true;el('adminIdentity').textContent=user.email||'Administrator';el('helpOpen').hidden=false;el('completeManual').style.display='inline-flex';el('workspace').style.display='block';window.cqSiteAuth?.(true);message('Signed in as authorized administrator.');await load();
+try{const role=await getDoc(doc(db,'admins',user.uid));if(!role.exists()||role.data().active!==true){await signOut(auth);window.cqSiteView?.('login');loginFeedback('This account is not authorized as an administrator.');return;}
+loginFeedback('');isAdmin=true;el('adminIdentity').textContent=user.email||'Administrator';el('helpOpen').hidden=false;el('completeManual').style.display='inline-flex';el('workspace').style.display='block';window.cqSiteAuth?.(true);message('Signed in as authorized administrator.');await load();
 }catch(err){message('Could not verify administrator access: '+err.message);}
 });
 async function load(){if(!isAdmin)return;const snap=await getDocs(collection(db,'questionBank'));records=snap.docs.map(d=>({id:d.id,...d.data()}));render();}
