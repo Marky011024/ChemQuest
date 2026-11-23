@@ -13,6 +13,29 @@ service cloud.firestore {
       allow read: if signedIn() && request.auth.uid == uid;
       allow write: if false;
     }
+    match /users/{uid} {
+      function ownGoogleAdminProfile() {
+        return admin() && request.auth.uid == uid &&
+          request.auth.token.firebase.sign_in_provider == 'google.com';
+      }
+      function validProfile() {
+        let profile = request.resource.data;
+        let fields = ['id', 'google_sub', 'email', 'name', 'picture_url', 'role', 'created_at', 'last_login'];
+        return profile.keys().hasAll(fields) && profile.keys().hasOnly(fields) &&
+          profile.id == uid &&
+          profile.google_sub in request.auth.token.firebase.identities['google.com'] &&
+          profile.email == request.auth.token.email &&
+          profile.name is string && profile.name.size() <= 256 &&
+          profile.picture_url is string && profile.picture_url.size() <= 2048 &&
+          profile.role == 'admin' && profile.last_login == request.time;
+      }
+      allow get: if ownGoogleAdminProfile();
+      allow create: if ownGoogleAdminProfile() && validProfile() &&
+        request.resource.data.created_at == request.time;
+      allow update: if ownGoogleAdminProfile() && validProfile() &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['email', 'name', 'picture_url', 'last_login']);
+    }
     match /questionBank/{questionId} {
       // Only admin accounts can edit or publish. Unity should later read
       // published VERSION SNAPSHOTS from a distinct read-only collection,
