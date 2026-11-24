@@ -379,19 +379,33 @@ public class ChemQuestCertificate : MonoBehaviour
 
     private void PopulatePerformanceTable()
     {
-        for(int s=1;s<=5;s++)
+        var table = Find("CertificatePerformanceTable");
+        if (table == null) return;
+
+        int firstStage = certificateStage == 0 ? 1 : certificateStage;
+        int lastStage = certificateStage == 0 ? 5 : certificateStage;
+        for (int s = firstStage; s <= lastStage; s++)
         {
             for(int l=1;l<=3;l++)
             {
                 string id="S"+s+"L"+l;
                 int score=SavedScore(s,l);
                 bool known = TryGetRetries(s, l, out int retries);
-                Set(id+"Score",score+"/100");
-                Set(id+"Retries",known?retries.ToString():"--");
-                Set(id+"Result",!known?
+                SetTableText(table, id+"Score",score+"/100");
+                SetTableText(table, id+"Retries",known?retries.ToString():"--");
+                SetTableText(table, id+"Result",!known?
                     (score==100?"Perfect":score==75?"After hint":"Completed"):
                     (retries>0?"Retried":score==75?"After hint":"No retry"));
             }
+        }
+    }
+    private static void SetTableText(Transform table, string name, string value)
+    {
+        foreach (var text in table.GetComponentsInChildren<TMP_Text>(true))
+        {
+            if (text.gameObject.name != name) continue;
+            text.text = value;
+            return;
         }
     }
     private void PositionText(string name,Vector2 pos,Vector2 size,int font,Color color)
