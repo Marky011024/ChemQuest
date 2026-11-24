@@ -123,7 +123,7 @@ public class Stage3Level1CompleteManager : MonoBehaviour
 
             score = wrongAttempts == 0 ? 100 : 75;
 
-            score = ChemQuestStudentProgress.SaveFirstLevelScore("Stage3Level1", score);
+            ChemQuestStudentProgress.SaveFirstLevelScore("Stage3Level1", score);
             UpdateScoreDisplay();
 
 

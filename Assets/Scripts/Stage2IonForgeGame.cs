@@ -854,7 +854,7 @@ public class Stage2IonForgeGame : MonoBehaviour
                 Level==2?"MgO and MgCl2 successfully formed through electron transfer.":
                 "Ionic crystal lattice completed.";
         int score=mistakes==0?100:75;
-        score = ChemQuestStudentProgress.SaveFirstLevelScore("Stage2Level"+Level, score);
+        ChemQuestStudentProgress.SaveFirstLevelScore("Stage2Level"+Level, score);
         if(Level<3)PlayerPrefs.SetInt("Stage2Level"+(Level+1)+"Unlocked",1);
         else PlayerPrefs.SetInt("Stage2Completed",1);
         PlayerPrefs.Save();

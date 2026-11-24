@@ -55,13 +55,14 @@ public class Level1ScoreManager : MonoBehaviour
         // Calculate final score
         // No mistakes = 100
         // With mistake = 75
+        bool isFirstClear = PlayerPrefs.GetInt("Stage1Level1Completed") != 1;
         bool hadMistake = bowHadMistake ||
             (attemptManager != null && attemptManager.HasMadeMistake) ||
-            Level1AttemptManager.HadMistakeBeforeFirstClear ||
-            PlayerPrefs.GetInt("Stage1Level1RetryCount") > 0;
+            (isFirstClear && (Level1AttemptManager.HadMistakeBeforeFirstClear ||
+                PlayerPrefs.GetInt("Stage1Level1RetryCount") > 0));
         score = hadMistake ? 75 : 100;
 
-        score = ChemQuestStudentProgress.SaveFirstLevelScore("Stage1Level1", score);
+        ChemQuestStudentProgress.SaveFirstLevelScore("Stage1Level1", score);
         UpdateScoreDisplay();
 
         PlayerPrefs.Save();

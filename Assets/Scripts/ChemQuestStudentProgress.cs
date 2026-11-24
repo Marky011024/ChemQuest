@@ -32,16 +32,15 @@ public static class ChemQuestStudentProgress
         PlayerPrefs.Save();
     }
 
-    internal static int SaveFirstLevelScore(string levelPrefix, int score)
+    internal static void SaveFirstLevelScore(string levelPrefix, int score)
     {
         string completedKey = levelPrefix + "Completed";
         string scoreKey = levelPrefix + "Score";
         if (PlayerPrefs.GetInt(completedKey) == 1 && PlayerPrefs.HasKey(scoreKey))
-            return PlayerPrefs.GetInt(scoreKey);
+            return;
 
         PlayerPrefs.SetInt(scoreKey, score);
         PlayerPrefs.SetInt(completedKey, 1);
-        return score;
     }
 
     public static bool IsStageComplete(int stage)
