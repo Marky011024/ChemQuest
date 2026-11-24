@@ -63,9 +63,9 @@ public class Level3ScoreManager : MonoBehaviour
         if (levelCompleted) return;
         levelCompleted = true;
         score = pendingWrongAttempts == 0 && !bowHadMistake ? 100 : 75;
+        score = ChemQuestStudentProgress.SaveFirstLevelScore("Stage1Level3", score);
         UpdateScoreDisplay();
-        PlayerPrefs.SetInt("Stage1Level3Completed", 1);
-        PlayerPrefs.SetInt("Stage1Level3Score", score);
+
         PlayerPrefs.SetInt("Stage2Level1Unlocked", 1);
         PlayerPrefs.Save();
 

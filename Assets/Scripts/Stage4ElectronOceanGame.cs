@@ -1866,8 +1866,7 @@ public class Stage4ElectronOceanGame : MonoBehaviour
     {
         completed=true;
         int scoreValue=mistakes==0?100:75;
-        PlayerPrefs.SetInt("Stage4Level"+Level+"Completed",1);
-        PlayerPrefs.SetInt("Stage4Level"+Level+"Score",scoreValue);
+        scoreValue = ChemQuestStudentProgress.SaveFirstLevelScore("Stage4Level"+Level, scoreValue);
         if(Level<3)PlayerPrefs.SetInt("Stage4Level"+(Level+1)+"Unlocked",1);
         else PlayerPrefs.SetInt("Stage4Completed",1);
         PlayerPrefs.Save();

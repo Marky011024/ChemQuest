@@ -804,8 +804,7 @@ public class Stage3Level3Game : MonoBehaviour
         if(feedback!=null)feedback.gameObject.SetActive(false);
         completed=true;
         int score=mistakes==0?100:75;
-        PlayerPrefs.SetInt("Stage3Level3Completed",1);
-        PlayerPrefs.SetInt("Stage3Level3Score",score);
+        score = ChemQuestStudentProgress.SaveFirstLevelScore("Stage3Level3", score);
         PlayerPrefs.SetInt("Stage3Completed",1);
         PlayerPrefs.Save();
         if(scoreText!=null)scoreText.text="SCORE\n"+score.ToString("D6");

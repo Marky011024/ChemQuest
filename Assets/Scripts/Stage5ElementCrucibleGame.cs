@@ -1357,8 +1357,7 @@ public class Stage5ElementCrucibleGame : MonoBehaviour
     {
         completed=true;
         int points=wrong==0?100:75;
-        PlayerPrefs.SetInt("Stage5Level"+Level+"Completed",1);
-        PlayerPrefs.SetInt("Stage5Level"+Level+"Score",points);
+        points = ChemQuestStudentProgress.SaveFirstLevelScore("Stage5Level"+Level, points);
         if(Level<3)PlayerPrefs.SetInt("Stage5Level"+(Level+1)+"Unlocked",1);
         else PlayerPrefs.SetInt("Stage5Completed",1);
         PlayerPrefs.Save();

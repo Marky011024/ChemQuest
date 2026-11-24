@@ -51,11 +51,9 @@ public class Level2ScoreManager : MonoBehaviour
         score = (wrongAttempts == 0 && !bowHadMistake) ? 100 : 75;
         levelCompleted = true;
 
+        score = ChemQuestStudentProgress.SaveFirstLevelScore("Stage1Level2", score);
         UpdateScoreDisplay();
 
-        // Save completion and score
-        PlayerPrefs.SetInt("Stage1Level2Completed", 1);
-        PlayerPrefs.SetInt("Stage1Level2Score", score);
         PlayerPrefs.Save();
 
         // Update final score

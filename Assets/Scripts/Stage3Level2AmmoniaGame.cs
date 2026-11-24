@@ -607,10 +607,10 @@ public class Stage3Level2AmmoniaGame : MonoBehaviour
             if(bowQuestionIndex<2)return;
             completed=true;
             int score=wrongAttempts==0?100:75;
+            score = ChemQuestStudentProgress.SaveFirstLevelScore("Stage3Level2", score);
             scoreText.text="SCORE\n"+score.ToString("D6");
             if(finalScoreText!=null) finalScoreText.text="FINAL SCORE: "+score.ToString("D6");
-            PlayerPrefs.SetInt("Stage3Level2Completed",1);
-            PlayerPrefs.SetInt("Stage3Level2Score",score);
+
             PlayerPrefs.SetInt("Stage3Level3Unlocked",1);
             PlayerPrefs.Save();
             completionPanel.SetActive(true);
