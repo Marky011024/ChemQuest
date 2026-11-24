@@ -174,55 +174,98 @@ public class ChemQuestMainMenuExtras : MonoBehaviour
     private void BuildAchievements(Transform overlay)
     {
         achievementsPanel = overlay.Find("AchievementsPanel");
-        if (achievementsPanel == null)
+        if (achievementsPanel != null && achievementsPanel.Find("CertificateCardGrid") == null)
         {
-            achievementsPanel = CreateAwardPanel(overlay, "AchievementsPanel", "ACHIEVEMENTS");
-            for (int stage = 1; stage <= StageTitles.Length; stage++)
-            {
-                AddButton(achievementsPanel, "Stage" + stage + "CertificateButton", "",
-                    new Vector2(0, 205 - stage * 66), new Vector2(760, 54), MidNavy);
-            }
-
-            AddButton(achievementsPanel, "OverallCertificateButton", "CHEMICAL MASTERY CERTIFICATE",
-                new Vector2(0, -196), new Vector2(760, 54), Teal);
+            achievementsPanel.gameObject.SetActive(false);
+            achievementsPanel.name = "LegacyAchievementsPanel";
+            if (Application.isPlaying) Destroy(achievementsPanel.gameObject);
+            else DestroyImmediate(achievementsPanel.gameObject);
+            achievementsPanel = null;
         }
 
+        if (achievementsPanel == null)
+        {
+            var shade = Panel(overlay, "AchievementsPanel", Vector2.zero,
+                new Vector2(1280, 720), new Color32(6, 17, 34, 230));
+            shade.rectTransform.anchorMin = Vector2.zero;
+            shade.rectTransform.anchorMax = Vector2.one;
+            shade.rectTransform.sizeDelta = Vector2.zero;
+            shade.raycastTarget = true;
+
+            achievementsPanel = shade.transform;
+            Label(achievementsPanel, "Heading", "ACHIEVEMENTS", new Vector2(0, 258),
+                new Vector2(920, 62), 42, Gold);
+            var grid = Rect(achievementsPanel, "CertificateCardGrid", Vector2.zero,
+                new Vector2(1060, 400));
+            for (int index = 0; index <= StageTitles.Length; index++)
+            {
+                bool mastery = index == StageTitles.Length;
+                string cardName = mastery ? "OverallCertificateButton" : "Stage" + (index + 1) + "CertificateButton";
+                string category = mastery ? "FINAL AWARD" : "STAGE " + (index + 1);
+                string title = mastery ? "Chemical Mastery" : StageTitles[index];
+                Vector2 position = new Vector2((index % 3 - 1) * 347, 108 - index / 3 * 192);
+                CreateCertificateCard(grid, cardName, category, title, position, mastery);
+            }
+
+            AddButton(achievementsPanel, "BackButton", "BACK", new Vector2(0, -245),
+                new Vector2(196, 54), MidNavy);
+        }
+
+        var cards = achievementsPanel.Find("CertificateCardGrid");
         for (int stage = 1; stage <= StageTitles.Length; stage++)
         {
             int selectedStage = stage;
-            Bind(achievementsPanel, "Stage" + stage + "CertificateButton",
+            Bind(cards, "Stage" + stage + "CertificateButton",
                 () => ShowStageCertificate(selectedStage));
         }
 
-        Bind(achievementsPanel, "OverallCertificateButton", () => Open("ChemQuestCertificate"));
+        Bind(cards, "OverallCertificateButton", () => Open("ChemQuestCertificate"));
         Bind(achievementsPanel, "BackButton", () => achievementsPanel.gameObject.SetActive(false));
         achievementsPanel.gameObject.SetActive(false);
     }
 
-    private static Transform CreateAwardPanel(Transform overlay, string name, string title)
+    private static void CreateCertificateCard(Transform grid, string name, string category,
+        string title, Vector2 position, bool mastery)
     {
-        var shade = Panel(overlay, name, Vector2.zero, new Vector2(1280, 720), Navy);
-        // Cover the entire viewport and capture clicks outside the certificate.
-        shade.rectTransform.anchorMin = Vector2.zero;
-        shade.rectTransform.anchorMax = Vector2.one;
-        shade.rectTransform.sizeDelta = Vector2.zero;
-        shade.raycastTarget = true;
-        Label(shade.transform, "Heading", title, new Vector2(0, 263),
-            new Vector2(840, 65), 36, Gold);
-        AddButton(shade.transform, "BackButton", "BACK", new Vector2(0, -278),
-            new Vector2(200, 48), MidNavy);
-        return shade.transform;
+        Color accent = mastery ? new Color32(89, 224, 219, 255) : Gold;
+        var frame = Panel(grid, name, position, new Vector2(325, 172), accent);
+        frame.raycastTarget = true;
+        var surface = Panel(frame.transform, "CardSurface", Vector2.zero,
+            new Vector2(321, 168), mastery ? new Color32(14, 59, 75, 255) : MidNavy);
+        var button = frame.gameObject.AddComponent<Button>();
+        button.targetGraphic = surface;
+
+        Panel(frame.transform, "Accent", new Vector2(0, 79), new Vector2(321, 6), accent);
+        Label(frame.transform, "Category", category, new Vector2(0, 48),
+            new Vector2(290, 28), 18, accent);
+        Label(frame.transform, "Title", title, new Vector2(0, 9),
+            new Vector2(300, 44), 29, Color.white);
+        var action = Panel(frame.transform, "ActionStrip", new Vector2(0, -51),
+            new Vector2(289, 36), new Color32(10, 33, 57, 255));
+        Label(action.transform, "Status", mastery ? "OPEN CERTIFICATE" : "LOCKED", Vector2.zero,
+            new Vector2(280, 33), 18, accent);
     }
 
     private void ShowAchievements()
     {
+        var grid = achievementsPanel.Find("CertificateCardGrid");
         for (int stage = 1; stage <= StageTitles.Length; stage++)
         {
-            var item = achievementsPanel.Find("Stage" + stage + "CertificateButton");
+            var card = grid.Find("Stage" + stage + "CertificateButton");
             bool earned = ChemQuestStudentProgress.IsStageComplete(stage);
-            item.GetComponent<Button>().interactable = earned;
-            item.Find("Label").GetComponent<TMP_Text>().text =
-                StageHeading(stage) + (earned ? "  |  VIEW CERTIFICATE" : "  |  LOCKED");
+            var button = card.GetComponent<Button>();
+            button.interactable = earned;
+            var colors = button.colors;
+            colors.disabledColor = Color.white;
+            button.colors = colors;
+
+            Color accent = earned ? Gold : new Color32(143, 166, 190, 255);
+            card.GetComponent<Image>().color = accent;
+            card.Find("Accent").GetComponent<Image>().color = accent;
+            card.Find("Category").GetComponent<TMP_Text>().color = accent;
+            var status = card.Find("ActionStrip/Status").GetComponent<TMP_Text>();
+            status.text = earned ? "VIEW CERTIFICATE" : "LOCKED";
+            status.color = accent;
         }
 
         achievementsPanel.SetAsLastSibling();
