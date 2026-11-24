@@ -16,6 +16,16 @@ public class Level1AttemptManager : MonoBehaviour
     private bool levelFailed = false;
 
     public int MistakeCount => mistakeCount;
+    internal const string FirstClearMistakeKey = "Stage1Level1HadMistake";
+    internal static bool HadMistakeBeforeFirstClear => PlayerPrefs.GetInt(FirstClearMistakeKey) == 1;
+
+    internal static void RecordFirstClearMistake()
+    {
+        if (PlayerPrefs.GetInt("Stage1Level1Completed") == 1) return;
+        PlayerPrefs.SetInt(FirstClearMistakeKey, 1);
+        PlayerPrefs.Save();
+    }
+
     public bool HasMadeMistake => mistakeCount > 0;
 
     private void Start()
@@ -75,6 +85,7 @@ public class Level1AttemptManager : MonoBehaviour
         }
 
         mistakeCount++;
+        RecordFirstClearMistake();
 
         Debug.Log(
             "Level 1 mistake count: " + mistakeCount

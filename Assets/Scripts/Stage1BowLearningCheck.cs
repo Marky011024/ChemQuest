@@ -263,6 +263,7 @@ public sealed class Stage1BowLearningCheck : MonoBehaviour
         {
             ChemQuestSoundtrack.Wrong();
             mistakes++;
+            if (stageLevel == 1) Level1AttemptManager.RecordFirstClearMistake();
             tipLabel.text="";
             ChemQuestHintPopup.Show(mistakes==1?q.hint:q.explanation);
             return;

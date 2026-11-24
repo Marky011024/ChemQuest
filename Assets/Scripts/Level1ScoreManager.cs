@@ -55,8 +55,11 @@ public class Level1ScoreManager : MonoBehaviour
         // Calculate final score
         // No mistakes = 100
         // With mistake = 75
-        score = attemptManager != null &&
-                (attemptManager.HasMadeMistake || bowHadMistake) ? 75 : 100;
+        bool hadMistake = bowHadMistake ||
+            (attemptManager != null && attemptManager.HasMadeMistake) ||
+            Level1AttemptManager.HadMistakeBeforeFirstClear ||
+            PlayerPrefs.GetInt("Stage1Level1RetryCount") > 0;
+        score = hadMistake ? 75 : 100;
 
         score = ChemQuestStudentProgress.SaveFirstLevelScore("Stage1Level1", score);
         UpdateScoreDisplay();
